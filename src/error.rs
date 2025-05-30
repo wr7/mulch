@@ -1,75 +1,113 @@
-use std::ops::{Deref, DerefMut};
+mod spanned;
 
-use copyspan::Span;
+use std::fmt::Debug;
 
-#[repr(C)]
-pub struct PartialSpanned<T> {
-    pub data: T,
-    pub span: Span,
-}
+use codespan_reporting::diagnostic::{
+    Diagnostic as CodespanDiagnostic, Label, LabelStyle, Severity,
+};
+pub use spanned::*;
 
-impl<T> PartialSpanned<T> {
-    pub fn new(data: T, span: Span) -> Self {
-        Self { data, span }
-    }
+// We are using `Box` in order to reduce the size of `Result<T, Diagnostic>`.
+#[derive(Clone, PartialEq, Eq)]
+#[repr(transparent)]
+pub struct Diagnostic(Box<RawDiagnostic>);
 
-    pub fn map<F: FnOnce(T) -> U, U>(self, f: F) -> PartialSpanned<U> {
-        PartialSpanned::<U> {
-            data: f(self.data),
-            span: self.span,
-        }
-    }
-}
-
-impl<T> Deref for PartialSpanned<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.data
+impl Debug for Diagnostic {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Diagnostic")
+            .field("severity", &self.0.severity)
+            .field("code", &self.0.code)
+            .field("message", &self.0.message)
+            .field("hints", &self.0.hints)
+            .finish()
     }
 }
 
-impl<T> DerefMut for PartialSpanned<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.data
-    }
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Hint {
+    message: String,
+    span: FullSpan,
+    style: LabelStyle,
 }
 
-#[repr(C)]
-pub struct Spanned<T> {
-    pub data: T,
-    pub span: Span,
-    pub file_no: usize,
-}
-
-impl<T> Spanned<T> {
-    pub fn new(data: T, span: Span, file_no: usize) -> Self {
+impl Hint {
+    pub fn primary(message: String, span: FullSpan) -> Self {
         Self {
-            data,
+            message,
             span,
-            file_no,
+            style: LabelStyle::Primary,
         }
     }
-
-    pub fn map<F: FnOnce(T) -> U, U>(self, f: F) -> Spanned<U> {
-        Spanned::<U> {
-            data: f(self.data),
-            span: self.span,
-            file_no: self.file_no,
+    pub fn secondary(message: String, span: FullSpan) -> Self {
+        Self {
+            message,
+            span,
+            style: LabelStyle::Secondary,
         }
     }
 }
 
-impl<T> Deref for Spanned<T> {
-    type Target = T;
+#[derive(Clone, PartialEq, Eq)]
+struct RawDiagnostic {
+    severity: Severity,
+    code: &'static str,
+    message: String,
+    hints: Vec<Hint>,
+}
 
-    fn deref(&self) -> &Self::Target {
-        &self.data
+impl Diagnostic {
+    pub fn error(code: &'static str, message: String, hints: Vec<Hint>) -> Self {
+        Self(Box::new(RawDiagnostic {
+            severity: Severity::Error,
+            code,
+            message,
+            hints,
+        }))
     }
 }
 
-impl<T> DerefMut for Spanned<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.data
+impl From<Hint> for Label<usize> {
+    fn from(value: Hint) -> Self {
+        Label {
+            style: value.style,
+            file_id: value.span.file_id,
+            range: value.span.span.range(),
+            message: value.message,
+        }
     }
 }
+
+impl From<Diagnostic> for CodespanDiagnostic<usize> {
+    fn from(value: Diagnostic) -> Self {
+        let value: RawDiagnostic = *value.0;
+        CodespanDiagnostic {
+            severity: value.severity,
+            code: Some(value.code.to_owned()),
+            message: value.message,
+            labels: value.hints.into_iter().map(Label::from).collect(),
+            notes: Vec::new(),
+        }
+    }
+}
+
+macro_rules! error {
+    (
+        $code:literal,
+        $msg:expr,
+        [
+            $(
+                {$hintmsg:expr, $span:expr, $type:ident}
+            ),*$(,)?
+        ]$(,)?
+    ) => {
+        $crate::error::Diagnostic::error(
+            $code,
+            $msg,
+            vec![$(
+                $crate::error::Hint::$type(String::from($hintmsg), $span)
+            ),*]
+        )
+    };
+}
+
+pub(crate) use error;

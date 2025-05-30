@@ -3,7 +3,7 @@ use std::{
     fmt::{Debug, Display},
 };
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Symbol {
     Dot,
@@ -21,14 +21,14 @@ pub enum Symbol {
     GreaterThan,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BracketType {
     Round,
     Square,
     Curly,
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Token<'a> {
     Identifier(&'a str),
@@ -139,6 +139,9 @@ macro_rules! T {
     };
     (>) => {
         $crate::lexer::Token::Symbol($crate::lexer::Symbol::GreaterThan)
+    };
+    (_) => {
+        $crate::lexer::Token::Identifier("_")
     };
     ($lit:literal) => {
         $crate::lexer::TokenLiteralHelper($lit).create(::core::stringify!($lit))

@@ -1,27 +1,38 @@
+mod error;
 mod types;
 
 use std::{iter::Peekable, str::CharIndices};
 
+use copyspan::Span;
 pub use types::*;
 
-use crate::error::PartialSpanned;
+use crate::error::{Diagnostic, FullSpan, PartialSpanned};
 
 pub struct Lexer<'a> {
     src: &'a str,
     remaining: Peekable<CharIndices<'a>>,
+    file_id: usize,
 }
 
 impl<'a> Lexer<'a> {
-    pub fn new(src: &'a str) -> Self {
+    pub fn new(src: &'a str, file_id: usize) -> Self {
         Self {
             src,
             remaining: src.char_indices().peekable(),
+            file_id,
+        }
+    }
+
+    fn full_span(&self, span: Span) -> FullSpan {
+        FullSpan {
+            span,
+            file_id: self.file_id,
         }
     }
 }
 
 impl<'a> Iterator for Lexer<'a> {
-    type Item = PartialSpanned<Token<'a>>;
+    type Item = Result<PartialSpanned<Token<'a>>, Diagnostic>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -38,7 +49,10 @@ impl<'a> Iterator for Lexer<'a> {
 
             let token = loop {
                 let Some(rule) = rules.next() else {
-                    todo!() // Unexpected character
+                    return Some(Err(error::unexpected_character(
+                        c,
+                        self.full_span(Span::at(start).with_len(c.len_utf8())),
+                    )));
                 };
 
                 if let Some(token) = rule(self) {
@@ -48,28 +62,30 @@ impl<'a> Iterator for Lexer<'a> {
 
             let end = self.remaining.peek().map_or(self.src.len(), |&(i, _)| i);
 
-            Some(PartialSpanned::new(token, (start..end).into()));
+            return Some(Ok(PartialSpanned::new(token, Span::from(start..end))));
         }
     }
 }
 
 impl<'a> Lexer<'a> {
     fn try_lex_identifier(&mut self) -> Option<Token<'a>> {
-        let start = self.remaining.peek()?.0;
+        let (start, first_char) = *self.remaining.peek()?;
 
-        let end = loop {
-            let v = self.remaining.peek();
-
-            if v.is_some_and(|(_, c)| c.is_ascii_alphanumeric()) {
-                self.remaining.next();
-            } else {
-                break v.map_or(self.src.len(), |(i, _)| *i);
-            }
-        };
-
-        if start == end {
+        if first_char.is_ascii_alphabetic() || first_char == '_' {
+            self.remaining.next();
+        } else {
             return None;
         }
+
+        let end = loop {
+            let v = self.remaining.peek().copied();
+
+            if v.is_some_and(|(_, c)| c.is_ascii_alphanumeric() || c == '_') {
+                self.remaining.next();
+            } else {
+                break v.map_or(self.src.len(), |(i, _)| i);
+            }
+        };
 
         Some(Token::Identifier(&self.src[start..end]))
     }
