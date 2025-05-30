@@ -1,6 +1,9 @@
 mod error;
 mod types;
 
+#[cfg(test)]
+mod test;
+
 use std::{iter::Peekable, str::CharIndices};
 
 use copyspan::Span;
@@ -8,6 +11,7 @@ pub use types::*;
 
 use crate::error::{Diagnostic, FullSpan, PartialSpanned};
 
+#[derive(Clone, Debug)]
 pub struct Lexer<'a> {
     src: &'a str,
     remaining: Peekable<CharIndices<'a>>,
