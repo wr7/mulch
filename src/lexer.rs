@@ -4,7 +4,7 @@ mod types;
 #[cfg(test)]
 mod test;
 
-use std::{iter::Peekable, str::CharIndices};
+use std::{borrow::Cow, iter::Peekable, str::CharIndices};
 
 use copyspan::Span;
 pub use types::*;
@@ -91,6 +91,6 @@ impl<'a> Lexer<'a> {
             }
         };
 
-        Some(Token::Identifier(&self.src[start..end]))
+        Some(Token::Identifier(Cow::Borrowed(&self.src[start..end])))
     }
 }
