@@ -1,4 +1,4 @@
-use crate::lexer::Token;
+use crate::lexer::{T, Token};
 
 use super::Lexer;
 
@@ -12,7 +12,28 @@ const OPT_WHITESPACE: &'static str = "[ \t\r\n]*";
 const IDENT: &'static str = "[A-Za-z_][a-zA-Z0-9_]*";
 
 fn arb_token() -> impl Strategy<Value = (Token<'static>, String)> + Clone {
-    IDENT.prop_map(|id| (Token::Identifier(id.clone().into()), id))
+    prop_oneof! {
+        IDENT.prop_map(|id| (Token::Identifier(id.clone().into()), id)),
+        Just((T!(.),  ".".to_string())),
+        Just((T!(,),  ",".to_string())),
+        Just((T!(;),  ";".to_string())),
+        Just((T!(=),  "=".to_string())),
+        Just((T!(|),  "|".to_string())),
+        Just((T!(+),  "+".to_string())),
+        Just((T!(/),  "/".to_string())),
+        Just((T!(*),  "*".to_string())),
+        Just((T!(^),  "^".to_string())),
+        Just((T!(<),  "<".to_string())),
+        Just((T!(>),  ">".to_string())),
+        Just((T!(-),  "-".to_string())),
+        Just((T!(->), "->".to_string())),
+        Just((T!('('),  "(".to_string())),
+        Just((T!(')'),  ")".to_string())),
+        Just((T!('['),  "[".to_string())),
+        Just((T!(']'),  "]".to_string())),
+        Just((T!('{'),  "{".to_string())),
+        Just((T!('}'),  "}".to_string())),
+    }
 }
 
 fn arb_tokenstream() -> impl Strategy<Value = (Vec<Token<'static>>, String)> {
@@ -40,7 +61,7 @@ fn arb_tokenstream() -> impl Strategy<Value = (Vec<Token<'static>>, String)> {
 
 proptest! {
     #[test]
-    fn ident(
+    fn proptest(
         (tokens, src) in arb_tokenstream()
     ) {
         let mut lexer = Lexer::new(&src, 0);
