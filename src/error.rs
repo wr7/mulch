@@ -7,6 +7,8 @@ use codespan_reporting::diagnostic::{
 };
 pub use spanned::*;
 
+pub type DResult<T> = Result<T, Diagnostic>;
+
 // We are using `Box` in order to reduce the size of `Result<T, Diagnostic>`.
 #[derive(Clone, PartialEq, Eq)]
 #[repr(transparent)]
@@ -102,7 +104,7 @@ macro_rules! error {
     ) => {
         $crate::error::Diagnostic::error(
             $code,
-            $msg,
+            String::from($msg),
             vec![$(
                 $crate::error::Hint::$type(String::from($hintmsg), $span)
             ),*]
