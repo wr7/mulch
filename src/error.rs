@@ -1,10 +1,13 @@
+mod sourcedb;
 mod spanned;
 
-use std::fmt::Debug;
+use std::{ffi::OsStr, fmt::Debug};
 
-use codespan_reporting::diagnostic::{
-    Diagnostic as CodespanDiagnostic, Label, LabelStyle, Severity,
+use codespan_reporting::{
+    diagnostic::{Diagnostic as CodespanDiagnostic, Label, LabelStyle, Severity},
+    term::termcolor::Buffer,
 };
+pub use sourcedb::SourceDB;
 pub use spanned::*;
 
 pub type DResult<T> = Result<T, Diagnostic>;
@@ -88,6 +91,42 @@ impl From<Diagnostic> for CodespanDiagnostic<usize> {
             message: value.message,
             labels: value.hints.into_iter().map(Label::from).collect(),
             notes: Vec::new(),
+        }
+    }
+}
+
+/// Used for displaying diagnostics: returned by [`Diagnostic::display`]
+pub struct Display<'a> {
+    diag: CodespanDiagnostic<usize>,
+    db: &'a SourceDB,
+}
+
+impl<'a> std::fmt::Display for Display<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut buf = Buffer::ansi();
+
+        if let Err(err) =
+            codespan_reporting::term::emit(&mut buf, &Default::default(), self.db, &self.diag)
+        {
+            return writeln!(
+                f,
+                "edecl internal error: unable to format error diagnostic: {err}\n\n{:?}",
+                &self.diag
+            );
+        }
+
+        let buf = buf.as_slice();
+        let buf = String::from_utf8_lossy(buf);
+
+        write!(f, "{}", buf)
+    }
+}
+
+impl Diagnostic {
+    pub fn display<P: AsRef<OsStr>>(self, db: &SourceDB) -> Display {
+        Display {
+            diag: self.into(),
+            db,
         }
     }
 }

@@ -1,2 +1,6 @@
-/target
-proptest-regressions
+*
+!Cargo.lock
+!Cargo.toml
+!.gitignore
+!src
+!src/**

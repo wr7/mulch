@@ -1,6 +1,10 @@
-use std::{fmt::Debug, mem::MaybeUninit};
+use std::{
+    ffi::OsStr,
+    fmt::{Debug, Display},
+    mem::{ManuallyDrop, MaybeUninit},
+};
 
-pub struct MultiPeekable<I: Iterator, const N: usize> {
+pub(crate) struct MultiPeekable<I: Iterator, const N: usize> {
     iter: I,
     buf: [MaybeUninit<I::Item>; N],
     len: usize,
@@ -100,5 +104,24 @@ impl<I: Iterator, const N: usize> Drop for MultiPeekable<I, N> {
         for i in 0..self.len {
             unsafe { self.buf[i].assume_init_drop() };
         }
+    }
+}
+
+pub fn vec_into_raw_parts<T>(val: Vec<T>) -> (*mut T, usize, usize) {
+    let mut val = ManuallyDrop::new(val);
+
+    let len = val.len();
+    let capacity = val.capacity();
+    let ptr = val.as_mut_ptr();
+
+    (ptr, len, capacity)
+}
+
+#[repr(transparent)]
+pub struct DisplayableOsStr<'a>(pub &'a OsStr);
+
+impl<'a> Display for DisplayableOsStr<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(&self.0.display(), f)
     }
 }

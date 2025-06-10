@@ -116,8 +116,6 @@ impl<'a> Lexer<'a> {
     }
 
     fn try_lex_symbol(&mut self) -> Option<DResult<Token<'a>>> {
-        dbg!(self.remaining.peek_all());
-
         let token = match self.remaining.peek_all() {
             [(_, '-'), (_, '>'), ..] => {
                 self.remaining.next();
