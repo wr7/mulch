@@ -1,7 +1,7 @@
 mod sourcedb;
 mod spanned;
 
-use std::{ffi::OsStr, fmt::Debug};
+use std::fmt::Debug;
 
 use codespan_reporting::{
     diagnostic::{Diagnostic as CodespanDiagnostic, Label, LabelStyle, Severity},
@@ -123,7 +123,7 @@ impl<'a> std::fmt::Display for Display<'a> {
 }
 
 impl Diagnostic {
-    pub fn display<P: AsRef<OsStr>>(self, db: &SourceDB) -> Display {
+    pub fn display(self, db: &SourceDB) -> Display {
         Display {
             diag: self.into(),
             db,

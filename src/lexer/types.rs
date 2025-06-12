@@ -30,16 +30,16 @@ pub enum BracketType {
 
 #[derive(Clone, PartialEq, Eq)]
 #[non_exhaustive]
-pub enum Token<'a> {
-    Identifier(Cow<'a, str>),
-    StringLiteral(Cow<'a, str>),
-    Number(&'a str),
+pub enum Token<'src> {
+    Identifier(Cow<'src, str>),
+    StringLiteral(Cow<'src, str>),
+    Number(&'src str),
     Symbol(Symbol),
     OpeningBracket(BracketType),
     ClosingBracket(BracketType),
 }
 
-impl<'a> Display for Token<'a> {
+impl<'src> Display for Token<'src> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let string = match *self {
             Token::Identifier(ref ident) => {
@@ -74,7 +74,7 @@ impl<'a> Display for Token<'a> {
     }
 }
 
-impl<'a> Debug for Token<'a> {
+impl<'src> Debug for Token<'src> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if matches!(self, Token::OpeningBracket(_) | Token::ClosingBracket(_)) {
             return write!(f, "Token(`{self}`)");

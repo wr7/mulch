@@ -42,6 +42,15 @@ pub struct FullSpan {
     pub file_id: usize,
 }
 
+impl FullSpan {
+    pub fn new(span: impl Into<Span>, file_id: usize) -> Self {
+        Self {
+            span: span.into(),
+            file_id,
+        }
+    }
+}
+
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Spanned<T> {
