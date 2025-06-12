@@ -28,12 +28,12 @@ macro_rules! parse_test {
     };
 }
 
-parse_test! {ident, " test_123 ", crate::error::PartialSpanned {
-    data: crate::parser::Expression::Variable("test_123".into()),
-    span: ::copyspan::Span::from(1..9)
-}}
+parse_test! {ident, " test_123 ", crate::error::PartialSpanned (
+    crate::parser::Expression::Variable("test_123".into()),
+    ::copyspan::Span::from(1..9)
+)}
 
-parse_test! {string_literal, r#" "my \"string\"!" "#, crate::error::PartialSpanned {
-    data: crate::parser::Expression::StringLiteral(r#"my "string"!"#.into()),
-    span: ::copyspan::Span::from(1..17)
-}}
+parse_test! {string_literal, r#" "my \"string\"!" "#, crate::error::PartialSpanned (
+    crate::parser::Expression::StringLiteral(r#"my "string"!"#.into()),
+    ::copyspan::Span::from(1..17)
+)}

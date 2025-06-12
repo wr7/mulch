@@ -103,7 +103,7 @@ proptest! {
         let mut tokens = tokens.iter();
 
         for (expected, got) in tokens.by_ref().zip(lexer.by_ref()) {
-            let got = got.ok().map(|p| p.data);
+            let got = got.ok().map(|p| p.0);
             prop_assert_eq!(Some(expected), got.as_ref());
         }
 

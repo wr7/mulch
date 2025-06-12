@@ -1,9 +1,7 @@
 use std::borrow::Cow;
 
-use copyspan::Span;
-
 use crate::{
-    error::{DResult, FullSpan, PartialSpanned},
+    error::{DResult, FullSpan, PartialSpanned, span_of},
     lexer::Token,
 };
 
@@ -27,8 +25,7 @@ pub fn parse_expression<'src>(
         return Ok(None);
     }
 
-    let span = tokens[0].span.start..tokens.last().unwrap().span.end;
-    let span = Span::from(span);
+    let span = span_of(tokens).unwrap();
     let rules = [parse_ident_or_literal];
 
     for rule in rules {
@@ -47,13 +44,7 @@ pub fn parse_ident_or_literal<'src>(
     tokens: &TokenStream<'src>,
     _file_id: usize,
 ) -> DResult<Option<Expression<'src>>> {
-    let [
-        PartialSpanned {
-            data: token,
-            span: _,
-        },
-    ] = tokens
-    else {
+    let [PartialSpanned(token, _)] = tokens else {
         return Ok(None);
     };
 

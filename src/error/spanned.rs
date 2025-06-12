@@ -4,21 +4,19 @@ use copyspan::Span;
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct PartialSpanned<T> {
-    pub data: T,
-    pub span: Span,
+pub struct PartialSpanned<T>(pub T, pub Span);
+
+pub fn span_of<T>(arr: &[PartialSpanned<T>]) -> Option<Span> {
+    Some(Span::from(arr.first()?.1.start..arr.last()?.1.end))
 }
 
 impl<T> PartialSpanned<T> {
     pub fn new(data: T, span: Span) -> Self {
-        Self { data, span }
+        Self(data, span)
     }
 
     pub fn map<F: FnOnce(T) -> U, U>(self, f: F) -> PartialSpanned<U> {
-        PartialSpanned::<U> {
-            data: f(self.data),
-            span: self.span,
-        }
+        PartialSpanned::<U>(f(self.0), self.1)
     }
 }
 
@@ -26,13 +24,13 @@ impl<T> Deref for PartialSpanned<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        &self.data
+        &self.0
     }
 }
 
 impl<T> DerefMut for PartialSpanned<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.data
+        &mut self.0
     }
 }
 
@@ -53,21 +51,15 @@ impl FullSpan {
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Spanned<T> {
-    pub data: T,
-    pub span: FullSpan,
-}
+pub struct Spanned<T>(pub T, pub FullSpan);
 
 impl<T> Spanned<T> {
     pub fn new(data: T, span: FullSpan) -> Self {
-        Self { data, span }
+        Self(data, span)
     }
 
     pub fn map<F: FnOnce(T) -> U, U>(self, f: F) -> Spanned<U> {
-        Spanned::<U> {
-            data: f(self.data),
-            span: self.span,
-        }
+        Spanned::<U>(f(self.0), self.1)
     }
 }
 
@@ -75,12 +67,12 @@ impl<T> Deref for Spanned<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        &self.data
+        &self.0
     }
 }
 
 impl<T> DerefMut for Spanned<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.data
+        &mut self.0
     }
 }
