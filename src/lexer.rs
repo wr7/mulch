@@ -10,7 +10,7 @@ use copyspan::Span;
 pub use types::*;
 
 use crate::{
-    error::{DResult, Diagnostic, FullSpan, PartialSpanned},
+    error::{DResult, FullSpan, PartialSpanned},
     util::MultiPeekable,
 };
 
@@ -30,6 +30,10 @@ impl<'a> Lexer<'a> {
         }
     }
 
+    pub fn lex(self) -> DResult<Vec<PartialSpanned<Token<'a>>>> {
+        self.collect()
+    }
+
     fn full_span(&self, span: impl Into<Span>) -> FullSpan {
         FullSpan {
             span: span.into(),
@@ -47,7 +51,7 @@ impl<'a> Lexer<'a> {
 }
 
 impl<'a> Iterator for Lexer<'a> {
-    type Item = Result<PartialSpanned<Token<'a>>, Diagnostic>;
+    type Item = DResult<PartialSpanned<Token<'a>>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
