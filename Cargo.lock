@@ -53,18 +53,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ffc2c15a8bca8c855a50779820ea091191bcc1142e53a641e7811f23dcd4591"
 
 [[package]]
-name = "edecl"
-version = "0.1.0"
-dependencies = [
- "codespan-reporting",
- "copyspan",
- "itertools",
- "num-bigint",
- "num-rational",
- "proptest",
-]
-
-[[package]]
 name = "either"
 version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -141,6 +129,18 @@ name = "linux-raw-sys"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cd945864f07fe9f5371a27ad7b52a172b4b499999f1d97574c9fa68373937e12"
+
+[[package]]
+name = "mulch"
+version = "0.1.0"
+dependencies = [
+ "codespan-reporting",
+ "copyspan",
+ "itertools",
+ "num-bigint",
+ "num-rational",
+ "proptest",
+]
 
 [[package]]
 name = "num-bigint"

@@ -110,7 +110,7 @@ impl<'a> std::fmt::Display for Display<'a> {
         {
             return writeln!(
                 f,
-                "edecl internal error: unable to format error diagnostic: {err}\n\n{:?}",
+                "mulch internal error: unable to format error diagnostic: {err}\n\n{:?}",
                 &self.diag
             );
         }
