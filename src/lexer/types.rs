@@ -84,6 +84,7 @@ impl<'src> Debug for Token<'src> {
     }
 }
 
+#[macro_export]
 macro_rules! T {
     ('(') => {
         $crate::lexer::Token::OpeningBracket($crate::lexer::BracketType::Round)
@@ -149,7 +150,7 @@ macro_rules! T {
         $crate::lexer::TokenLiteralHelper($lit).create(::core::stringify!($lit))
     };
     ($ident:ident) => {
-        $crate::lexer::Token::Identifier(::core::stringify!($ident))
+        $crate::lexer::Token::Identifier(::core::stringify!($ident).into())
     };
 }
 

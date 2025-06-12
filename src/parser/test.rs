@@ -1,4 +1,4 @@
-#[allow(unused)] // false positive
+#[macro_export]
 macro_rules! dresult_unwrap {
     ($result:expr, $db:expr) => {
         match $result {

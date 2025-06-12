@@ -7,6 +7,7 @@ use crate::{
 
 mod error;
 mod test;
+pub mod util;
 
 pub type TokenStream<'src> = [PartialSpanned<Token<'src>>];
 
