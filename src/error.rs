@@ -12,6 +12,18 @@ pub use spanned::*;
 
 pub type DResult<T> = Result<T, Diagnostic>;
 
+#[macro_export]
+macro_rules! dresult_unwrap {
+    ($result:expr, $db:expr) => {
+        match $result {
+            Ok(inner) => inner,
+            Err(diag) => {
+                ::core::panic!("\ndresult_unwrap failed:\n\n{}", diag.display($db))
+            }
+        }
+    };
+}
+
 // We are using `Box` in order to reduce the size of `Result<T, Diagnostic>`.
 #[derive(Clone, PartialEq, Eq)]
 #[repr(transparent)]

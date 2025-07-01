@@ -2,6 +2,7 @@ use std::{
     ffi::OsStr,
     fmt::{Debug, Display},
     mem::{ManuallyDrop, MaybeUninit},
+    ptr,
 };
 
 pub(crate) struct MultiPeekable<I: Iterator, const N: usize> {
@@ -123,5 +124,29 @@ pub struct DisplayableOsStr<'a>(pub &'a OsStr);
 impl<'a> Display for DisplayableOsStr<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         Display::fmt(&self.0.display(), f)
+    }
+}
+
+// https://doc.rust-lang.org/nightly/std/primitive.slice.html#method.element_offset
+pub fn element_offset<T>(slice: &[T], element: &T) -> Option<usize> {
+    if size_of::<T>() == 0 {
+        panic!("elements are zero-sized");
+    }
+
+    let self_start = slice.as_ptr().addr();
+    let elem_start = ptr::from_ref(element).addr();
+
+    let byte_offset = elem_start.wrapping_sub(self_start);
+
+    if byte_offset % size_of::<T>() != 0 {
+        return None;
+    }
+
+    let offset = byte_offset / size_of::<T>();
+
+    if offset < slice.len() {
+        Some(offset)
+    } else {
+        None
     }
 }

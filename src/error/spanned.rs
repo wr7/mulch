@@ -15,8 +15,16 @@ impl<T> PartialSpanned<T> {
         Self(data, span)
     }
 
+    pub fn with_file_id(self, file_id: usize) -> Spanned<T> {
+        Spanned(self.0, FullSpan::new(self.1, file_id))
+    }
+
     pub fn map<F: FnOnce(T) -> U, U>(self, f: F) -> PartialSpanned<U> {
         PartialSpanned::<U>(f(self.0), self.1)
+    }
+
+    pub fn as_ref(&self) -> PartialSpanned<&T> {
+        PartialSpanned(&self.0, self.1)
     }
 }
 
@@ -60,6 +68,10 @@ impl<T> Spanned<T> {
 
     pub fn map<F: FnOnce(T) -> U, U>(self, f: F) -> Spanned<U> {
         Spanned::<U>(f(self.0), self.1)
+    }
+
+    pub fn as_ref(&self) -> Spanned<&T> {
+        Spanned(&self.0, self.1)
     }
 }
 

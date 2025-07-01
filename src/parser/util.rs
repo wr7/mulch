@@ -1,3 +1,5 @@
+use std::iter::Fuse;
+
 use crate::{
     error::{DResult, FullSpan, PartialSpanned},
     lexer::{BracketType, Token},
@@ -14,13 +16,14 @@ pub(super) struct NonBracketedIter<'a, 'src> {
 }
 
 impl<'a, 'src> NonBracketedIter<'a, 'src> {
-    pub fn new(slc: &'a [PartialSpanned<Token<'src>>], file_no: usize) -> Self {
+    pub fn new(slc: &'a [PartialSpanned<Token<'src>>], file_no: usize) -> Fuse<Self> {
         Self {
             remaining: slc,
             file_no,
             opening_bracket: None,
             closing_bracket: None,
         }
+        .fuse()
     }
 
     pub fn remainder<'b>(&'b self) -> &'a [PartialSpanned<Token<'src>>] {
