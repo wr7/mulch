@@ -23,6 +23,10 @@ pub fn parse_attribute_set<'src>(
         unreachable!()
     };
 
+    if iter.next().is_some() {
+        return Ok(None);
+    }
+
     let [_, inside @ .., _] = tokens else {
         unreachable!()
     };
@@ -34,18 +38,10 @@ pub fn parse_attribute_set<'src>(
     let mut start = 1;
     let mut entries: AttributeSet<'src> = Vec::new();
 
-    loop {
+    while start < tokens.len() - 1 {
         let end = iter.next().transpose()?.unwrap_or(tokens.len() - 1);
 
-        if start > end {
-            break;
-        }
-
         if start == end {
-            if end == tokens.len() - 1 {
-                break;
-            }
-
             return Err(error::expected_attribute_name(
                 tokens[end].as_ref().with_file_id(file_id),
             ));

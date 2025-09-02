@@ -1,8 +1,8 @@
 #[allow(unused)] // false positive
 use copyspan::Span;
 
-#[allow(unused)] // false positive
-use crate::dresult_unwrap;
+#[allow(unused)] // false positives
+use crate::{dresult_unwrap, error::PartialSpanned, parser::Expression};
 
 macro_rules! parse_test {
     ($test_name:ident, $src:expr, $output:expr) => {
@@ -101,4 +101,32 @@ parse_test! {nested_set, "{ x = a; b={x=cat; y=dog}; hi=foo;}",
         ),
         Span::from(0..35),
     )
+}
+
+parse_test! {nested_list, "[a, b, c, [d, [e, f], [g,],]]", PartialSpanned(
+    Expression::List(vec![
+        PartialSpanned(Expression::Variable("a".into()), Span::from(1..2)),
+        PartialSpanned(Expression::Variable("b".into()), Span::from(4..5)),
+        PartialSpanned(Expression::Variable("c".into()), Span::from(7..8)),
+        PartialSpanned(
+            Expression::List(vec![
+                PartialSpanned(Expression::Variable("d".into()), Span::from(11..12)),
+                PartialSpanned(
+                    Expression::List(vec![
+                        PartialSpanned(Expression::Variable("e".into()), Span::from(15..16)),
+                        PartialSpanned(Expression::Variable("f".into()), Span::from(18..19))
+                    ]),
+                    Span::from(14..20)
+                ),
+                PartialSpanned(
+                    Expression::List(vec![
+                        PartialSpanned(Expression::Variable("g".into()), Span::from(23..24))
+                    ]),
+                    Span::from(22..26)
+                )
+            ]),
+            Span::from(10..28)
+        )
+    ]), Span::from(0..29)
+)
 }

@@ -109,7 +109,9 @@ impl<'a> Lexer<'a> {
         let end = loop {
             let v = self.remaining.peek(0).copied();
 
-            if v.is_some_and(|(_, c)| c.is_ascii_alphanumeric() || c == '_') {
+            if let Some((_, c)) = v
+                && (c.is_ascii_alphanumeric() || c == '_')
+            {
                 self.remaining.next();
             } else {
                 break v.map_or(self.src.len(), |(i, _)| i);
