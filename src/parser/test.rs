@@ -1,8 +1,15 @@
+#[allow(unused)]
+use std::borrow::Cow;
+
 #[allow(unused)] // false positive
 use copyspan::Span;
 
 #[allow(unused)] // false positives
-use crate::{dresult_unwrap, error::PartialSpanned, parser::Expression};
+use crate::{
+    dresult_unwrap,
+    error::PartialSpanned,
+    parser::{Expression, WithIn},
+};
 
 macro_rules! parse_test {
     ($test_name:ident, $src:expr, $output:expr) => {
@@ -128,5 +135,19 @@ parse_test! {nested_list, "[a, b, c, [d, [e, f], [g,],]]", PartialSpanned(
             Span::from(10..28)
         )
     ]), Span::from(0..29)
-)
+)}
+
+parse_test! {with_in, r#"with {a = "hello";}; in a"#,
+    PartialSpanned(
+        Expression::WithIn(WithIn{
+            set: Box::new(PartialSpanned(
+             Expression::Set(vec![
+                 (PartialSpanned(Cow::Borrowed("a"), Span::from(6..7)), PartialSpanned(Expression::StringLiteral(Cow::Borrowed("hello")), Span::from(10..17)))
+             ]),
+             Span::from(5..19)
+            )),
+            expression: Box::new(PartialSpanned(Expression::Variable(Cow::Borrowed("a")), Span::from(24..25)))
+        }),
+        Span::from(0..25)
+    )
 }

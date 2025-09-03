@@ -25,12 +25,19 @@ pub type AttributeSet<'src> = Vec<(
 )>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WithIn<'src> {
+    set: Box<PartialSpanned<Expression<'src>>>,
+    expression: Box<PartialSpanned<Expression<'src>>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expression<'src> {
     Variable(Cow<'src, str>),
     StringLiteral(Cow<'src, str>),
     /// Attribute set (note: ordered by index)
     Set(AttributeSet<'src>),
     List(Vec<PartialSpanned<Expression<'src>>>),
+    WithIn(WithIn<'src>),
 }
 
 /// Parses an expression; returns Ok(None) iff `tokens` is empty.
@@ -43,7 +50,12 @@ pub fn parse_expression<'src>(
     }
 
     let span = span_of(tokens).unwrap();
-    let rules = [parse_ident_or_literal, parse_attribute_set, parse_list];
+    let rules = [
+        parse_ident_or_literal,
+        parse_attribute_set,
+        parse_list,
+        parse_with_in,
+    ];
 
     for rule in rules {
         match rule(tokens, file_id)? {
@@ -117,4 +129,51 @@ pub fn parse_list<'src>(
     }
 
     Ok(Some(Expression::List(elements)))
+}
+
+pub fn parse_with_in<'src>(
+    tokens: &TokenStream<'src>,
+    file_id: usize,
+) -> DResult<Option<Expression<'src>>> {
+    let mut iter = NonBracketedIter::new(tokens, file_id);
+
+    let Some(PartialSpanned(T!(with), with_span)) = iter.next().transpose()? else {
+        return Ok(None);
+    };
+
+    let Some(semicolon) = iter
+        .find(|t| matches!(t, Err(_) | Ok(PartialSpanned(T!(;), _))))
+        .transpose()?
+    else {
+        return Ok(None);
+    };
+
+    let semicolon = crate::util::element_offset(tokens, semicolon).unwrap();
+
+    let Some(in_ @ PartialSpanned(T!(in), in_span)) = iter.next().transpose()? else {
+        return Ok(None);
+    };
+
+    let in_ = crate::util::element_offset(tokens, in_).unwrap();
+
+    let set = &tokens[1..semicolon];
+    let Some(set) = parse_expression(set, file_id)? else {
+        return Err(error::expected_expression(FullSpan::new(
+            with_span.span_after(),
+            file_id,
+        )));
+    };
+
+    let expression = &tokens[in_ + 1..];
+    let Some(expression) = parse_expression(expression, file_id)? else {
+        return Err(error::expected_expression(FullSpan::new(
+            in_span.span_after(),
+            file_id,
+        )));
+    };
+
+    Ok(Some(Expression::WithIn(WithIn {
+        set: Box::new(set),
+        expression: Box::new(expression),
+    })))
 }

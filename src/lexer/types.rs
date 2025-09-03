@@ -150,7 +150,7 @@ macro_rules! T {
         $crate::lexer::TokenLiteralHelper($lit).create(::core::stringify!($lit))
     };
     ($ident:ident) => {
-        $crate::lexer::Token::Identifier(::core::stringify!($ident).into())
+        $crate::lexer::Token::Identifier(::std::borrow::Cow::Borrowed(::core::stringify!($ident)))
     };
 }
 
