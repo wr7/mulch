@@ -68,6 +68,7 @@ impl<'a> Iterator for Lexer<'a> {
                 Self::try_lex_identifier,
                 Self::try_lex_symbol,
                 Self::try_lex_string_literal,
+                Self::try_lex_numeric_literal,
             ]
             .into_iter();
 
@@ -222,5 +223,39 @@ impl<'a> Lexer<'a> {
         Some(Ok(Token::StringLiteral(Cow::Borrowed(
             &self.src[string_start..end],
         ))))
+    }
+
+    fn try_lex_numeric_literal(&mut self) -> Option<DResult<Token<'a>>> {
+        let (start, c) = *self.remaining.peek(0)?;
+
+        if !c.is_ascii_digit() {
+            return None;
+        }
+
+        let mut hit_decimal = false;
+
+        let end = loop {
+            match self.remaining.peek_all() {
+                [(_, '0'..='9' | '_'), ..] => {}
+                [(_, '.'), (_, '0'..='9')] if !hit_decimal => {
+                    hit_decimal = true;
+                }
+                [(idx, c @ ('a'..='z' | 'A'..='Z')), ..] => {
+                    return Some(Err(error::unexpected_character_in_numeric_literal(
+                        *c,
+                        self.full_span_at(*idx),
+                    )));
+                }
+                tokens => {
+                    let end = tokens.get(0).map_or(self.src.len(), |&(idx, _)| idx);
+
+                    break end;
+                }
+            }
+
+            self.remaining.next();
+        };
+
+        Some(Ok(Token::Number(Cow::Borrowed(&self.src[start..end]))))
     }
 }

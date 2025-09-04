@@ -10,10 +10,12 @@ const WHITESPACE: &'static str = "[ \t\r\n]+";
 const OPT_WHITESPACE: &'static str = "[ \t\r\n]*";
 
 const IDENT: &'static str = "[A-Za-z_][a-zA-Z0-9_]*";
+const NUMBER: &'static str = "[0-9]+(\\.[0-9]+)?";
 
 fn arb_token() -> impl Strategy<Value = (Token<'static>, String)> + Clone {
     prop_oneof! {
         IDENT.prop_map(|id| (Token::Identifier(id.clone().into()), id)),
+        NUMBER.prop_map(|nb| (Token::Number(nb.clone().into()), nb)),
         "\\p{Any}*".prop_map(|content| {
             let quoted = quote(&content);
             (Token::StringLiteral(content.into()), quoted)

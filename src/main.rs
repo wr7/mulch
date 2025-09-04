@@ -13,16 +13,14 @@ pub fn main() {
     let db = SourceDB::new();
 
     let source = indoc! {r#"
-        let
-            a = "0";
-            b = "1";
-        in
-        [a, b]
+        313.2
     "#};
 
     let file_id = db.add("main.mulch".into(), source.to_owned());
 
     let tokens = dresult_unwrap!(lexer::Lexer::new(source, file_id).lex(), &db);
+
+    dbg!(&tokens);
 
     let ast = dresult_unwrap!(parser::parse_expression(&tokens, file_id), &db);
 

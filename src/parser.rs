@@ -42,6 +42,7 @@ pub struct LetIn<'src> {
 pub enum Expression<'src> {
     Variable(Cow<'src, str>),
     StringLiteral(Cow<'src, str>),
+    NumericLiteral(Cow<'src, str>),
     /// Attribute set (note: ordered by index)
     Set(NameExpressionMap<'src>),
     List(Vec<PartialSpanned<Expression<'src>>>),
@@ -90,6 +91,7 @@ pub fn parse_ident_or_literal<'src>(
     Ok(Some(match token {
         Token::Identifier(cow) => Expression::Variable(cow.clone()),
         Token::StringLiteral(cow) => Expression::StringLiteral(cow.clone()),
+        Token::Number(cow) => Expression::NumericLiteral(cow.clone()),
         _ => return Ok(None),
     }))
 }

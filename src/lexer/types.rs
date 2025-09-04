@@ -33,7 +33,7 @@ pub enum BracketType {
 pub enum Token<'src> {
     Identifier(Cow<'src, str>),
     StringLiteral(Cow<'src, str>),
-    Number(&'src str),
+    Number(Cow<'src, str>),
     Symbol(Symbol),
     OpeningBracket(BracketType),
     ClosingBracket(BracketType),
@@ -45,7 +45,9 @@ impl<'src> Display for Token<'src> {
             Token::Identifier(ref ident) => {
                 return write!(f, "{ident}");
             }
-            Token::Number(num) => num,
+            Token::Number(ref num) => {
+                return write!(f, "{num}");
+            }
             Token::StringLiteral(ref cow) => {
                 return write!(f, "\"{}\"", cow.escape_debug());
             }
@@ -169,12 +171,12 @@ impl TokenLiteralHelper<&'static str> {
 
 impl TokenLiteralHelper<f64> {
     pub const fn create(self, stringified: &'static str) -> Token<'static> {
-        Token::Number(stringified)
+        Token::Number(Cow::Borrowed(stringified))
     }
 }
 
 impl TokenLiteralHelper<u64> {
     pub const fn create(self, stringified: &'static str) -> Token<'static> {
-        Token::Number(stringified)
+        Token::Number(Cow::Borrowed(stringified))
     }
 }
