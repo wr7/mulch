@@ -117,9 +117,13 @@ impl<'a> std::fmt::Display for Display<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut buf = Buffer::ansi();
 
-        if let Err(err) =
-            codespan_reporting::term::emit(&mut buf, &Default::default(), self.db, &self.diag)
-        {
+        let config = codespan_reporting::term::Config {
+            before_label_lines: 3,
+            after_label_lines: 1,
+            ..Default::default()
+        };
+
+        if let Err(err) = codespan_reporting::term::emit(&mut buf, &config, self.db, &self.diag) {
             return writeln!(
                 f,
                 "mulch internal error: unable to format error diagnostic: {err}\n\n{:?}",

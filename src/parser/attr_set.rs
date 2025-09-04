@@ -6,7 +6,9 @@ use crate::{
     T,
     error::{DResult, FullSpan, PartialSpanned},
     lexer::Token,
-    parser::{AttributeSet, Expression, NonBracketedIter, TokenStream, error, parse_expression},
+    parser::{
+        Expression, NameExpressionMap, NonBracketedIter, TokenStream, error, parse_expression,
+    },
 };
 
 pub fn parse_attribute_set<'src>(
@@ -36,7 +38,7 @@ pub fn parse_attribute_set<'src>(
         .map_ok(|tok| crate::util::element_offset(tokens, tok).unwrap());
 
     let mut start = 1;
-    let mut entries: AttributeSet<'src> = Vec::new();
+    let mut entries: NameExpressionMap<'src> = Vec::new();
 
     while start < tokens.len() - 1 {
         let end = iter.next().transpose()?.unwrap_or(tokens.len() - 1);

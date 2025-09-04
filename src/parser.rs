@@ -2,6 +2,7 @@ use std::borrow::Cow;
 
 use copyspan::Span;
 use itertools::Itertools as _;
+use let_in::{parse_let_in, parse_with_in};
 use util::NonBracketedIter;
 
 use crate::{
@@ -12,6 +13,7 @@ use crate::{
 
 mod attr_set;
 mod error;
+mod let_in;
 mod test;
 pub mod util;
 
@@ -19,7 +21,7 @@ pub use attr_set::parse_attribute_set;
 
 pub type TokenStream<'src> = [PartialSpanned<Token<'src>>];
 
-pub type AttributeSet<'src> = Vec<(
+pub type NameExpressionMap<'src> = Vec<(
     PartialSpanned<Cow<'src, str>>,
     PartialSpanned<Expression<'src>>,
 )>;
@@ -31,13 +33,20 @@ pub struct WithIn<'src> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LetIn<'src> {
+    bindings: NameExpressionMap<'src>,
+    expression: Box<PartialSpanned<Expression<'src>>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expression<'src> {
     Variable(Cow<'src, str>),
     StringLiteral(Cow<'src, str>),
     /// Attribute set (note: ordered by index)
-    Set(AttributeSet<'src>),
+    Set(NameExpressionMap<'src>),
     List(Vec<PartialSpanned<Expression<'src>>>),
     WithIn(WithIn<'src>),
+    LetIn(LetIn<'src>),
 }
 
 /// Parses an expression; returns Ok(None) iff `tokens` is empty.
@@ -55,6 +64,7 @@ pub fn parse_expression<'src>(
         parse_attribute_set,
         parse_list,
         parse_with_in,
+        parse_let_in,
     ];
 
     for rule in rules {
@@ -129,51 +139,4 @@ pub fn parse_list<'src>(
     }
 
     Ok(Some(Expression::List(elements)))
-}
-
-pub fn parse_with_in<'src>(
-    tokens: &TokenStream<'src>,
-    file_id: usize,
-) -> DResult<Option<Expression<'src>>> {
-    let mut iter = NonBracketedIter::new(tokens, file_id);
-
-    let Some(PartialSpanned(T!(with), with_span)) = iter.next().transpose()? else {
-        return Ok(None);
-    };
-
-    let Some(semicolon) = iter
-        .find(|t| matches!(t, Err(_) | Ok(PartialSpanned(T!(;), _))))
-        .transpose()?
-    else {
-        return Ok(None);
-    };
-
-    let semicolon = crate::util::element_offset(tokens, semicolon).unwrap();
-
-    let Some(in_ @ PartialSpanned(T!(in), in_span)) = iter.next().transpose()? else {
-        return Ok(None);
-    };
-
-    let in_ = crate::util::element_offset(tokens, in_).unwrap();
-
-    let set = &tokens[1..semicolon];
-    let Some(set) = parse_expression(set, file_id)? else {
-        return Err(error::expected_expression(FullSpan::new(
-            with_span.span_after(),
-            file_id,
-        )));
-    };
-
-    let expression = &tokens[in_ + 1..];
-    let Some(expression) = parse_expression(expression, file_id)? else {
-        return Err(error::expected_expression(FullSpan::new(
-            in_span.span_after(),
-            file_id,
-        )));
-    };
-
-    Ok(Some(Expression::WithIn(WithIn {
-        set: Box::new(set),
-        expression: Box::new(expression),
-    })))
 }

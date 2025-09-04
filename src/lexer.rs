@@ -156,7 +156,7 @@ impl<'a> Lexer<'a> {
         Some(Ok(token))
     }
 
-    pub fn try_lex_string_literal(&mut self) -> Option<DResult<Token<'a>>> {
+    fn try_lex_string_literal(&mut self) -> Option<DResult<Token<'a>>> {
         let (start, c) = *self.remaining.peek(0)?;
 
         if c != '"' {

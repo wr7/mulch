@@ -26,6 +26,7 @@ impl<'a, 'src> NonBracketedIter<'a, 'src> {
         .fuse()
     }
 
+    #[allow(unused)]
     pub fn remainder<'b>(&'b self) -> &'a [PartialSpanned<Token<'src>>] {
         self.remaining
     }

@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use crate::{
     error::{Diagnostic, FullSpan, Spanned, error},
     lexer::Token,
@@ -29,4 +31,24 @@ pub fn expected_attribute_name(got: Spanned<&Token>) -> Diagnostic {
 
 pub fn expected_token(expected: &Token, got: Spanned<&Token>) -> Diagnostic {
     error!("EP0007", format!("Expected token `{}`; got `{}`", expected, &got.0), [{"here", got.1, primary}])
+}
+
+pub fn let_in_eof(eof_span: FullSpan, let_span: FullSpan) -> Diagnostic {
+    error!("EP0008", "Expected `; in <expression>`; got EOF", [
+        {"because of `let` expression here", let_span, secondary},
+        {"end-of-file reached here", eof_span, primary},
+    ])
+}
+
+pub fn let_in_unexpected(
+    got: Option<&Token>,
+    got_span: FullSpan,
+    let_span: FullSpan,
+) -> Diagnostic {
+    let got_text = got.map_or(Cow::Borrowed("EOF"), |t| t.to_string().into());
+
+    error!("EP0009", format!("Expected `<identifier> = <expression;` or `in <expression>`; got {got_text}"), [
+        {"let expression starts here", let_span, secondary},
+        {"expected here", got_span, primary},
+    ])
 }

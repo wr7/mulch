@@ -4,11 +4,14 @@ use std::borrow::Cow;
 #[allow(unused)] // false positive
 use copyspan::Span;
 
+#[allow(unused)]
+use indoc::indoc;
+
 #[allow(unused)] // false positives
 use crate::{
     dresult_unwrap,
     error::PartialSpanned,
-    parser::{Expression, WithIn},
+    parser::{Expression, LetIn, WithIn},
 };
 
 macro_rules! parse_test {
@@ -149,5 +152,66 @@ parse_test! {with_in, r#"with {a = "hello";}; in a"#,
             expression: Box::new(PartialSpanned(Expression::Variable(Cow::Borrowed("a")), Span::from(24..25)))
         }),
         Span::from(0..25)
+    )
+}
+parse_test! {let_in,
+    indoc!{r#"
+        let
+            a = "0";
+            b = "1";
+        in
+        [a, b]
+    "#},
+    PartialSpanned(
+        Expression::LetIn(
+            LetIn {
+                bindings: vec![
+                    (
+                        PartialSpanned(
+                            Cow::Borrowed("a"),
+                            Span::from(8..9),
+                        ),
+                        PartialSpanned(
+                            Expression::StringLiteral(
+                                Cow::Borrowed("0"),
+                            ),
+                            Span::from(12..15),
+                        ),
+                    ),
+                    (
+                        PartialSpanned(
+                            Cow::Borrowed("b"),
+                            Span::from(21..22),
+                        ),
+                        PartialSpanned(
+                            Expression::StringLiteral(
+                                Cow::Borrowed("1"),
+                            ),
+                            Span::from(25..28),
+                        ),
+                    ),
+                ],
+                expression: Box::new(PartialSpanned(
+                    Expression::List(
+                        vec![
+                            PartialSpanned(
+                                Expression::Variable(
+                                    Cow::Borrowed("a"),
+                                ),
+                                Span::from(34..35),
+                            ),
+                            PartialSpanned(
+                                Expression::Variable(
+                                    Cow::Borrowed("b"),
+                                ),
+                                Span::from(37..38),
+                            ),
+                        ],
+                    ),
+                    Span::from(33..39),
+                )),
+            },
+        ),
+        Span::from(0..39),
     )
 }
