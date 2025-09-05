@@ -13,7 +13,10 @@ pub fn main() {
     let db = SourceDB::new();
 
     let source = indoc! {r#"
-        313.2
+        {
+            a = 5;
+            b = (4.1);
+        }
     "#};
 
     let file_id = db.add("main.mulch".into(), source.to_owned());

@@ -62,6 +62,7 @@ pub fn parse_expression<'src>(
     let span = span_of(tokens).unwrap();
     let rules = [
         parse_ident_or_literal,
+        parse_parenthesized,
         parse_attribute_set,
         parse_list,
         parse_with_in,
@@ -78,6 +79,31 @@ pub fn parse_expression<'src>(
     }
 
     Err(error::invalid_expression(FullSpan::new(span, file_id)))
+}
+
+pub fn parse_parenthesized<'src>(
+    tokens: &TokenStream<'src>,
+    file_id: usize,
+) -> DResult<Option<Expression<'src>>> {
+    let mut iter = NonBracketedIter::new(tokens, file_id);
+
+    let Some(PartialSpanned(T!('('), _)) = iter.next().transpose()? else {
+        return Ok(None);
+    };
+
+    let Some(PartialSpanned(T!(')'), _)) = iter.next().transpose()? else {
+        return Ok(None);
+    };
+
+    if iter.next().transpose()?.is_some() {
+        return Ok(None);
+    };
+
+    let [_opening, expr @ .., _closing] = tokens else {
+        unreachable!()
+    };
+
+    Ok(parse_expression(expr, file_id)?.map(|PartialSpanned(expr, _)| expr))
 }
 
 pub fn parse_ident_or_literal<'src>(
