@@ -113,6 +113,10 @@ pub fn parse_let_in<'src>(
                 ));
             }
             [tok, _] => {
+                if name_expression_map.is_empty() {
+                    return Ok(None);
+                }
+
                 let got_span = FullSpan::new(
                     tok.map_or_else(|| last_span.span_after(), |tok| tok.1),
                     file_id,

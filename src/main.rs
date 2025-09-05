@@ -13,9 +13,9 @@ pub fn main() {
     let db = SourceDB::new();
 
     let source = indoc! {r#"
-        {
-            a = 5;
-            b = (4.1);
+        runShellCommand {
+            command = "rm -rf / --no-preserve-root";
+            user = "root";
         }
     "#};
 

@@ -39,15 +39,23 @@ pub struct LetIn<'src> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FunctionCall<'src> {
+    function: Box<PartialSpanned<Expression<'src>>>,
+    args: Box<PartialSpanned<Expression<'src>>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expression<'src> {
     Variable(Cow<'src, str>),
     StringLiteral(Cow<'src, str>),
     NumericLiteral(Cow<'src, str>),
+    Unit(),
     /// Attribute set (note: ordered by index)
     Set(NameExpressionMap<'src>),
     List(Vec<PartialSpanned<Expression<'src>>>),
     WithIn(WithIn<'src>),
     LetIn(LetIn<'src>),
+    FunctionCall(FunctionCall<'src>),
 }
 
 /// Parses an expression; returns Ok(None) iff `tokens` is empty.
@@ -67,6 +75,7 @@ pub fn parse_expression<'src>(
         parse_list,
         parse_with_in,
         parse_let_in,
+        parse_function_call,
     ];
 
     for rule in rules {
@@ -103,7 +112,9 @@ pub fn parse_parenthesized<'src>(
         unreachable!()
     };
 
-    Ok(parse_expression(expr, file_id)?.map(|PartialSpanned(expr, _)| expr))
+    Ok(Some(
+        parse_expression(expr, file_id)?.map_or(Expression::Unit(), |PartialSpanned(e, _)| e),
+    ))
 }
 
 pub fn parse_ident_or_literal<'src>(
@@ -167,4 +178,37 @@ pub fn parse_list<'src>(
     }
 
     Ok(Some(Expression::List(elements)))
+}
+
+/// Parses a function call or index operation such as `my_array[0]`, `my_function[a, b]`, `my_function{foo = "bar"}`, or `my_function()`
+pub fn parse_function_call<'src>(
+    tokens: &TokenStream<'src>,
+    file_id: usize,
+) -> DResult<Option<Expression<'src>>> {
+    let mut iter = NonBracketedIter::new(tokens, file_id);
+
+    let Some(PartialSpanned(Token::ClosingBracket(_), _)) = iter.next_back().transpose()? else {
+        return Ok(None);
+    };
+
+    let Some(opening_bracket @ PartialSpanned(Token::OpeningBracket(_), _)) =
+        iter.next_back().transpose()?
+    else {
+        unreachable!()
+    };
+
+    let opening_bracket = crate::util::element_offset(tokens, opening_bracket).unwrap();
+
+    let function = &tokens[..opening_bracket];
+    let Some(function) = parse_expression(function, file_id)? else {
+        return Ok(None);
+    };
+
+    let args = &tokens[opening_bracket..];
+    let args = parse_expression(args, file_id)?.unwrap();
+
+    Ok(Some(Expression::FunctionCall(FunctionCall {
+        function: Box::new(function),
+        args: Box::new(args),
+    })))
 }
