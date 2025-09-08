@@ -170,7 +170,11 @@ impl<'a, 'src> DoubleEndedIterator for NonBracketedIter<'a, 'src> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{T, dresult_unwrap, error::SourceDB, lexer::Lexer};
+    use crate::{
+        T,
+        error::{SourceDB, dresult_unwrap},
+        lexer::Lexer,
+    };
 
     use super::*;
 
@@ -187,8 +191,8 @@ mod tests {
         let iter = NonBracketedIter::new(&tokens, 0).map(|r| r.map(|v| &**v));
         let rev_iter = iter.clone().rev();
 
-        let result = dresult_unwrap!(iter.collect::<DResult<Vec<_>>>(), &db);
-        let mut rev_result = dresult_unwrap!(rev_iter.collect::<DResult<Vec<_>>>(), &db);
+        let result = dresult_unwrap(iter.collect::<DResult<Vec<_>>>(), &db);
+        let mut rev_result = dresult_unwrap(rev_iter.collect::<DResult<Vec<_>>>(), &db);
         rev_result.reverse();
 
         let expected = [&T!(a), &T!(+), &T!('('), &T!(')'), &T!(=), &T!(e1)];

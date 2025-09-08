@@ -9,7 +9,6 @@ use indoc::indoc;
 
 #[allow(unused)] // false positives
 use crate::{
-    dresult_unwrap,
     error::PartialSpanned,
     parser::{Expression, LetIn, WithIn},
 };
@@ -24,8 +23,10 @@ macro_rules! parse_test {
                 $src.into(),
             );
 
-            let token_stream = dresult_unwrap!($crate::lexer::Lexer::new($src, 0).lex(), &db);
-            let expr = dresult_unwrap!($crate::parser::parse_expression(&token_stream, 0), &db);
+            let token_stream =
+                $crate::dresult_unwrap($crate::lexer::Lexer::new($src, 0).lex(), &db);
+            let expr =
+                $crate::dresult_unwrap($crate::parser::parse_expression(&token_stream, 0), &db);
 
             assert_eq!(expr, Some($output));
         }
