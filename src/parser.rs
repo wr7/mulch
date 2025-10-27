@@ -15,9 +15,12 @@ mod attr_set;
 mod error;
 mod let_in;
 mod test;
+
+pub mod lambda;
 pub mod util;
 
 pub use attr_set::parse_attribute_set;
+pub use lambda::Lambda;
 
 pub type TokenStream<'src> = [PartialSpanned<Token<'src>>];
 
@@ -56,6 +59,7 @@ pub enum Expression<'src> {
     WithIn(WithIn<'src>),
     LetIn(LetIn<'src>),
     FunctionCall(FunctionCall<'src>),
+    Lambda(Lambda<'src>),
 }
 
 /// Parses an expression; returns Ok(None) iff `tokens` is empty.
@@ -75,6 +79,7 @@ pub fn parse_expression<'src>(
         parse_list,
         parse_with_in,
         parse_let_in,
+        lambda::parse_lambda,
         parse_function_call,
     ];
 
@@ -167,7 +172,7 @@ pub fn parse_list<'src>(
 
         let Some(expression) = parse_expression(&tokens[start..end], file_id)? else {
             return Err(error::expected_expression(FullSpan::new(
-                Span::at(start),
+                tokens[start + 1].1.with_len(0),
                 file_id,
             )));
         };

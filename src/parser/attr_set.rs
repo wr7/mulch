@@ -54,7 +54,7 @@ pub fn parse_attribute_set<'src>(
         let res = entries.binary_search_by_key(&&*name, |(k, _)| &**k);
         match res {
             Ok(idx) => {
-                return Err(error::multiple_definitions_of_attribute(
+                return Err(error::multiple_declarations_of_attribute(
                     FullSpan::new(entries[idx].0.1, file_id),
                     FullSpan::new(name.1, file_id),
                     &**name,

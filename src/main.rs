@@ -11,10 +11,7 @@ pub fn main() {
     let db = SourceDB::new();
 
     let source = indoc! {r#"
-        runShellCommand {
-            command = "rm -rf / --no-preserve-root";
-            user = "root";
-        }
+        add(a, 1)
     "#};
 
     let file_id = db.add("main.mulch".into(), source.to_owned());
