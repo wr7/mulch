@@ -10,17 +10,15 @@ mod util;
 pub fn main() {
     let db = SourceDB::new();
 
-    let source = indoc! {r#"
-        add(a, 1)
-    "#};
+    let source = indoc! {r#"let x = a -> add[a, 1]; in map[[1, 2], x]"#};
 
     let file_id = db.add("main.mulch".into(), source.to_owned());
 
     let tokens = dresult_unwrap(lexer::Lexer::new(source, file_id).lex(), &db);
 
-    dbg!(&tokens);
-
     let ast = dresult_unwrap(parser::parse_expression(&tokens, file_id), &db);
+
+    println!("{source}");
 
     dbg!(ast);
 }

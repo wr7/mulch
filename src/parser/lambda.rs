@@ -15,8 +15,8 @@ use super::{Expression, NonBracketedIter, TokenStream};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Lambda<'src> {
-    args: Box<PartialSpanned<Args<'src>>>,
-    expression: Box<PartialSpanned<Expression<'src>>>,
+    pub args: Box<PartialSpanned<Args<'src>>>,
+    pub expression: Box<PartialSpanned<Expression<'src>>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

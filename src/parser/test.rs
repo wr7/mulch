@@ -7,6 +7,7 @@ use copyspan::Span;
 #[allow(unused)]
 use indoc::indoc;
 
+use crate::parser::{FunctionCall, Lambda, lambda};
 #[allow(unused)] // false positives
 use crate::{
     error::PartialSpanned,
@@ -155,6 +156,7 @@ parse_test! {with_in, r#"with {a = "hello";}; in a"#,
         Span::from(0..25)
     )
 }
+
 parse_test! {let_in,
     indoc!{r#"
         let
@@ -214,5 +216,113 @@ parse_test! {let_in,
             },
         ),
         Span::from(0..39),
+    )
+}
+
+parse_test! {lambda_1, "let x = a -> add[a, 1]; in map[[1, 2], x]",
+    PartialSpanned(
+        Expression::LetIn(
+            LetIn {
+                bindings: vec![
+                    (
+                        PartialSpanned(
+                            Cow::from("x"),
+                            Span::from(4..5),
+                        ),
+                        PartialSpanned(
+                            Expression::Lambda(
+                                Lambda {
+                                    args: Box::new(PartialSpanned(
+                                        lambda::Args::Single(
+                                            Cow::from("a"),
+                                        ),
+                                        Span::from(8..9),
+                                    )),
+                                    expression: Box::new(PartialSpanned(
+                                        Expression::FunctionCall(
+                                            FunctionCall {
+                                                function: Box::new(PartialSpanned(
+                                                    Expression::Variable(
+                                                        Cow::from("add"),
+                                                    ),
+                                                    Span::from(13..16),
+                                                )),
+                                                args: Box::new(PartialSpanned(
+                                                    Expression::List(
+                                                        vec![
+                                                            PartialSpanned(
+                                                                Expression::Variable(
+                                                                    Cow::from("a"),
+                                                                ),
+                                                                Span::from(17..18),
+                                                            ),
+                                                            PartialSpanned(
+                                                                Expression::NumericLiteral(
+                                                                    Cow::from("1"),
+                                                                ),
+                                                                Span::from(20..21),
+                                                            ),
+                                                        ],
+                                                    ),
+                                                    Span::from(16..22),
+                                                )),
+                                            },
+                                        ),
+                                        Span::from(13..22),
+                                    )),
+                                },
+                            ),
+                            Span::from(8..22),
+                        ),
+                    ),
+                ],
+                expression: Box::new(PartialSpanned(
+                    Expression::FunctionCall(
+                        FunctionCall {
+                            function: Box::new(PartialSpanned(
+                                Expression::Variable(
+                                    Cow::from("map"),
+                                ),
+                                Span::from(27..30),
+                            )),
+                            args: Box::new(PartialSpanned(
+                                Expression::List(
+                                    vec![
+                                        PartialSpanned(
+                                            Expression::List(
+                                                vec![
+                                                    PartialSpanned(
+                                                        Expression::NumericLiteral(
+                                                            Cow::from("1"),
+                                                        ),
+                                                        Span::from(32..33),
+                                                    ),
+                                                    PartialSpanned(
+                                                        Expression::NumericLiteral(
+                                                            Cow::from("2"),
+                                                        ),
+                                                        Span::from(35..36),
+                                                    ),
+                                                ],
+                                            ),
+                                            Span::from(31..37),
+                                        ),
+                                        PartialSpanned(
+                                            Expression::Variable(
+                                                Cow::from("x"),
+                                            ),
+                                            Span::from(39..40),
+                                        ),
+                                    ],
+                                ),
+                                Span::from(30..41),
+                            )),
+                        },
+                    ),
+                    Span::from(27..41),
+                )),
+            },
+        ),
+        Span::from(0..41),
     )
 }
