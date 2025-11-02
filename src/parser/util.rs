@@ -200,3 +200,155 @@ mod tests {
         assert_eq!(&*rev_result, expected);
     }
 }
+
+/// A macro for more compactly defining abstract syntax trees
+macro_rules! ast {
+    {
+        Variable (
+            $name: expr
+        )
+    } => {
+        $crate::parser::Expression::Variable(
+            ::std::borrow::Cow::from($name)
+        )
+    };
+    {
+        StringLiteral (
+            $name: expr
+        )
+    } => {
+        $crate::parser::Expression::StringLiteral(
+            ::std::borrow::Cow::from($name)
+        )
+    };
+    {
+        NumericLiteral (
+            $name: expr
+        )
+    } => {
+        $crate::parser::Expression::NumericLiteral(
+            ::std::borrow::Cow::from($name)
+        )
+    };
+    {
+        Unit()
+    } => {
+        $crate::parser::Expression::Unit()
+    };
+    {
+        Set[$(
+            (
+                ($attr:literal, $span:expr),
+                $($value:tt)+
+            )
+        ),* $(,)?]
+    } => {
+        $crate::parser::Expression::Set(
+            ::std::vec![
+                $(
+                    (
+                        $crate::parser::PartialSpanned(
+                            ::std::borrow::Cow::from($attr),
+                            ::copyspan::Span::from($span)
+                        ),
+                        $crate::parser::util::ast!($($value)+)
+                    )
+                ),*
+            ]
+        )
+    };
+    {
+        List[
+            $($name:ident $args:tt),*
+            $(,)?
+        ]
+    } => {
+        $crate::parser::Expression::List(
+            ::std::vec![
+                $($crate::parser::util::ast!($name $args)),*
+            ]
+        )
+    };
+    {
+        WithIn{
+            set: $set_name:ident $set_args:tt,
+            expression: $exp_name:ident $exp_args:tt $(,)?
+        }
+    } => {
+        $crate::parser::Expression::WithIn(
+            $crate::parser::WithIn {
+                set:        ::std::boxed::Box::new($crate::parser::util::ast!($set_name $set_args)),
+                expression: ::std::boxed::Box::new($crate::parser::util::ast!($exp_name $exp_args))
+            }
+        )
+    };
+    {
+        LetIn {
+            bindings: [
+                $((
+                    ($var_name:literal,  $var_name_span:expr),
+                    $($value:tt)+
+                )),* $(,)?
+            ],
+            expression: $($expression:tt)+
+        }
+    } => {
+        $crate::parser::Expression::LetIn(
+            $crate::parser::LetIn {
+                bindings: ::std::vec![
+                    $(
+                        (
+                            $crate::parser::PartialSpanned(
+                                ::std::borrow::Cow::from($var_name),
+                                ::copyspan::Span::from($var_name_span)
+                            ),
+                            $crate::parser::util::ast!($($value)+)
+                        )
+                    ),*
+                ],
+                expression: ::std::boxed::Box::new(
+                    $crate::parser::util::ast!($($expression)+)
+                )
+            }
+        )
+    };
+    {
+        FunctionCall{
+            function: $function_name:ident $function_args:tt,
+            args: $args_name:ident $args_args:tt $(,)?
+        }
+    } => {
+        $crate::parser::argsression::FunctionCall(
+            $crate::parser::FunctionCall {
+                function: ::std::boxed::Box::new($crate::parser::util::ast!($function_name $function_args)),
+                args: ::std::boxed::Box::new($crate::parser::util::ast!($args_name $args_args))
+            }
+        )
+    };
+    {
+        Lambda{
+            args: $args:expr,
+            expression: $expr_name:ident $expr_args:tt $(,)?
+        }
+    } => {
+        $crate::parser::argsression::FunctionCall(
+            $crate::parser::FunctionCall {
+                args: $args,
+                expression: ::std::boxed::Box::new($crate::parser::util::ast!($expr_name $expr_args))
+            }
+        )
+    };
+    {
+        Spanned (
+            $name:ident $args:tt,
+            $span:expr
+        )
+    } => {
+        $crate::parser::PartialSpanned(
+            $crate::parser::util::ast!($name $args),
+            ::copyspan::Span::from($span)
+        )
+    };
+}
+
+pub(crate) use ast;
