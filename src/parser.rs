@@ -3,6 +3,7 @@ use std::borrow::Cow;
 use copyspan::Span;
 use itertools::Itertools as _;
 use let_in::{parse_let_in, parse_with_in};
+use std::fmt::Debug;
 use util::NonBracketedIter;
 
 use crate::{
@@ -47,7 +48,7 @@ pub struct FunctionCall<'src> {
     args: Box<PartialSpanned<Expression<'src>>>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum Expression<'src> {
     Variable(Cow<'src, str>),
     StringLiteral(Cow<'src, str>),
@@ -60,6 +61,29 @@ pub enum Expression<'src> {
     LetIn(LetIn<'src>),
     FunctionCall(FunctionCall<'src>),
     Lambda(Lambda<'src>),
+}
+
+impl<'src> Debug for Expression<'src> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self {
+            Expression::Variable(val) => f.debug_tuple("Variable").field(val).finish(),
+            Expression::StringLiteral(val) => f.debug_tuple("StringLiteral").field(val).finish(),
+            Expression::NumericLiteral(val) => f.debug_tuple("NumericLiteral").field(val).finish(),
+            Expression::Unit() => f.debug_tuple("Unit").finish(),
+            Expression::Set(entries) => {
+                write!(f, "Set ")?;
+                f.debug_list().entries(entries).finish()
+            }
+            Expression::List(items) => {
+                write!(f, "List ")?;
+                f.debug_list().entries(items).finish()
+            }
+            Expression::WithIn(with_in) => Debug::fmt(with_in, f),
+            Expression::LetIn(let_in) => Debug::fmt(let_in, f),
+            Expression::FunctionCall(function_call) => Debug::fmt(function_call, f),
+            Expression::Lambda(lambda) => Debug::fmt(lambda, f),
+        }
+    }
 }
 
 /// Parses an expression; returns Ok(None) iff `tokens` is empty.

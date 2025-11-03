@@ -1,10 +1,22 @@
-use std::ops::{Deref, DerefMut};
+use std::{
+    fmt::Debug,
+    ops::{Deref, DerefMut},
+};
 
 use copyspan::Span;
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct PartialSpanned<T>(pub T, pub Span);
+
+impl<T: Debug> Debug for PartialSpanned<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("Spanned")
+            .field(&self.0)
+            .field(&self.1)
+            .finish()
+    }
+}
 
 pub fn span_of<T>(arr: &[PartialSpanned<T>]) -> Option<Span> {
     Some(Span::from(arr.first()?.1.start..arr.last()?.1.end))

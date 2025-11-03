@@ -238,7 +238,7 @@ macro_rules! ast {
     {
         Set[$(
             (
-                ($attr:literal, $span:expr),
+                Spanned($attr:literal, $span:expr),
                 $($value:tt)+
             )
         ),* $(,)?]
@@ -286,7 +286,7 @@ macro_rules! ast {
         LetIn {
             bindings: [
                 $((
-                    ($var_name:literal,  $var_name_span:expr),
+                    Spanned($var_name:literal,  $var_name_span:expr),
                     $($value:tt)+
                 )),* $(,)?
             ],
