@@ -202,10 +202,13 @@ mod tests {
 }
 
 /// A macro for more compactly defining abstract syntax trees
+///
+/// This syntax is mostly in line with what is returned by the `Debug` trait
+/// impl for `Expression` and its related types
 macro_rules! ast {
     {
         Variable (
-            $name: expr
+            $name: expr $(,)?
         )
     } => {
         $crate::parser::Expression::Variable(
@@ -214,7 +217,7 @@ macro_rules! ast {
     };
     {
         StringLiteral (
-            $name: expr
+            $name: expr $(,)?
         )
     } => {
         $crate::parser::Expression::StringLiteral(
@@ -238,8 +241,8 @@ macro_rules! ast {
     {
         Set[$(
             (
-                Spanned($attr:literal, $span:expr),
-                $($value:tt)+
+                Spanned($attr:literal, $span:expr $(,)?),
+                $value_ident:ident $value_args:tt $(,)?
             )
         ),* $(,)?]
     } => {
@@ -251,7 +254,7 @@ macro_rules! ast {
                             ::std::borrow::Cow::from($attr),
                             ::copyspan::Span::from($span)
                         ),
-                        $crate::parser::util::ast!($($value)+)
+                        $crate::parser::util::ast!($value_ident $value_args)
                     )
                 ),*
             ]
@@ -286,11 +289,11 @@ macro_rules! ast {
         LetIn {
             bindings: [
                 $((
-                    Spanned($var_name:literal,  $var_name_span:expr),
-                    $($value:tt)+
+                    Spanned($var_name:literal,  $var_name_span:expr $(,)?),
+                    $value_ident:ident $value_args:tt $(,)?
                 )),* $(,)?
             ],
-            expression: $($expression:tt)+
+            expression: $expr_ident:ident $expr_args:tt $(,)?
         }
     } => {
         $crate::parser::Expression::LetIn(
@@ -302,12 +305,12 @@ macro_rules! ast {
                                 ::std::borrow::Cow::from($var_name),
                                 ::copyspan::Span::from($var_name_span)
                             ),
-                            $crate::parser::util::ast!($($value)+)
+                            $crate::parser::util::ast!($value_ident $value_args)
                         )
                     ),*
                 ],
                 expression: ::std::boxed::Box::new(
-                    $crate::parser::util::ast!($($expression)+)
+                    $crate::parser::util::ast!($expr_ident $expr_args)
                 )
             }
         )
@@ -341,7 +344,7 @@ macro_rules! ast {
     {
         Spanned (
             $name:ident $args:tt,
-            $span:expr
+            $span:expr $(,)?
         )
     } => {
         $crate::parser::PartialSpanned(

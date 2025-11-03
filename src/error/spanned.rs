@@ -11,10 +11,9 @@ pub struct PartialSpanned<T>(pub T, pub Span);
 
 impl<T: Debug> Debug for PartialSpanned<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("Spanned")
-            .field(&self.0)
-            .field(&self.1)
-            .finish()
+        write!(f, "Spanned(")?;
+        Debug::fmt(&self.0, f)?;
+        write!(f, ", {:?})", self.1)
     }
 }
 

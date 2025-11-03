@@ -66,9 +66,13 @@ pub enum Expression<'src> {
 impl<'src> Debug for Expression<'src> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self {
-            Expression::Variable(val) => f.debug_tuple("Variable").field(val).finish(),
-            Expression::StringLiteral(val) => f.debug_tuple("StringLiteral").field(val).finish(),
-            Expression::NumericLiteral(val) => f.debug_tuple("NumericLiteral").field(val).finish(),
+            Expression::Variable(val) => write!(f, "Variable(\"{}\")", val.escape_debug()),
+            Expression::StringLiteral(val) => {
+                write!(f, "StringLiteral(\"{}\")", val.escape_debug())
+            }
+            Expression::NumericLiteral(val) => {
+                write!(f, "NumericLiteral(\"{}\")", val.escape_debug())
+            }
             Expression::Unit() => f.debug_tuple("Unit").finish(),
             Expression::Set(entries) => {
                 write!(f, "Set ")?;

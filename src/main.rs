@@ -10,7 +10,7 @@ mod util;
 pub fn main() {
     let db = SourceDB::new();
 
-    let source = indoc! {r#"let x = a -> add[a, 1]; in map[[1, 2], x]"#};
+    let source = indoc! {"{ x = a; b={x=cat; y=dog}; hi=foo;}"};
 
     let file_id = db.add("main.mulch".into(), source.to_owned());
 
@@ -18,7 +18,7 @@ pub fn main() {
 
     let ast = dresult_unwrap(parser::parse_expression(&tokens, file_id), &db);
 
-    println!("{source}");
+    // println!("{source}");
 
-    dbg!(ast);
+    println!("{:#?}", ast.unwrap());
 }
