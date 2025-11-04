@@ -347,11 +347,13 @@ macro_rules! ast {
             $rhs_name:ident $rhs_args:tt $(,)?
         )
     } => {
-        $crate::parser::BinaryOperation {
-            lhs: $crate::parser::util::ast!($lhs_name $lhs_args),
-            operator: $crate::parser::binary::BinaryOperator::$binary_op,
-            rhs: $crate::parser::util::ast!($rhs_name $rhs_args) $(,)?
-        }
+        $crate::parser::Expression::BinaryOperation(
+            $crate::parser::BinaryOperation {
+                lhs: ::std::boxed::Box::new($crate::parser::util::ast!($lhs_name $lhs_args)),
+                operator: $crate::parser::binary::BinaryOperator::$binary_op,
+                rhs: ::std::boxed::Box::new($crate::parser::util::ast!($rhs_name $rhs_args))
+            }
+        )
     };
     {
         Spanned (

@@ -11,17 +11,13 @@ mod util;
 pub fn main() {
     let db = SourceDB::new();
 
-    let source = indoc! {"{ x = a; b={x=cat; y=dog}; hi=foo;}"};
+    let source = indoc! {"0 + 2 - 3 * 4 + 7"};
 
     let file_id = db.add("main.mulch".into(), source.to_owned());
 
     let tokens = dresult_unwrap(lexer::Lexer::new(source, file_id).lex(), &db);
 
     let ast = dresult_unwrap(parser::parse_expression(&tokens, file_id), &db);
-
-    // println!("{source}");
-    //
-    dbg!(Op!(+));
 
     println!("{:#?}", ast.unwrap());
 }

@@ -126,6 +126,44 @@ parse_test! {let_in,
     }
 }
 
+parse_test! {binop_1, "0 + 1 *2^3 ^ 4 * 5 - 6", ast! {
+    Spanned(Subtract(
+        Spanned(Add(
+            Spanned(NumericLiteral("0"), 0..1),
+            Spanned(Multiply(
+                Spanned(Multiply(
+                    Spanned(NumericLiteral("1"), 4..5),
+                    Spanned(Exponent(
+                        Spanned(NumericLiteral("2"), 7..8),
+                        Spanned(Exponent(
+                            Spanned(NumericLiteral("3"), 9..10),
+                            Spanned(NumericLiteral("4"), 13..14),
+                        ), 9..14),
+                    ), 7..14),
+                ), 4..14),
+                Spanned(NumericLiteral("5"), 17..18),
+            ), 4..18),
+        ), 0..18),
+        Spanned(NumericLiteral("6"), 21..22),
+    ), 0..22)
+}}
+
+parse_test! {binop_2, "0 + 2 - 3 * 4 + 7", ast! {
+    Spanned(Add(
+        Spanned(Subtract(
+            Spanned(Add(
+                Spanned(NumericLiteral("0"), 0..1),
+                Spanned(NumericLiteral("2"), 4..5),
+            ), 0..5),
+            Spanned(Multiply(
+                Spanned(NumericLiteral("3"), 8..9),
+                Spanned(NumericLiteral("4"), 12..13),
+            ), 8..13),
+        ), 0..13),
+        Spanned(NumericLiteral("7"), 16..17),
+    ), 0..17)
+}}
+
 parse_test! {lambda_1, "let x = a -> add[a, 1]; in map[[1, 2], x]",
     PartialSpanned(
         Expression::LetIn(

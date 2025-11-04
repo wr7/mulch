@@ -1,15 +1,17 @@
 use std::borrow::Cow;
 
+use binary::parse_binary_operators;
 use copyspan::Span;
 use itertools::Itertools as _;
+use lambda::parse_lambda;
 use let_in::{parse_let_in, parse_with_in};
 use std::fmt::Debug;
 use util::NonBracketedIter;
 
 use crate::{
-    T,
+    Op, T,
     error::{DResult, FullSpan, PartialSpanned, span_of},
-    lexer::Token,
+    lexer::{Sym, Token},
 };
 
 mod attr_set;
@@ -104,18 +106,35 @@ pub fn parse_expression<'src>(
     }
 
     let span = span_of(tokens).unwrap();
-    let rules = [
+    const RULES: &[for<'s> fn(&TokenStream<'s>, usize) -> DResult<Option<Expression<'s>>>] = &[
         parse_ident_or_literal,
         parse_parenthesized,
         parse_attribute_set,
         parse_list,
         parse_with_in,
         parse_let_in,
-        lambda::parse_lambda,
+        parse_lambda,
+        |tokens, file_id| {
+            parse_binary_operators(
+                &[(Op!(+), Sym!(+)), (Op!(-), Sym!(-))],
+                false,
+                tokens,
+                file_id,
+            )
+        },
+        |tokens, file_id| {
+            parse_binary_operators(
+                &[(Op!(*), Sym!(*)), (Op!(/), Sym!(/))],
+                false,
+                tokens,
+                file_id,
+            )
+        },
+        |tokens, file_id| parse_binary_operators(&[(Op!(^), Sym!(^))], true, tokens, file_id),
         parse_function_call,
     ];
 
-    for rule in rules {
+    for rule in RULES {
         match rule(tokens, file_id)? {
             Some(expression) => {
                 return Ok(Some(PartialSpanned::new(expression, span)));
