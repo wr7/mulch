@@ -180,3 +180,48 @@ impl TokenLiteralHelper<u64> {
         Token::Number(Cow::Borrowed(stringified))
     }
 }
+
+/// Macro for defining `lexer::Symbol`s
+macro_rules! Sym {
+    (.) => {
+        $crate::lexer::Symbol::Dot
+    };
+    (,) => {
+        $crate::lexer::Symbol::Comma
+    };
+    (;) => {
+        $crate::lexer::Symbol::Semicolon
+    };
+    (->) => {
+        $crate::lexer::Symbol::RightArrow
+    };
+    (=) => {
+        $crate::lexer::Symbol::Equals
+    };
+    (|) => {
+        $crate::lexer::Symbol::Pipe
+    };
+    (+) => {
+        $crate::lexer::Symbol::Plus
+    };
+    (-) => {
+        $crate::lexer::Symbol::Hyphen
+    };
+    (/) => {
+        $crate::lexer::Symbol::Slash
+    };
+    (*) => {
+        $crate::lexer::Symbol::Asterisk
+    };
+    (^) => {
+        $crate::lexer::Symbol::Caret
+    };
+    (<) => {
+        $crate::lexer::Symbol::LessThan
+    };
+    (>) => {
+        $crate::lexer::Symbol::GreaterThan
+    };
+}
+
+pub(crate) use Sym;
