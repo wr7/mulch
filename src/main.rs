@@ -1,5 +1,6 @@
 use error::{SourceDB, dresult_unwrap};
 use indoc::indoc;
+use parser::binary::Op;
 
 pub mod error;
 pub mod lexer;
@@ -19,6 +20,8 @@ pub fn main() {
     let ast = dresult_unwrap(parser::parse_expression(&tokens, file_id), &db);
 
     // println!("{source}");
+    //
+    dbg!(Op!(+));
 
     println!("{:#?}", ast.unwrap());
 }

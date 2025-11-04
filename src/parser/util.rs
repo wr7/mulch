@@ -342,6 +342,18 @@ macro_rules! ast {
         )
     };
     {
+        $binary_op:ident(
+            $lhs_name:ident $lhs_args:tt,
+            $rhs_name:ident $rhs_args:tt $(,)?
+        )
+    } => {
+        $crate::parser::BinaryOperation {
+            lhs: $crate::parser::util::ast!($lhs_name $lhs_args),
+            operator: $crate::parser::binary::BinaryOperator::$binary_op,
+            rhs: $crate::parser::util::ast!($rhs_name $rhs_args) $(,)?
+        }
+    };
+    {
         Spanned (
             $name:ident $args:tt,
             $span:expr $(,)?

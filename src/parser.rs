@@ -17,10 +17,12 @@ mod error;
 mod let_in;
 mod test;
 
+pub mod binary;
 pub mod lambda;
 pub mod util;
 
 pub use attr_set::parse_attribute_set;
+pub use binary::BinaryOperation;
 pub use lambda::Lambda;
 
 pub type TokenStream<'src> = [PartialSpanned<Token<'src>>];
@@ -61,6 +63,7 @@ pub enum Expression<'src> {
     LetIn(LetIn<'src>),
     FunctionCall(FunctionCall<'src>),
     Lambda(Lambda<'src>),
+    BinaryOperation(BinaryOperation<'src>),
 }
 
 impl<'src> Debug for Expression<'src> {
@@ -86,6 +89,7 @@ impl<'src> Debug for Expression<'src> {
             Expression::LetIn(let_in) => Debug::fmt(let_in, f),
             Expression::FunctionCall(function_call) => Debug::fmt(function_call, f),
             Expression::Lambda(lambda) => Debug::fmt(lambda, f),
+            Expression::BinaryOperation(binop) => Debug::fmt(binop, f),
         }
     }
 }
