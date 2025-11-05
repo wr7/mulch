@@ -1,7 +1,5 @@
 use std::borrow::Cow;
 
-use copyspan::Span;
-
 use crate::{
     error::{Diagnostic, FullSpan, Spanned, error},
     lexer::Token,

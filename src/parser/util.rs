@@ -203,8 +203,9 @@ mod tests {
 
 /// A macro for more compactly defining abstract syntax trees
 ///
-/// This syntax is mostly in line with what is returned by the `Debug` trait
+/// This syntax is in line with what is returned by the `Debug` trait
 /// impl for `Expression` and its related types
+#[allow(unused_macros)]
 macro_rules! ast {
     {
         Variable (
@@ -321,7 +322,7 @@ macro_rules! ast {
             args: $args_name:ident $args_args:tt $(,)?
         }
     } => {
-        $crate::parser::argsression::FunctionCall(
+        $crate::parser::Expression::FunctionCall(
             $crate::parser::FunctionCall {
                 function: ::std::boxed::Box::new($crate::parser::util::ast!($function_name $function_args)),
                 args: ::std::boxed::Box::new($crate::parser::util::ast!($args_name $args_args))
@@ -330,13 +331,13 @@ macro_rules! ast {
     };
     {
         Lambda{
-            args: $args:expr,
+            args: $args_ident:ident $args_args:tt,
             expression: $expr_name:ident $expr_args:tt $(,)?
         }
     } => {
-        $crate::parser::argsression::FunctionCall(
-            $crate::parser::FunctionCall {
-                args: $args,
+        $crate::parser::Expression::Lambda(
+            $crate::parser::Lambda{
+                args: ::std::boxed::Box::new($crate::parser::util::lambda_args_ast!($args_ident $args_args)),
                 expression: ::std::boxed::Box::new($crate::parser::util::ast!($expr_name $expr_args))
             }
         )
@@ -368,4 +369,68 @@ macro_rules! ast {
     };
 }
 
-pub(crate) use ast;
+#[allow(unused_macros)]
+macro_rules! lambda_args_ast {
+    {
+        Single($name:literal $(,)?)
+    } => {
+        $crate::parser::lambda::Args::Single(::std::borrow::Cow::from($name))
+    };
+    {
+        List[$(
+            $name:ident $args:tt
+        ),* $(,)?]
+    } => {
+        $crate::parser::lambda::Args::List(::std::vec![
+            $(
+                $crate::parser::util::lambda_args_ast!($name $args)
+            ),*
+        ])
+    };
+    {
+        AttrSet[$(
+            {
+                name: Spanned($name:literal, $span:expr $(,)?),
+                default: $($d:tt)+
+            }
+        ),* $(,)?]
+    } => {
+        $crate::parser::lambda::Args::AttrSet(::std::vec![
+            $(
+                $crate::parser::lambda::ArgAttribute {
+                    name: $crate::parser::PartialSpanned(::std::borrow::Cow::from($name), ::copyspan::Span::from($span)),
+                    default: $crate::parser::util::option_ast!($($d)+)
+                }
+            ),*
+        ])
+    };
+    {
+        Spanned (
+            $name:ident $args:tt,
+            $span:expr $(,)?
+        )
+    } => {
+        $crate::parser::PartialSpanned(
+            $crate::parser::util::lambda_args_ast!($name $args),
+            ::copyspan::Span::from($span)
+        )
+    };
+}
+
+#[doc(hidden)]
+#[allow(unused_macros)]
+macro_rules! option_ast {
+    (None $(,)?) => {
+        None
+    };
+    (Some($name:ident $args:tt)) => {
+        Some($crate::parser::util::ast!($name $args))
+    };
+}
+
+#[allow(unused_imports)]
+pub(crate) use {ast, lambda_args_ast};
+
+#[allow(unused_imports)]
+#[doc(hidden)]
+pub(crate) use option_ast;

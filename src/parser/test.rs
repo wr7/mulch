@@ -1,18 +1,5 @@
-#[allow(unused)]
-use std::borrow::Cow;
-
 #[allow(unused)] // false positive
-use copyspan::Span;
-
-#[allow(unused)]
-use indoc::indoc;
-
-use crate::parser::{FunctionCall, Lambda, lambda, util::ast};
-#[allow(unused)] // false positives
-use crate::{
-    error::PartialSpanned,
-    parser::{Expression, LetIn, WithIn},
-};
+use {crate::parser::util::ast, indoc::indoc};
 
 macro_rules! parse_test {
     ($test_name:ident, $src:expr, $expected_ast:expr) => {
@@ -164,110 +151,75 @@ parse_test! {binop_2, "0 + 2 - 3 * 4 + 7", ast! {
     ), 0..17)
 }}
 
-parse_test! {lambda_1, "let x = a -> add[a, 1]; in map[[1, 2], x]",
-    PartialSpanned(
-        Expression::LetIn(
-            LetIn {
-                bindings: vec![
-                    (
-                        PartialSpanned(
-                            Cow::from("x"),
-                            Span::from(4..5),
-                        ),
-                        PartialSpanned(
-                            Expression::Lambda(
-                                Lambda {
-                                    args: Box::new(PartialSpanned(
-                                        lambda::Args::Single(
-                                            Cow::from("a"),
-                                        ),
-                                        Span::from(8..9),
-                                    )),
-                                    expression: Box::new(PartialSpanned(
-                                        Expression::FunctionCall(
-                                            FunctionCall {
-                                                function: Box::new(PartialSpanned(
-                                                    Expression::Variable(
-                                                        Cow::from("add"),
-                                                    ),
-                                                    Span::from(13..16),
-                                                )),
-                                                args: Box::new(PartialSpanned(
-                                                    Expression::List(
-                                                        vec![
-                                                            PartialSpanned(
-                                                                Expression::Variable(
-                                                                    Cow::from("a"),
-                                                                ),
-                                                                Span::from(17..18),
-                                                            ),
-                                                            PartialSpanned(
-                                                                Expression::NumericLiteral(
-                                                                    Cow::from("1"),
-                                                                ),
-                                                                Span::from(20..21),
-                                                            ),
-                                                        ],
-                                                    ),
-                                                    Span::from(16..22),
-                                                )),
-                                            },
-                                        ),
-                                        Span::from(13..22),
-                                    )),
-                                },
-                            ),
-                            Span::from(8..22),
-                        ),
-                    ),
-                ],
-                expression: Box::new(PartialSpanned(
-                    Expression::FunctionCall(
-                        FunctionCall {
-                            function: Box::new(PartialSpanned(
-                                Expression::Variable(
-                                    Cow::from("map"),
-                                ),
-                                Span::from(27..30),
-                            )),
-                            args: Box::new(PartialSpanned(
-                                Expression::List(
-                                    vec![
-                                        PartialSpanned(
-                                            Expression::List(
-                                                vec![
-                                                    PartialSpanned(
-                                                        Expression::NumericLiteral(
-                                                            Cow::from("1"),
-                                                        ),
-                                                        Span::from(32..33),
-                                                    ),
-                                                    PartialSpanned(
-                                                        Expression::NumericLiteral(
-                                                            Cow::from("2"),
-                                                        ),
-                                                        Span::from(35..36),
-                                                    ),
-                                                ],
-                                            ),
-                                            Span::from(31..37),
-                                        ),
-                                        PartialSpanned(
-                                            Expression::Variable(
-                                                Cow::from("x"),
-                                            ),
-                                            Span::from(39..40),
-                                        ),
-                                    ],
-                                ),
-                                Span::from(30..41),
-                            )),
-                        },
-                    ),
-                    Span::from(27..41),
-                )),
+parse_test! {lambda_1, "let x = a -> add[a, 1]; in map[[1, 2], x]", ast! {
+    Spanned(LetIn {
+        bindings: [
+            (
+                Spanned("x", 4..5),
+                Spanned(Lambda {
+                    args: Spanned(Single("a"), 8..9),
+                    expression: Spanned(FunctionCall {
+                        function: Spanned(Variable("add"), 13..16),
+                        args: Spanned(List [
+                            Spanned(Variable("a"), 17..18),
+                            Spanned(NumericLiteral("1"), 20..21),
+                        ], 16..22),
+                    }, 13..22),
+                }, 8..22),
+            ),
+        ],
+        expression: Spanned(FunctionCall {
+            function: Spanned(Variable("map"), 27..30),
+            args: Spanned(List [
+                Spanned(List [
+                    Spanned(NumericLiteral("1"), 32..33),
+                    Spanned(NumericLiteral("2"), 35..36),
+                ], 31..37),
+                Spanned(Variable("x"), 39..40),
+            ], 30..41),
+        }, 27..41),
+    }, 0..41)
+}}
+
+parse_test! {lambda_2, "with {add = [a, b] -> a + b}; in add[9, 10]", ast! {
+    Spanned(WithIn {
+        set: Spanned(Set [
+            (
+                Spanned("add", 6..9),
+                Spanned(Lambda {
+                    args: Spanned(List[
+                        Spanned(Single("a"), 13..14),
+                        Spanned(Single("b"), 16..17),
+                    ], 12..18),
+                    expression: Spanned(Add(
+                        Spanned(Variable("a"), 22..23),
+                        Spanned(Variable("b"), 26..27),
+                    ), 22..27),
+                }, 12..27),
+            ),
+        ], 5..28),
+        expression: Spanned(FunctionCall {
+            function: Spanned(Variable("add"), 33..36),
+            args: Spanned(List [
+                Spanned(NumericLiteral("9"), 37..38),
+                Spanned(NumericLiteral("10"), 40..42),
+            ], 36..43),
+        }, 33..43),
+    }, 0..43)
+}}
+
+parse_test! {lamda_3, "{foo, bar} -> biz", ast! {
+    Spanned(Lambda {
+        args: Spanned(AttrSet[
+            {
+                name: Spanned("bar", 6..9),
+                default: None,
             },
-        ),
-        Span::from(0..41),
-    )
-}
+            {
+                name: Spanned("foo", 1..4),
+                default: None,
+            },
+        ], 0..10),
+        expression: Spanned(Variable("biz"), 14..17),
+    }, 0..17)
+}}

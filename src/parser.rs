@@ -1,7 +1,6 @@
 use std::borrow::Cow;
 
 use binary::parse_binary_operators;
-use copyspan::Span;
 use itertools::Itertools as _;
 use lambda::parse_lambda;
 use let_in::{parse_let_in, parse_with_in};

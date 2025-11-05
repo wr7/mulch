@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::fmt::Debug;
 
 use copyspan::Span;
 use itertools::Itertools as _;
@@ -19,17 +20,17 @@ pub struct Lambda<'src> {
     pub expression: Box<PartialSpanned<Expression<'src>>>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum Args<'src> {
     Single(Cow<'src, str>),
     List(Vec<PartialSpanned<Args<'src>>>),
     AttrSet(Vec<ArgAttribute<'src>>),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct ArgAttribute<'src> {
-    name: PartialSpanned<Cow<'src, str>>,
-    default: Option<Box<PartialSpanned<Expression<'src>>>>,
+    pub name: PartialSpanned<Cow<'src, str>>,
+    pub default: Option<Box<PartialSpanned<Expression<'src>>>>,
 }
 
 pub fn parse_lambda<'src>(
@@ -241,10 +242,27 @@ impl<'src> ArgAttribute<'src> {
     }
 }
 
-/*
-
-[a, {x, y = true}] -> {
-
+impl<'src> Debug for ArgAttribute<'src> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("")
+            .field("name", &self.name)
+            .field("default", &self.default)
+            .finish()
+    }
 }
 
-*/
+impl<'src> Debug for Args<'src> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Args::Single(ident) => write!(f, "Single(\"{}\")", ident.escape_debug()),
+            Args::List(args) => {
+                write!(f, "List")?;
+                f.debug_list().entries(args).finish()
+            }
+            Args::AttrSet(attrs) => {
+                write!(f, "AttrSet")?;
+                f.debug_list().entries(attrs).finish()
+            }
+        }
+    }
+}
