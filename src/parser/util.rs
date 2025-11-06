@@ -325,7 +325,7 @@ macro_rules! ast {
         $crate::parser::Expression::FunctionCall(
             $crate::parser::FunctionCall {
                 function: ::std::boxed::Box::new($crate::parser::util::ast!($function_name $function_args)),
-                args: ::std::boxed::Box::new($crate::parser::util::ast!($args_name $args_args))
+                args: ::std::boxed::Box::new($crate::parser::util::function_call_args_ast!($args_name $args_args))
             }
         )
     };
@@ -364,6 +364,56 @@ macro_rules! ast {
     } => {
         $crate::parser::PartialSpanned(
             $crate::parser::util::ast!($name $args),
+            ::copyspan::Span::from($span)
+        )
+    };
+}
+
+#[allow(unused_macros)]
+#[doc(hidden)]
+macro_rules! function_call_args_ast {
+    {
+        Set[$(
+            (
+                Spanned($attr:literal, $span:expr $(,)?),
+                $value_ident:ident $value_args:tt $(,)?
+            )
+        ),* $(,)?]
+    } => {
+        $crate::parser::FunctionArgs::Set(
+            ::std::vec![
+                $(
+                    (
+                        $crate::parser::PartialSpanned(
+                            ::std::borrow::Cow::from($attr),
+                            ::copyspan::Span::from($span)
+                        ),
+                        $crate::parser::util::ast!($value_ident $value_args)
+                    )
+                ),*
+            ]
+        )
+    };
+    {
+        List[
+            $($name:ident $args:tt),*
+            $(,)?
+        ]
+    } => {
+        $crate::parser::FunctionArgs::List(
+            ::std::vec![
+                $($crate::parser::util::ast!($name $args)),*
+            ]
+        )
+    };
+    {
+        Spanned (
+            $name:ident $args:tt,
+            $span:expr $(,)?
+        )
+    } => {
+        $crate::parser::PartialSpanned(
+            $crate::parser::util::function_call_args_ast!($name $args),
             ::copyspan::Span::from($span)
         )
     };
@@ -433,4 +483,4 @@ pub(crate) use {ast, lambda_args_ast};
 
 #[allow(unused_imports)]
 #[doc(hidden)]
-pub(crate) use option_ast;
+pub(crate) use {function_call_args_ast, option_ast};

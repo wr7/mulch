@@ -15,6 +15,17 @@ pub fn parse_attribute_set<'src>(
     tokens: &TokenStream<'src>,
     file_id: usize,
 ) -> DResult<Option<Expression<'src>>> {
+    let Some(set) = parse_attribute_set_raw(tokens, file_id)? else {
+        return Ok(None);
+    };
+
+    return Ok(Some(Expression::Set(set)));
+}
+
+pub(super) fn parse_attribute_set_raw<'src>(
+    tokens: &TokenStream<'src>,
+    file_id: usize,
+) -> DResult<Option<NameExpressionMap<'src>>> {
     let mut iter = NonBracketedIter::new(tokens, file_id);
 
     let Some(PartialSpanned(T!('{'), _)) = iter.next().transpose()? else {
@@ -66,7 +77,7 @@ pub fn parse_attribute_set<'src>(
         start = end + 1;
     }
 
-    Ok(Some(Expression::Set(entries)))
+    Ok(Some(entries))
 }
 
 /// Parses an attribute set entry.

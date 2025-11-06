@@ -11,7 +11,7 @@ mod util;
 pub fn main() {
     let db = SourceDB::new();
 
-    let source = indoc! {"{foo, bar} -> biz"};
+    let source = indoc! {"cool_func(a, b)"};
 
     let file_id = db.add("main.mulch".into(), source.to_owned());
 

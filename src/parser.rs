@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use attr_set::parse_attribute_set_raw;
 use binary::parse_binary_operators;
 use itertools::Itertools as _;
 use lambda::parse_lambda;
@@ -10,7 +11,7 @@ use util::NonBracketedIter;
 use crate::{
     Op, T,
     error::{DResult, FullSpan, PartialSpanned, span_of},
-    lexer::{Sym, Token},
+    lexer::{BracketType, Sym, Token},
 };
 
 mod attr_set;
@@ -45,10 +46,16 @@ pub struct LetIn<'src> {
     expression: Box<PartialSpanned<Expression<'src>>>,
 }
 
+#[derive(Clone, PartialEq, Eq)]
+pub enum FunctionArgs<'src> {
+    Set(NameExpressionMap<'src>),
+    List(Vec<PartialSpanned<Expression<'src>>>),
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FunctionCall<'src> {
     function: Box<PartialSpanned<Expression<'src>>>,
-    args: Box<PartialSpanned<Expression<'src>>>,
+    args: Box<PartialSpanned<FunctionArgs<'src>>>,
 }
 
 #[derive(Clone, PartialEq, Eq)]
@@ -91,6 +98,21 @@ impl<'src> Debug for Expression<'src> {
             Expression::FunctionCall(function_call) => Debug::fmt(function_call, f),
             Expression::Lambda(lambda) => Debug::fmt(lambda, f),
             Expression::BinaryOperation(binop) => Debug::fmt(binop, f),
+        }
+    }
+}
+
+impl<'src> Debug for FunctionArgs<'src> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FunctionArgs::Set(entries) => {
+                write!(f, "Set ")?;
+                f.debug_list().entries(entries).finish()
+            }
+            FunctionArgs::List(items) => {
+                write!(f, "List ")?;
+                f.debug_list().entries(items).finish()
+            }
         }
     }
 }
@@ -192,6 +214,16 @@ pub fn parse_list<'src>(
     tokens: &TokenStream<'src>,
     file_id: usize,
 ) -> DResult<Option<Expression<'src>>> {
+    let Some(list) = parse_list_raw(tokens, file_id)? else {
+        return Ok(None);
+    };
+    return Ok(Some(Expression::List(list)));
+}
+
+fn parse_list_raw<'src>(
+    tokens: &TokenStream<'src>,
+    file_id: usize,
+) -> DResult<Option<Vec<PartialSpanned<Expression<'src>>>>> {
     let mut iter = NonBracketedIter::new(tokens, file_id);
 
     let Some(PartialSpanned(T!('['), _)) = iter.next().transpose()? else {
@@ -232,10 +264,29 @@ pub fn parse_list<'src>(
         start = end + 1;
     }
 
-    Ok(Some(Expression::List(elements)))
+    Ok(Some(elements))
 }
 
-/// Parses a function call or index operation such as `my_array[0]`, `my_function[a, b]`, `my_function{foo = "bar"}`, or `my_function()`
+pub fn parse_function_args<'src>(
+    tokens: &TokenStream<'src>,
+    file_id: usize,
+) -> DResult<Option<PartialSpanned<FunctionArgs<'src>>>> {
+    let Some(span) = crate::error::span_of(tokens) else {
+        return Ok(None);
+    };
+
+    let args = if let Some(list) = parse_list_raw(tokens, file_id)? {
+        FunctionArgs::List(list)
+    } else if let Some(set) = parse_attribute_set_raw(tokens, file_id)? {
+        FunctionArgs::Set(set)
+    } else {
+        return Ok(None);
+    };
+
+    Ok(Some(PartialSpanned(args, span)))
+}
+
+/// Parses a function call or index operation such as `my_array[0]`, `my_function[a, b]`, or `my_function{foo = "bar"}`
 pub fn parse_function_call<'src>(
     tokens: &TokenStream<'src>,
     file_id: usize,
@@ -246,21 +297,31 @@ pub fn parse_function_call<'src>(
         return Ok(None);
     };
 
-    let Some(opening_bracket @ PartialSpanned(Token::OpeningBracket(_), _)) =
+    let Some(opening_bracket_tok @ PartialSpanned(Token::OpeningBracket(bracket_type), _)) =
         iter.next_back().transpose()?
     else {
         unreachable!()
     };
 
-    let opening_bracket = crate::util::element_offset(tokens, opening_bracket).unwrap();
+    let opening_bracket = crate::util::element_offset(tokens, opening_bracket_tok).unwrap();
 
     let function = &tokens[..opening_bracket];
     let Some(function) = parse_expression(function, file_id)? else {
         return Ok(None);
     };
 
+    if !matches!(bracket_type, BracketType::Square | BracketType::Curly) {
+        let opening_bracket = opening_bracket_tok.as_ref().with_file_id(file_id);
+        let expr_span = crate::error::span_of(tokens).unwrap();
+
+        return Err(crate::parser::error::invalid_function_call_args(
+            FullSpan::new(expr_span, file_id),
+            opening_bracket,
+        ));
+    }
+
     let args = &tokens[opening_bracket..];
-    let args = parse_expression(args, file_id)?.unwrap();
+    let args = parse_function_args(args, file_id)?.unwrap();
 
     Ok(Some(Expression::FunctionCall(FunctionCall {
         function: Box::new(function),

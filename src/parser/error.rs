@@ -51,7 +51,7 @@ pub fn let_in_unexpected(
 ) -> Diagnostic {
     let got_text = got.map_or(Cow::Borrowed("EOF"), |t| t.to_string().into());
 
-    error!("EP0009", format!("Expected `<identifier> = <expression;` or `in <expression>`; got {got_text}"), [
+    error!("EP0009", format!("Expected `<identifier> = <expression>;` or `in <expression>`; got {got_text}"), [
         {"let expression starts here", let_span, secondary},
         {"expected here", got_span, primary},
     ])
@@ -67,4 +67,17 @@ pub fn expected_lambda_arguments(span: FullSpan) -> Diagnostic {
 
 pub fn invalid_lambda_arguments(span: FullSpan) -> Diagnostic {
     error!("EP0012", "Invalid lambda arguments", [{"here", span, primary}])
+}
+
+pub fn invalid_function_call_args(expr_span: FullSpan, open_br: Spanned<&Token>) -> Diagnostic {
+    error!("EP0013",
+        concat!(
+            "Invalid function call arguments.\n\n",
+            "Function calls must be of the form `function[arg1, arg2, ...]` or `function{arg1 = ...; arg2=...; ...}`"
+        ),
+        [
+            {"function call here", expr_span, primary},
+            {format!("expected `{{` or `[`; got `{}`", open_br.0.to_string()), open_br.1, secondary}
+        ]
+    )
 }
