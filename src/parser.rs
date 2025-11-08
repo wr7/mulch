@@ -58,6 +58,12 @@ pub struct FunctionCall<'src> {
     args: Box<PartialSpanned<FunctionArgs<'src>>>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MemberAccess<'src> {
+    lhs: Box<PartialSpanned<Expression<'src>>>,
+    rhs: PartialSpanned<Cow<'src, str>>,
+}
+
 #[derive(Clone, PartialEq, Eq)]
 pub enum Expression<'src> {
     Variable(Cow<'src, str>),
@@ -72,6 +78,7 @@ pub enum Expression<'src> {
     FunctionCall(FunctionCall<'src>),
     Lambda(Lambda<'src>),
     BinaryOperation(BinaryOperation<'src>),
+    MemberAccess(MemberAccess<'src>),
 }
 
 impl<'src> Debug for Expression<'src> {
@@ -98,6 +105,7 @@ impl<'src> Debug for Expression<'src> {
             Expression::FunctionCall(function_call) => Debug::fmt(function_call, f),
             Expression::Lambda(lambda) => Debug::fmt(lambda, f),
             Expression::BinaryOperation(binop) => Debug::fmt(binop, f),
+            Expression::MemberAccess(acc) => Debug::fmt(acc, f),
         }
     }
 }
@@ -152,6 +160,7 @@ pub fn parse_expression<'src>(
             )
         },
         |tokens, file_id| parse_binary_operators(&[(Op!(^), Sym!(^))], true, tokens, file_id),
+        parse_member_access,
         parse_function_call,
     ];
 
@@ -326,5 +335,30 @@ pub fn parse_function_call<'src>(
     Ok(Some(Expression::FunctionCall(FunctionCall {
         function: Box::new(function),
         args: Box::new(args),
+    })))
+}
+
+pub fn parse_member_access<'src>(
+    tokens: &TokenStream<'src>,
+    file_id: usize,
+) -> DResult<Option<Expression<'src>>> {
+    let [
+        lhs @ ..,
+        PartialSpanned(T!(.), dot_span),
+        PartialSpanned(Token::Identifier(rhs), rhs_span),
+    ] = tokens
+    else {
+        return Ok(None);
+    };
+
+    let Some(lhs) = parse_expression(lhs, file_id)? else {
+        return Err(error::expected_expression(FullSpan::new(
+            *dot_span, file_id,
+        )));
+    };
+
+    Ok(Some(Expression::MemberAccess(MemberAccess {
+        lhs: Box::new(lhs),
+        rhs: PartialSpanned(rhs.clone(), *rhs_span),
     })))
 }

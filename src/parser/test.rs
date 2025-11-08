@@ -223,3 +223,15 @@ parse_test! {lamda_3, "{foo, bar} -> biz", ast! {
         expression: Spanned(Variable("biz"), 14..17),
     }, 0..17)
 }}
+
+parse_test! {member_access, "string.push_str[\"howdy!\"]", ast! {
+    Spanned(FunctionCall {
+        function: Spanned(MemberAccess {
+            lhs: Spanned(Variable("string"), 0..6),
+            rhs: Spanned("push_str", 7..15),
+        }, 0..15),
+        args: Spanned(List [
+            Spanned(StringLiteral("howdy!"), 16..24),
+        ], 15..25),
+    }, 0..25)
+}}

@@ -343,6 +343,22 @@ macro_rules! ast {
         )
     };
     {
+        MemberAccess {
+            lhs: $lhs_name:ident $lhs_args:tt,
+            rhs: Spanned($rhs:literal, $rhs_span:expr) $(,)?
+        }
+    } => {
+        $crate::parser::Expression::MemberAccess(
+            $crate::parser::MemberAccess {
+                lhs: ::std::boxed::Box::new($crate::parser::util::ast!($lhs_name $lhs_args)),
+                rhs: $crate::parser::PartialSpanned(
+                    ::std::borrow::Cow::from($rhs),
+                    ::copyspan::Span::from($rhs_span)
+                ),
+            }
+        )
+    };
+    {
         $binary_op:ident(
             $lhs_name:ident $lhs_args:tt,
             $rhs_name:ident $rhs_args:tt $(,)?
