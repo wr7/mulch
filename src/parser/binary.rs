@@ -9,13 +9,13 @@ use std::fmt::Debug;
 use super::{Expression, TokenStream, parse_expression};
 
 #[derive(Clone, PartialEq, Eq)]
-pub struct BinaryOperation<'src> {
-    pub lhs: Box<PartialSpanned<Expression<'src>>>,
+pub struct BinaryOperation {
+    pub lhs: Box<PartialSpanned<Expression>>,
     pub operator: BinaryOperator,
-    pub rhs: Box<PartialSpanned<Expression<'src>>>,
+    pub rhs: Box<PartialSpanned<Expression>>,
 }
 
-impl<'src> Debug for BinaryOperation<'src> {
+impl Debug for BinaryOperation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple(self.operator.name())
             .field(&self.lhs)
@@ -37,12 +37,12 @@ pub enum BinaryOperator {
     GreaterThanOrEqual,
 }
 
-pub fn parse_binary_operators<'src>(
+pub fn parse_binary_operators(
     operators: &[(BinaryOperator, crate::lexer::Symbol)],
     right_to_left: bool,
-    tokens: &TokenStream<'src>,
+    tokens: &TokenStream,
     file_id: usize,
-) -> DResult<Option<Expression<'src>>> {
+) -> DResult<Option<Expression>> {
     if tokens.is_empty() {
         return Ok(None);
     }

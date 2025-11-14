@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::fmt::Debug;
 
 use copyspan::Span;
@@ -15,28 +14,25 @@ use crate::{
 use super::{Expression, NonBracketedIter, TokenStream};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Lambda<'src> {
-    pub args: Box<PartialSpanned<Args<'src>>>,
-    pub expression: Box<PartialSpanned<Expression<'src>>>,
+pub struct Lambda {
+    pub args: Box<PartialSpanned<Args>>,
+    pub expression: Box<PartialSpanned<Expression>>,
 }
 
 #[derive(Clone, PartialEq, Eq)]
-pub enum Args<'src> {
-    Single(Cow<'src, str>),
-    List(Vec<PartialSpanned<Args<'src>>>),
-    AttrSet(Vec<ArgAttribute<'src>>),
+pub enum Args {
+    Single(String),
+    List(Vec<PartialSpanned<Args>>),
+    AttrSet(Vec<ArgAttribute>),
 }
 
 #[derive(Clone, PartialEq, Eq)]
-pub struct ArgAttribute<'src> {
-    pub name: PartialSpanned<Cow<'src, str>>,
-    pub default: Option<Box<PartialSpanned<Expression<'src>>>>,
+pub struct ArgAttribute {
+    pub name: PartialSpanned<String>,
+    pub default: Option<Box<PartialSpanned<Expression>>>,
 }
 
-pub fn parse_lambda<'src>(
-    tokens: &TokenStream<'src>,
-    file_id: usize,
-) -> DResult<Option<Expression<'src>>> {
+pub fn parse_lambda(tokens: &TokenStream, file_id: usize) -> DResult<Option<Expression>> {
     let mut iter = NonBracketedIter::new(tokens, file_id);
 
     let (arrow, arrow_span) = loop {
@@ -71,10 +67,7 @@ pub fn parse_lambda<'src>(
     })))
 }
 
-fn parse_args<'src>(
-    tokens: &TokenStream<'src>,
-    file_id: usize,
-) -> DResult<Option<PartialSpanned<Args<'src>>>> {
+fn parse_args(tokens: &TokenStream, file_id: usize) -> DResult<Option<PartialSpanned<Args>>> {
     if tokens.is_empty() {
         return Ok(None);
     }
@@ -95,10 +88,7 @@ fn parse_args<'src>(
     )))
 }
 
-fn parse_list_args<'src>(
-    tokens: &TokenStream<'src>,
-    file_id: usize,
-) -> DResult<Option<Args<'src>>> {
+fn parse_list_args(tokens: &TokenStream, file_id: usize) -> DResult<Option<Args>> {
     let mut iter = NonBracketedIter::new(tokens, file_id);
 
     let Some(PartialSpanned(T!('[') | T!('('), _)) = iter.next().transpose()? else {
@@ -128,7 +118,7 @@ fn parse_list_args<'src>(
         .map_ok(|tok| crate::util::element_offset(tokens, tok).unwrap());
 
     let mut start = 1;
-    let mut args: Vec<PartialSpanned<Args<'src>>> = Vec::new();
+    let mut args: Vec<PartialSpanned<Args>> = Vec::new();
 
     while start < tokens.len() - 1 {
         let end = iter.next().transpose()?.unwrap_or(tokens.len() - 1);
@@ -148,18 +138,15 @@ fn parse_list_args<'src>(
     Ok(Some(Args::List(args)))
 }
 
-fn parse_single_arg<'src>(
-    tokens: &TokenStream<'src>,
-    _file_id: usize,
-) -> DResult<Option<Args<'src>>> {
+fn parse_single_arg(tokens: &TokenStream, _file_id: usize) -> DResult<Option<Args>> {
     let [PartialSpanned(Token::Identifier(name), _)] = tokens else {
         return Ok(None);
     };
 
-    return Ok(Some(Args::Single(name.clone())));
+    return Ok(Some(Args::Single(name.to_string())));
 }
 
-fn parse_set_args<'src>(tokens: &TokenStream<'src>, file_id: usize) -> DResult<Option<Args<'src>>> {
+fn parse_set_args(tokens: &TokenStream, file_id: usize) -> DResult<Option<Args>> {
     let mut iter = NonBracketedIter::new(tokens, file_id);
 
     let Some(PartialSpanned(T!('{'), _)) = iter.next().transpose()? else {
@@ -189,7 +176,7 @@ fn parse_set_args<'src>(tokens: &TokenStream<'src>, file_id: usize) -> DResult<O
         .map_ok(|tok| crate::util::element_offset(tokens, tok).unwrap());
 
     let mut start = 1;
-    let mut attrs: Vec<ArgAttribute<'src>> = Vec::new();
+    let mut attrs: Vec<ArgAttribute> = Vec::new();
 
     while start < tokens.len() - 1 {
         let end = iter.next().transpose()?.unwrap_or(tokens.len() - 1);
@@ -207,7 +194,7 @@ fn parse_set_args<'src>(tokens: &TokenStream<'src>, file_id: usize) -> DResult<O
             )));
         }
 
-        let bs = attrs.binary_search_by(|a| a.name.cmp(attr));
+        let bs = attrs.binary_search_by_key(&&**attr, |a| &a.name);
         let idx = bs.map_or_else(|i| i, |i| i);
 
         if bs.is_ok() {
@@ -221,7 +208,7 @@ fn parse_set_args<'src>(tokens: &TokenStream<'src>, file_id: usize) -> DResult<O
         attrs.insert(
             idx,
             ArgAttribute {
-                name: PartialSpanned::new(attr.clone(), *attr_span),
+                name: PartialSpanned::new(attr.to_string(), *attr_span),
                 default: None,
             },
         );
@@ -232,7 +219,7 @@ fn parse_set_args<'src>(tokens: &TokenStream<'src>, file_id: usize) -> DResult<O
     Ok(Some(Args::AttrSet(attrs)))
 }
 
-impl<'src> ArgAttribute<'src> {
+impl ArgAttribute {
     pub fn span(&self) -> Span {
         if let Some(def) = self.default.as_ref() {
             Span::from(self.name.1.start..def.1.end)
@@ -242,7 +229,7 @@ impl<'src> ArgAttribute<'src> {
     }
 }
 
-impl<'src> Debug for ArgAttribute<'src> {
+impl Debug for ArgAttribute {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("")
             .field("name", &self.name)
@@ -251,7 +238,7 @@ impl<'src> Debug for ArgAttribute<'src> {
     }
 }
 
-impl<'src> Debug for Args<'src> {
+impl Debug for Args {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Args::Single(ident) => write!(f, "Single(\"{}\")", ident.escape_debug()),

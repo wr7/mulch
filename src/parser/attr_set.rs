@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use itertools::Itertools as _;
 
 use crate::{
@@ -11,10 +9,7 @@ use crate::{
     },
 };
 
-pub fn parse_attribute_set<'src>(
-    tokens: &TokenStream<'src>,
-    file_id: usize,
-) -> DResult<Option<Expression<'src>>> {
+pub fn parse_attribute_set(tokens: &TokenStream, file_id: usize) -> DResult<Option<Expression>> {
     let Some(set) = parse_attribute_set_raw(tokens, file_id)? else {
         return Ok(None);
     };
@@ -22,10 +17,10 @@ pub fn parse_attribute_set<'src>(
     return Ok(Some(Expression::Set(set)));
 }
 
-pub(super) fn parse_attribute_set_raw<'src>(
-    tokens: &TokenStream<'src>,
+pub(super) fn parse_attribute_set_raw(
+    tokens: &TokenStream,
     file_id: usize,
-) -> DResult<Option<NameExpressionMap<'src>>> {
+) -> DResult<Option<NameExpressionMap>> {
     let mut iter = NonBracketedIter::new(tokens, file_id);
 
     let Some(PartialSpanned(T!('{'), _)) = iter.next().transpose()? else {
@@ -49,7 +44,7 @@ pub(super) fn parse_attribute_set_raw<'src>(
         .map_ok(|tok| crate::util::element_offset(tokens, tok).unwrap());
 
     let mut start = 1;
-    let mut entries: NameExpressionMap<'src> = Vec::new();
+    let mut entries: NameExpressionMap = Vec::new();
 
     while start < tokens.len() - 1 {
         let end = iter.next().transpose()?.unwrap_or(tokens.len() - 1);
@@ -61,8 +56,7 @@ pub(super) fn parse_attribute_set_raw<'src>(
         }
 
         let (name, expression) = parse_attribute_set_entry(&tokens[start..=end], file_id)?;
-
-        let res = entries.binary_search_by_key(&&*name, |(k, _)| &**k);
+        let res = entries.binary_search_by_key(&&*name, |(k, _)| k);
         match res {
             Ok(idx) => {
                 return Err(error::multiple_declarations_of_attribute(
@@ -84,13 +78,10 @@ pub(super) fn parse_attribute_set_raw<'src>(
 ///
 /// NOTE: `tokens` should also include a trailing semicolon or closing bracket. This is used for
 /// generating error messages.
-fn parse_attribute_set_entry<'src>(
-    tokens: &TokenStream<'src>,
+fn parse_attribute_set_entry(
+    tokens: &TokenStream,
     file_id: usize,
-) -> DResult<(
-    PartialSpanned<Cow<'src, str>>,
-    PartialSpanned<Expression<'src>>,
-)> {
+) -> DResult<(PartialSpanned<String>, PartialSpanned<Expression>)> {
     let PartialSpanned(Token::Identifier(attr) | Token::StringLiteral(attr), attr_span) =
         &tokens[0]
     else {
@@ -128,5 +119,5 @@ fn parse_attribute_set_entry<'src>(
         )));
     };
 
-    Ok((PartialSpanned(attr.clone(), *attr_span), expr))
+    Ok((PartialSpanned(attr.to_string(), *attr_span), expr))
 }

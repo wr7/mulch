@@ -8,10 +8,7 @@ use crate::{
     },
 };
 
-pub fn parse_with_in<'src>(
-    tokens: &TokenStream<'src>,
-    file_id: usize,
-) -> DResult<Option<Expression<'src>>> {
+pub fn parse_with_in(tokens: &TokenStream, file_id: usize) -> DResult<Option<Expression>> {
     let mut iter = NonBracketedIter::new(tokens, file_id);
 
     let Some(PartialSpanned(T!(with), with_span)) = iter.next().transpose()? else {
@@ -55,17 +52,14 @@ pub fn parse_with_in<'src>(
     })))
 }
 
-pub fn parse_let_in<'src>(
-    tokens: &TokenStream<'src>,
-    file_id: usize,
-) -> DResult<Option<Expression<'src>>> {
+pub fn parse_let_in(tokens: &TokenStream, file_id: usize) -> DResult<Option<Expression>> {
     let mut iter = NonBracketedIter::new(tokens, file_id);
 
     let Some(_let @ PartialSpanned(T!(let), let_span)) = iter.next().transpose()? else {
         return Ok(None);
     };
 
-    let mut name_expression_map: NameExpressionMap<'src> = Vec::new();
+    let mut name_expression_map: NameExpressionMap = Vec::new();
     let mut last_span = *let_span;
 
     let (in_, in_span) = loop {
@@ -97,7 +91,8 @@ pub fn parse_let_in<'src>(
                     )));
                 };
 
-                name_expression_map.push((PartialSpanned(name.clone(), *name_span), expression));
+                name_expression_map
+                    .push((PartialSpanned(name.to_string(), *name_span), expression));
             }
             [Some(in_ @ PartialSpanned(T!(in), in_span)), _] => {
                 let in_ = crate::util::element_offset(tokens, in_).unwrap();

@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use attr_set::parse_attribute_set_raw;
 use binary::parse_binary_operators;
 use itertools::Itertools as _;
@@ -29,59 +27,56 @@ pub use lambda::Lambda;
 
 pub type TokenStream<'src> = [PartialSpanned<Token<'src>>];
 
-pub type NameExpressionMap<'src> = Vec<(
-    PartialSpanned<Cow<'src, str>>,
-    PartialSpanned<Expression<'src>>,
-)>;
+pub type NameExpressionMap = Vec<(PartialSpanned<String>, PartialSpanned<Expression>)>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct WithIn<'src> {
-    set: Box<PartialSpanned<Expression<'src>>>,
-    expression: Box<PartialSpanned<Expression<'src>>>,
+pub struct WithIn {
+    set: Box<PartialSpanned<Expression>>,
+    expression: Box<PartialSpanned<Expression>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct LetIn<'src> {
-    bindings: NameExpressionMap<'src>,
-    expression: Box<PartialSpanned<Expression<'src>>>,
+pub struct LetIn {
+    bindings: NameExpressionMap,
+    expression: Box<PartialSpanned<Expression>>,
 }
 
 #[derive(Clone, PartialEq, Eq)]
-pub enum FunctionArgs<'src> {
-    Set(NameExpressionMap<'src>),
-    List(Vec<PartialSpanned<Expression<'src>>>),
+pub enum FunctionArgs {
+    Set(NameExpressionMap),
+    List(Vec<PartialSpanned<Expression>>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FunctionCall<'src> {
-    function: Box<PartialSpanned<Expression<'src>>>,
-    args: Box<PartialSpanned<FunctionArgs<'src>>>,
+pub struct FunctionCall {
+    function: Box<PartialSpanned<Expression>>,
+    args: Box<PartialSpanned<FunctionArgs>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct MemberAccess<'src> {
-    lhs: Box<PartialSpanned<Expression<'src>>>,
-    rhs: PartialSpanned<Cow<'src, str>>,
+pub struct MemberAccess {
+    lhs: Box<PartialSpanned<Expression>>,
+    rhs: PartialSpanned<String>,
 }
 
 #[derive(Clone, PartialEq, Eq)]
-pub enum Expression<'src> {
-    Variable(Cow<'src, str>),
-    StringLiteral(Cow<'src, str>),
-    NumericLiteral(Cow<'src, str>),
+pub enum Expression {
+    Variable(String),
+    StringLiteral(String),
+    NumericLiteral(String),
     Unit(),
     /// Attribute set (note: ordered by index)
-    Set(NameExpressionMap<'src>),
-    List(Vec<PartialSpanned<Expression<'src>>>),
-    WithIn(WithIn<'src>),
-    LetIn(LetIn<'src>),
-    FunctionCall(FunctionCall<'src>),
-    Lambda(Lambda<'src>),
-    BinaryOperation(BinaryOperation<'src>),
-    MemberAccess(MemberAccess<'src>),
+    Set(NameExpressionMap),
+    List(Vec<PartialSpanned<Expression>>),
+    WithIn(WithIn),
+    LetIn(LetIn),
+    FunctionCall(FunctionCall),
+    Lambda(Lambda),
+    BinaryOperation(BinaryOperation),
+    MemberAccess(MemberAccess),
 }
 
-impl<'src> Debug for Expression<'src> {
+impl Debug for Expression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self {
             Expression::Variable(val) => write!(f, "Variable(\"{}\")", val.escape_debug()),
@@ -110,7 +105,7 @@ impl<'src> Debug for Expression<'src> {
     }
 }
 
-impl<'src> Debug for FunctionArgs<'src> {
+impl Debug for FunctionArgs {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             FunctionArgs::Set(entries) => {
@@ -129,13 +124,13 @@ impl<'src> Debug for FunctionArgs<'src> {
 pub fn parse_expression<'src>(
     tokens: &TokenStream<'src>,
     file_id: usize,
-) -> DResult<Option<PartialSpanned<Expression<'src>>>> {
+) -> DResult<Option<PartialSpanned<Expression>>> {
     if tokens.is_empty() {
         return Ok(None);
     }
 
     let span = span_of(tokens).unwrap();
-    const RULES: &[for<'s> fn(&TokenStream<'s>, usize) -> DResult<Option<Expression<'s>>>] = &[
+    const RULES: &[fn(&TokenStream, usize) -> DResult<Option<Expression>>] = &[
         parse_ident_or_literal,
         parse_parenthesized,
         parse_attribute_set,
@@ -176,10 +171,7 @@ pub fn parse_expression<'src>(
     Err(error::invalid_expression(FullSpan::new(span, file_id)))
 }
 
-pub fn parse_parenthesized<'src>(
-    tokens: &TokenStream<'src>,
-    file_id: usize,
-) -> DResult<Option<Expression<'src>>> {
+pub fn parse_parenthesized(tokens: &TokenStream, file_id: usize) -> DResult<Option<Expression>> {
     let mut iter = NonBracketedIter::new(tokens, file_id);
 
     let Some(PartialSpanned(T!('('), _)) = iter.next().transpose()? else {
@@ -203,36 +195,33 @@ pub fn parse_parenthesized<'src>(
     ))
 }
 
-pub fn parse_ident_or_literal<'src>(
-    tokens: &TokenStream<'src>,
+pub fn parse_ident_or_literal(
+    tokens: &TokenStream,
     _file_id: usize,
-) -> DResult<Option<Expression<'src>>> {
+) -> DResult<Option<Expression>> {
     let [PartialSpanned(token, _)] = tokens else {
         return Ok(None);
     };
 
     Ok(Some(match token {
-        Token::Identifier(cow) => Expression::Variable(cow.clone()),
-        Token::StringLiteral(cow) => Expression::StringLiteral(cow.clone()),
-        Token::Number(cow) => Expression::NumericLiteral(cow.clone()),
+        Token::Identifier(cow) => Expression::Variable(cow.to_string()),
+        Token::StringLiteral(cow) => Expression::StringLiteral(cow.to_string()),
+        Token::Number(cow) => Expression::NumericLiteral(cow.to_string()),
         _ => return Ok(None),
     }))
 }
 
-pub fn parse_list<'src>(
-    tokens: &TokenStream<'src>,
-    file_id: usize,
-) -> DResult<Option<Expression<'src>>> {
+pub fn parse_list(tokens: &TokenStream, file_id: usize) -> DResult<Option<Expression>> {
     let Some(list) = parse_list_raw(tokens, file_id)? else {
         return Ok(None);
     };
     return Ok(Some(Expression::List(list)));
 }
 
-fn parse_list_raw<'src>(
-    tokens: &TokenStream<'src>,
+fn parse_list_raw(
+    tokens: &TokenStream,
     file_id: usize,
-) -> DResult<Option<Vec<PartialSpanned<Expression<'src>>>>> {
+) -> DResult<Option<Vec<PartialSpanned<Expression>>>> {
     let mut iter = NonBracketedIter::new(tokens, file_id);
 
     let Some(PartialSpanned(T!('['), _)) = iter.next().transpose()? else {
@@ -256,7 +245,7 @@ fn parse_list_raw<'src>(
         .map_ok(|tok| crate::util::element_offset(tokens, tok).unwrap());
 
     let mut start = 1;
-    let mut elements: Vec<PartialSpanned<Expression<'src>>> = Vec::new();
+    let mut elements: Vec<PartialSpanned<Expression>> = Vec::new();
 
     while start < tokens.len() - 1 {
         let end = iter.next().transpose()?.unwrap_or(tokens.len() - 1);
@@ -276,10 +265,10 @@ fn parse_list_raw<'src>(
     Ok(Some(elements))
 }
 
-pub fn parse_function_args<'src>(
-    tokens: &TokenStream<'src>,
+pub fn parse_function_args(
+    tokens: &TokenStream,
     file_id: usize,
-) -> DResult<Option<PartialSpanned<FunctionArgs<'src>>>> {
+) -> DResult<Option<PartialSpanned<FunctionArgs>>> {
     let Some(span) = crate::error::span_of(tokens) else {
         return Ok(None);
     };
@@ -296,10 +285,7 @@ pub fn parse_function_args<'src>(
 }
 
 /// Parses a function call or index operation such as `my_array[0]`, `my_function[a, b]`, or `my_function{foo = "bar"}`
-pub fn parse_function_call<'src>(
-    tokens: &TokenStream<'src>,
-    file_id: usize,
-) -> DResult<Option<Expression<'src>>> {
+pub fn parse_function_call(tokens: &TokenStream, file_id: usize) -> DResult<Option<Expression>> {
     let mut iter = NonBracketedIter::new(tokens, file_id);
 
     let Some(PartialSpanned(Token::ClosingBracket(_), _)) = iter.next_back().transpose()? else {
@@ -338,10 +324,7 @@ pub fn parse_function_call<'src>(
     })))
 }
 
-pub fn parse_member_access<'src>(
-    tokens: &TokenStream<'src>,
-    file_id: usize,
-) -> DResult<Option<Expression<'src>>> {
+pub fn parse_member_access(tokens: &TokenStream, file_id: usize) -> DResult<Option<Expression>> {
     let [
         lhs @ ..,
         PartialSpanned(T!(.), dot_span),
@@ -359,6 +342,6 @@ pub fn parse_member_access<'src>(
 
     Ok(Some(Expression::MemberAccess(MemberAccess {
         lhs: Box::new(lhs),
-        rhs: PartialSpanned(rhs.clone(), *rhs_span),
+        rhs: PartialSpanned(rhs.to_string(), *rhs_span),
     })))
 }

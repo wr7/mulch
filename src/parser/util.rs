@@ -213,7 +213,7 @@ macro_rules! ast {
         )
     } => {
         $crate::parser::Expression::Variable(
-            ::std::borrow::Cow::from($name)
+            ::std::string::String::from($name)
         )
     };
     {
@@ -222,7 +222,7 @@ macro_rules! ast {
         )
     } => {
         $crate::parser::Expression::StringLiteral(
-            ::std::borrow::Cow::from($name)
+            ::std::string::String::from($name)
         )
     };
     {
@@ -231,7 +231,7 @@ macro_rules! ast {
         )
     } => {
         $crate::parser::Expression::NumericLiteral(
-            ::std::borrow::Cow::from($name)
+            ::std::string::String::from($name)
         )
     };
     {
@@ -252,7 +252,7 @@ macro_rules! ast {
                 $(
                     (
                         $crate::parser::PartialSpanned(
-                            ::std::borrow::Cow::from($attr),
+                            ::std::string::String::from($attr),
                             ::copyspan::Span::from($span)
                         ),
                         $crate::parser::util::ast!($value_ident $value_args)
@@ -303,7 +303,7 @@ macro_rules! ast {
                     $(
                         (
                             $crate::parser::PartialSpanned(
-                                ::std::borrow::Cow::from($var_name),
+                                ::std::string::String::from($var_name),
                                 ::copyspan::Span::from($var_name_span)
                             ),
                             $crate::parser::util::ast!($value_ident $value_args)
@@ -352,7 +352,7 @@ macro_rules! ast {
             $crate::parser::MemberAccess {
                 lhs: ::std::boxed::Box::new($crate::parser::util::ast!($lhs_name $lhs_args)),
                 rhs: $crate::parser::PartialSpanned(
-                    ::std::borrow::Cow::from($rhs),
+                    ::std::string::String::from($rhs),
                     ::copyspan::Span::from($rhs_span)
                 ),
             }
@@ -440,7 +440,7 @@ macro_rules! lambda_args_ast {
     {
         Single($name:literal $(,)?)
     } => {
-        $crate::parser::lambda::Args::Single(::std::borrow::Cow::from($name))
+        $crate::parser::lambda::Args::Single(::std::string::String::from($name))
     };
     {
         List[$(
@@ -464,7 +464,7 @@ macro_rules! lambda_args_ast {
         $crate::parser::lambda::Args::AttrSet(::std::vec![
             $(
                 $crate::parser::lambda::ArgAttribute {
-                    name: $crate::parser::PartialSpanned(::std::borrow::Cow::from($name), ::copyspan::Span::from($span)),
+                    name: $crate::parser::PartialSpanned(::std::string::String::from($name), ::copyspan::Span::from($span)),
                     default: $crate::parser::util::option_ast!($($d)+)
                 }
             ),*
