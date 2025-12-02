@@ -47,7 +47,7 @@ impl<I: Iterator, const N: usize> MultiPeekable<I, N> {
     }
 
     pub fn peek_all(&self) -> &[I::Item] {
-        let ptr = self.buf[0].as_ptr();
+        let ptr = std::ptr::from_ref(&self.buf).cast::<I::Item>();
         let len = self.len;
 
         unsafe { std::slice::from_raw_parts(ptr, len) }
@@ -65,9 +65,7 @@ impl<I: Iterator, const N: usize> Iterator for MultiPeekable<I, N> {
         let item = unsafe { self.buf[0].assume_init_read() };
         self.len -= 1;
 
-        let buf_ptr = self.buf[0].as_mut_ptr();
-
-        unsafe { std::ptr::copy(buf_ptr.offset(1), buf_ptr, self.len) };
+        unsafe { std::ptr::copy(self.buf[1].as_mut_ptr(), self.buf[0].as_mut_ptr(), self.len) };
 
         if self.len + 1 == N {
             if let Some(next) = self.iter.next() {
