@@ -5,6 +5,17 @@ use std::{
     ptr,
 };
 
+/// Returns the smallest power of two greater than `n`
+pub(crate) const fn ceil_power_two(n: usize) -> usize {
+    let mut ret = 1;
+
+    while n > ret {
+        ret *= 2;
+    }
+
+    ret
+}
+
 pub(crate) struct MultiPeekable<I: Iterator, const N: usize> {
     iter: I,
     buf: [MaybeUninit<I::Item>; N],
