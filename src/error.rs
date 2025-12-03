@@ -136,7 +136,7 @@ impl<'a> std::fmt::Display for Display<'a> {
 }
 
 impl Diagnostic {
-    pub fn display(self, db: &SourceDB) -> Display {
+    pub fn display(self, db: &'_ SourceDB) -> Display<'_> {
         Display {
             diag: self.into(),
             db,

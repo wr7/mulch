@@ -2,8 +2,11 @@ use std::{
     ffi::OsStr,
     fmt::{Debug, Display},
     mem::{ManuallyDrop, MaybeUninit},
-    ptr,
+    ptr::{self, addr_of, addr_of_mut},
 };
+
+#[cfg(test)]
+mod test;
 
 /// Returns the smallest power of two greater than `n`
 pub(crate) const fn ceil_power_two(n: usize) -> usize {
@@ -76,7 +79,10 @@ impl<I: Iterator, const N: usize> Iterator for MultiPeekable<I, N> {
         let item = unsafe { self.buf[0].assume_init_read() };
         self.len -= 1;
 
-        unsafe { std::ptr::copy(self.buf[1].as_mut_ptr(), self.buf[0].as_mut_ptr(), self.len) };
+        let ptr_dst = addr_of_mut!(self.buf).cast::<I::Item>();
+        let ptr_src = unsafe { addr_of!(self.buf).cast::<I::Item>().offset(1) };
+
+        unsafe { std::ptr::copy(ptr_src, ptr_dst, self.len) };
 
         if self.len + 1 == N {
             if let Some(next) = self.iter.next() {
