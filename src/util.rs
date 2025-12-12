@@ -165,3 +165,18 @@ pub fn element_offset<T>(slice: &[T], element: &T) -> Option<usize> {
         None
     }
 }
+
+/// Gets the maximum of a set of numbers
+macro_rules! max {
+    ($a:expr $(,)?) => {
+        $a
+    };
+    ($a:expr, $b:expr $(, $rem:expr)* $(,)?) => {{
+        let a = $a;
+        let b = $b;
+
+        $crate::util::max!(if a > b { a } else { b } $(,$rem)*)
+    }};
+}
+
+pub(crate) use max;
