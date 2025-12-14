@@ -1,6 +1,9 @@
 use std::{num::NonZeroUsize, ptr::addr_of_mut};
 
-use crate::gc::{GarbageCollector, gcspace::GCSpace};
+use crate::gc::{
+    GarbageCollector,
+    gcspace::{GCObject, GCSpace},
+};
 
 /// A garbage collected string.
 ///
@@ -81,7 +84,7 @@ impl GCSpace {
         self.len += num_blocks;
 
         unsafe {
-            std::ptr::copy_nonoverlapping(string.as_ptr(), self.ptr_at_mut(data_ptr), string.len())
+            std::ptr::copy_nonoverlapping(string.as_ptr(), self.block_ptr(data_ptr), string.len())
         };
 
         GCString {
@@ -100,9 +103,55 @@ impl GCSpace {
             return string;
         }
 
-        let ptr = self
-            .data
-            .wrapping_byte_add(string.ptr.get() * GarbageCollector::BLOCK_SIZE);
-        unsafe { std::str::from_utf8_unchecked(std::slice::from_raw_parts(ptr, string.len)) }
+        unsafe {
+            std::str::from_utf8_unchecked(std::slice::from_raw_parts(
+                self.block_ptr(string.ptr),
+                string.len,
+            ))
+        }
+    }
+}
+
+unsafe impl GCObject for GCString {
+    unsafe fn get_forwarded_value(self, gc: &mut GarbageCollector) -> Option<Self> {
+        if self.get_inline().is_some() {
+            return Some(self);
+        }
+
+        let ptr = gc.from_space.block_ptr(self.ptr);
+        let discriminant = unsafe { ptr.cast::<usize>().read() };
+
+        // If the most-significant-byte is not `0xFF`, it is not a forwarded value.
+        if discriminant >> (usize::BITS - 8) != 0xFF {
+            return None;
+        }
+
+        let mask = (!0usize) >> 8;
+        let forward = discriminant & mask;
+
+        Some(Self {
+            len: self.len,
+            ptr: NonZeroUsize::new(forward).unwrap(),
+        })
+    }
+
+    unsafe fn gc_copy(self, gc: &mut GarbageCollector) -> Self {
+        if let Some(forward) = unsafe { self.get_forwarded_value(gc) } {
+            return forward;
+        }
+
+        let to_value = gc
+            .to_space
+            .alloc_string(unsafe { gc.from_space.get_string(&self) });
+
+        let forward = to_value.ptr.get() | 0xFF;
+        unsafe {
+            gc.from_space
+                .block_ptr(self.ptr)
+                .cast::<usize>()
+                .write(forward);
+        }
+
+        to_value
     }
 }

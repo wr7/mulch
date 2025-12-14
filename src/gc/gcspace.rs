@@ -28,17 +28,23 @@ pub struct GCSpace {
 /// # Safety
 /// - The alignment of `Self` must be less than or equal to `GarbageCollector::BLOCK_SIZE`
 pub unsafe trait GCObject: Sized + Clone + Copy {
-    unsafe fn get_forwarded_value(gc: &GarbageCollector, ptr: Self) -> Option<Self>;
-    unsafe fn gc_copy(gc: &GarbageCollector, ptr: Self) -> Self;
+    /// Returns the corresponding object in `to-space` if it is a forward or inline value. Otherwise
+    /// returns `None`.
+    ///
+    /// # Safety
+    /// `self` must be a valid, currently-alive value in `from-space`.
+    unsafe fn get_forwarded_value(self, gc: &mut GarbageCollector) -> Option<Self>;
+
+    /// Copies `self` into `to-space` and leaves behind a forward pointer. If the object has already
+    /// been copied, it returns the forwarded pointer in `to-space`
+    ///
+    /// # Safety
+    /// `self` must be a valid, currently-alive value in `from-space`.
+    unsafe fn gc_copy(self, gc: &mut GarbageCollector) -> Self;
 }
 
 impl GCSpace {
     const STARTING_BLOCKS: usize = 64;
-
-    fn ptr_at_mut(&self, block_idx: usize) -> *mut u8 {
-        self.data
-            .wrapping_byte_add(block_idx * GarbageCollector::BLOCK_SIZE)
-    }
 
     /// Grows the allocation to be at least `new_size_blocks` blocks
     pub fn expand(&mut self, new_size_blocks: usize) {
@@ -84,6 +90,12 @@ impl GCSpace {
             len: 1, // We reserve the first block. This allows us to use `NonZeroUsize` for many of our datastructures.
             capacity: Self::STARTING_BLOCKS,
         }
+    }
+
+    /// Gets a pointer to the block at `idx`
+    fn block_ptr(&self, idx: impl Into<usize>) -> *mut u8 {
+        self.data
+            .wrapping_byte_add(idx.into() * GarbageCollector::BLOCK_SIZE)
     }
 }
 

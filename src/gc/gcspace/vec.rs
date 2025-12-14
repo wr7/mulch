@@ -31,8 +31,8 @@ impl GCSpace {
     {
         let vec = unsafe { self.alloc_uninit_vec(elements.len()) };
         let ptr = self
-            .data
-            .wrapping_byte_add((vec.ptr.get() + 1) * GarbageCollector::BLOCK_SIZE)
+            .block_ptr(vec.ptr)
+            .wrapping_byte_add(GarbageCollector::BLOCK_SIZE)
             .cast::<T>();
 
         unsafe { std::ptr::copy_nonoverlapping(elements.as_ptr(), ptr, elements.len()) }
@@ -57,7 +57,7 @@ impl GCSpace {
 
         unsafe {
             // write element length to first block
-            self.ptr_at_mut(ptr).cast::<usize>().write(len);
+            self.block_ptr(ptr).cast::<usize>().write(len);
         }
 
         GCVec {
@@ -66,27 +66,65 @@ impl GCSpace {
         }
     }
 
-    /// Gets a pointer to the element at `index` in a `GCVec`. Returns `None` if `index` is out-
-    /// of-range.
+    /// Gets a pointer to the element at `index` in a `GCVec`.
     /// # Safety
     /// `vec` must be a valid, non-frozen `GCVec` in `Self`
-    pub unsafe fn element_ptr<T>(&self, vec: GCVec<T>, index: usize) -> Option<NonNull<T>>
+    pub fn element_ptr_unchecked<T>(&self, vec: GCVec<T>, index: usize) -> *mut T
     where
         T: GCObject,
     {
-        let len_ptr = self
-            .data
-            .wrapping_byte_add(vec.ptr.get() * GarbageCollector::BLOCK_SIZE);
+        let base_ptr = self.block_ptr(vec.ptr);
 
-        let len = unsafe { len_ptr.cast::<usize>().read() };
-        if index <= len {
-            return None;
-        }
-
-        let ptr = len_ptr
+        let ptr = base_ptr
             .wrapping_byte_add(GarbageCollector::BLOCK_SIZE + index * std::mem::size_of::<T>())
             .cast::<T>();
 
-        NonNull::new(ptr)
+        ptr
+    }
+}
+
+unsafe impl<T> GCObject for GCVec<T>
+where
+    T: GCObject,
+{
+    unsafe fn get_forwarded_value(self, gc: &mut GarbageCollector) -> Option<Self> {
+        let discriminant = unsafe { gc.from_space.block_ptr(self.ptr).cast::<usize>().read() };
+        if discriminant & 1usize.rotate_right(1) == 0 {
+            return None;
+        }
+
+        let ptr = discriminant & ((!0usize) >> 1);
+        Some(Self {
+            ptr: NonZeroUsize::new(ptr).unwrap(),
+            _phantomdata: PhantomData,
+        })
+    }
+
+    unsafe fn gc_copy(self, gc: &mut GarbageCollector) -> Self {
+        if let Some(fwd) = unsafe { self.get_forwarded_value(gc) } {
+            return fwd;
+        }
+
+        let from_base_ptr = gc.from_space.block_ptr(self.ptr);
+        let len = unsafe { from_base_ptr.cast::<usize>().read() };
+
+        // We must allocate the vec and write the forward pointer before copying the elements
+        // because they may contain references to `self`
+        let new_vec = unsafe { gc.to_space.alloc_uninit_vec::<T>(len) };
+        let discriminant = new_vec.ptr | 1usize.rotate_right(1);
+        unsafe { from_base_ptr.cast::<usize>().write(discriminant.get()) };
+
+        for i in 0..len {
+            let old_element = unsafe { gc.from_space.element_ptr_unchecked(self, i).read() };
+            let new_element = unsafe { old_element.gc_copy(gc) };
+
+            unsafe {
+                gc.to_space
+                    .element_ptr_unchecked(new_vec, i)
+                    .write(new_element)
+            };
+        }
+
+        new_vec
     }
 }
