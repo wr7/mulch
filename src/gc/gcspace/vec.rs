@@ -2,7 +2,7 @@ use std::{marker::PhantomData, num::NonZeroUsize, ptr::NonNull};
 
 use crate::gc::{
     GarbageCollector,
-    gcspace::{GCObject, GCSpace},
+    gcspace::{GCPtr, GCSpace},
 };
 
 /// A garbage collected dynamically-sized array.
@@ -16,7 +16,7 @@ use crate::gc::{
 /// starts in the following block.
 #[derive(Clone, Copy)]
 #[repr(transparent)]
-pub struct GCVec<T: GCObject> {
+pub struct GCVec<T: GCPtr> {
     ptr: NonZeroUsize,
     _phantomdata: PhantomData<Vec<T>>,
 }
@@ -27,7 +27,7 @@ impl GCSpace {
     /// All `elements` must point to valid, non-frozen objects in the current GC space.
     pub unsafe fn alloc_vec<T>(&mut self, elements: &[T]) -> GCVec<T>
     where
-        T: GCObject,
+        T: GCPtr,
     {
         let vec = unsafe { self.alloc_uninit_vec(elements.len()) };
         let ptr = self
@@ -45,7 +45,7 @@ impl GCSpace {
     /// The `GCVec` must be fully initialized be fully initialized before it is moved to from-space
     pub unsafe fn alloc_uninit_vec<T>(&mut self, len: usize) -> GCVec<T>
     where
-        T: GCObject,
+        T: GCPtr,
     {
         let allocation_size =
             1 + (len * std::mem::size_of::<T>()).div_ceil(GarbageCollector::BLOCK_SIZE);
@@ -71,7 +71,7 @@ impl GCSpace {
     /// `vec` must be a valid, non-frozen `GCVec` in `Self`
     pub fn element_ptr_unchecked<T>(&self, vec: GCVec<T>, index: usize) -> *mut T
     where
-        T: GCObject,
+        T: GCPtr,
     {
         let base_ptr = self.block_ptr(vec.ptr);
 
@@ -83,9 +83,9 @@ impl GCSpace {
     }
 }
 
-unsafe impl<T> GCObject for GCVec<T>
+unsafe impl<T> GCPtr for GCVec<T>
 where
-    T: GCObject,
+    T: GCPtr,
 {
     unsafe fn get_forwarded_value(self, gc: &mut GarbageCollector) -> Option<Self> {
         let discriminant = unsafe { gc.from_space.block_ptr(self.ptr).cast::<usize>().read() };

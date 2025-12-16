@@ -2,7 +2,7 @@ use std::{num::NonZeroUsize, ptr::addr_of_mut};
 
 use crate::gc::{
     GarbageCollector,
-    gcspace::{GCObject, GCSpace},
+    gcspace::{GCPtr, GCSpace},
 };
 
 /// A garbage collected string.
@@ -112,7 +112,7 @@ impl GCSpace {
     }
 }
 
-unsafe impl GCObject for GCString {
+unsafe impl GCPtr for GCString {
     unsafe fn get_forwarded_value(self, gc: &mut GarbageCollector) -> Option<Self> {
         if self.get_inline().is_some() {
             return Some(self);

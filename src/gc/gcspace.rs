@@ -27,7 +27,7 @@ pub struct GCSpace {
 ///
 /// # Safety
 /// - The alignment of `Self` must be less than or equal to `GarbageCollector::BLOCK_SIZE`
-pub unsafe trait GCObject: Sized + Clone + Copy {
+pub unsafe trait GCPtr: Sized + Clone + Copy {
     /// Returns the corresponding object in `to-space` if it is a forward or inline value. Otherwise
     /// returns `None`.
     ///
