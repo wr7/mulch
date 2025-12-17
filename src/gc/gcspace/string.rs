@@ -112,7 +112,7 @@ impl GCSpace {
     }
 }
 
-unsafe impl GCPtr for GCString {
+impl GCString {
     unsafe fn get_forwarded_value(self, gc: &mut GarbageCollector) -> Option<Self> {
         if self.get_inline().is_some() {
             return Some(self);
@@ -134,7 +134,9 @@ unsafe impl GCPtr for GCString {
             ptr: NonZeroUsize::new(forward).unwrap(),
         })
     }
+}
 
+unsafe impl GCPtr for GCString {
     unsafe fn gc_copy(self, gc: &mut GarbageCollector) -> Self {
         if let Some(forward) = unsafe { self.get_forwarded_value(gc) } {
             return forward;

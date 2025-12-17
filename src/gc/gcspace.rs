@@ -23,18 +23,11 @@ pub struct GCSpace {
     capacity: usize,
 }
 
-/// Represents a garbage-collectable object.
+/// Represents a pointer to a garbage-collectable object.
 ///
 /// # Safety
 /// - The alignment of `Self` must be less than or equal to `GarbageCollector::BLOCK_SIZE`
 pub unsafe trait GCPtr: Sized + Clone + Copy {
-    /// Returns the corresponding object in `to-space` if it is a forward or inline value. Otherwise
-    /// returns `None`.
-    ///
-    /// # Safety
-    /// `self` must be a valid, currently-alive value in `from-space`.
-    unsafe fn get_forwarded_value(self, gc: &mut GarbageCollector) -> Option<Self>;
-
     /// Copies `self` into `to-space` and leaves behind a forward pointer. If the object has already
     /// been copied, it returns the forwarded pointer in `to-space`
     ///

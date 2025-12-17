@@ -83,7 +83,7 @@ impl GCSpace {
     }
 }
 
-unsafe impl<T> GCPtr for GCVec<T>
+impl<T> GCVec<T>
 where
     T: GCPtr,
 {
@@ -99,7 +99,12 @@ where
             _phantomdata: PhantomData,
         })
     }
+}
 
+unsafe impl<T> GCPtr for GCVec<T>
+where
+    T: GCPtr,
+{
     unsafe fn gc_copy(self, gc: &mut GarbageCollector) -> Self {
         if let Some(fwd) = unsafe { self.get_forwarded_value(gc) } {
             return fwd;

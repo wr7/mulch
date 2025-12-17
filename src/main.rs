@@ -3,6 +3,7 @@ use indoc::indoc;
 use parser::binary::Op;
 
 pub mod error;
+pub mod eval;
 pub mod gc;
 pub mod lexer;
 pub mod parser;
