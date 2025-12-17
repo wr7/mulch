@@ -5,8 +5,11 @@ use std::{
     ptr::{self, addr_of, addr_of_mut},
 };
 
+mod ivec;
 #[cfg(test)]
 mod test;
+
+pub(crate) use ivec::IVec;
 
 /// Returns the smallest power of two greater than `n`
 pub(crate) const fn ceil_power_two(n: usize) -> usize {
