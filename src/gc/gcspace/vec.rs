@@ -21,6 +21,23 @@ pub struct GCVec<T: GCPtr> {
     _phantomdata: PhantomData<Vec<T>>,
 }
 
+impl<T: GCPtr> GCVec<T> {
+    pub fn ptr(self) -> usize {
+        self.ptr.get()
+    }
+
+    pub unsafe fn as_slice(self, gc: &GarbageCollector) -> &[T] {
+        let base_ptr = gc.from_space.block_ptr(self.ptr);
+
+        let len = unsafe { base_ptr.cast::<usize>().read() };
+        let ptr = base_ptr
+            .wrapping_byte_add(GarbageCollector::BLOCK_SIZE)
+            .cast::<T>();
+
+        unsafe { std::slice::from_raw_parts(ptr, len) }
+    }
+}
+
 impl GCSpace {
     /// Allocates and initializes a garbage-collected dynamically-sized array
     /// # Safety

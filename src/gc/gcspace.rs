@@ -33,6 +33,7 @@ pub unsafe trait GCPtr: Sized + Clone + Copy {
     ///
     /// # Safety
     /// `self` must be a valid, currently-alive value in `from-space`.
+    #[must_use]
     unsafe fn gc_copy(self, gc: &mut GarbageCollector) -> Self;
 }
 

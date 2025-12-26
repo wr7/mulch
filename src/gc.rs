@@ -1,6 +1,8 @@
 use crate::gc::gcspace::GCSpace;
 
+mod collection;
 mod gcspace;
+
 pub use gcspace::GCPtr;
 pub use gcspace::GCString;
 pub use gcspace::GCVec;
@@ -20,4 +22,11 @@ impl GarbageCollector {
         std::mem::align_of::<usize>(),
         std::mem::size_of::<usize>()
     ));
+
+    pub fn new() -> Self {
+        GarbageCollector {
+            from_space: GCSpace::new(),
+            to_space: GCSpace::new(),
+        }
+    }
 }

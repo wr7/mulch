@@ -50,6 +50,14 @@ impl GCString {
         let string = unsafe { std::str::from_utf8_unchecked(std::slice::from_raw_parts(ptr, len)) };
         Some(string)
     }
+
+    /// Gets the string.
+    ///
+    /// # Safety
+    /// `self` must be valid, and a garbage-collection cycle must not be in progress
+    pub unsafe fn get<'a>(&'a self, gc: &'a GarbageCollector) -> &'a str {
+        unsafe { gc.from_space.get_string(self) }
+    }
 }
 
 impl GCSpace {
