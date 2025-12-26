@@ -7,29 +7,15 @@ use std::{
     ptr::{NonNull, addr_of_mut},
 };
 
-mod string;
-mod vec;
-
-use crate::gc::GarbageCollector;
-
-pub use string::GCString;
-pub use vec::GCVec;
-
-pub struct GCSpace {
-    data: *mut u8,
-    /// Currently occupied space (in blocks)
-    len: usize,
-    /// Capacity (in blocks)
-    capacity: usize,
-}
+use crate::gc::{GCSpace, GarbageCollector};
 
 /// Represents a pointer to a garbage-collectable object.
 ///
 /// # Safety
 /// - The alignment of `Self` must be less than or equal to `GarbageCollector::BLOCK_SIZE`
 pub unsafe trait GCPtr: Sized + Clone + Copy {
-    /// Copies `self` into `to-space` and leaves behind a forward pointer. If the object has already
-    /// been copied, it returns the forwarded pointer in `to-space`
+    /// Copies `self` into `to-space` and leaves behind a forward pointer. Returns a pointer to the
+    /// new object in `to-space`.
     ///
     /// # Safety
     /// `self` must be a valid, currently-alive value in `from-space`.
@@ -87,7 +73,7 @@ impl GCSpace {
     }
 
     /// Gets a pointer to the block at `idx`
-    fn block_ptr(&self, idx: impl Into<usize>) -> *mut u8 {
+    pub(super) fn block_ptr(&self, idx: impl Into<usize>) -> *mut u8 {
         self.data
             .wrapping_byte_add(idx.into() * GarbageCollector::BLOCK_SIZE)
     }

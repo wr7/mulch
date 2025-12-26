@@ -1,11 +1,9 @@
-use crate::gc::gcspace::GCSpace;
-
 mod collection;
 mod gcspace;
+mod primitives;
 
 pub use gcspace::GCPtr;
-pub use gcspace::GCString;
-pub use gcspace::GCVec;
+pub use primitives::*;
 
 #[cfg(test)]
 mod test;
@@ -13,6 +11,14 @@ mod test;
 pub struct GarbageCollector {
     from_space: GCSpace,
     to_space: GCSpace,
+}
+
+pub struct GCSpace {
+    data: *mut u8,
+    /// Currently occupied space (in blocks)
+    len: usize,
+    /// Capacity (in blocks)
+    capacity: usize,
 }
 
 impl GarbageCollector {

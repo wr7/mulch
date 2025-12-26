@@ -1,4 +1,4 @@
-use super::gcspace::GCSpace;
+use crate::gc::GCSpace;
 
 #[test]
 fn gcspace_string_test() {

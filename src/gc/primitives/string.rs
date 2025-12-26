@@ -1,9 +1,6 @@
 use std::{num::NonZeroUsize, ptr::addr_of_mut};
 
-use crate::gc::{
-    GarbageCollector,
-    gcspace::{GCPtr, GCSpace},
-};
+use crate::gc::{GCPtr, GCSpace, GarbageCollector};
 
 /// A garbage collected string.
 ///

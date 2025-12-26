@@ -1,9 +1,6 @@
-use std::{marker::PhantomData, num::NonZeroUsize, ptr::NonNull};
+use std::{marker::PhantomData, num::NonZeroUsize};
 
-use crate::gc::{
-    GarbageCollector,
-    gcspace::{GCPtr, GCSpace},
-};
+use crate::gc::{GCPtr, GCSpace, GarbageCollector};
 
 /// A garbage collected dynamically-sized array.
 ///
