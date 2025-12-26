@@ -26,6 +26,27 @@ pub unsafe trait GCPtr: Sized + Clone + Copy {
 impl GCSpace {
     const STARTING_BLOCKS: usize = 64;
 
+    /// Grows the allocation to be exactly `new_size_blocks` blocks. [`GCSpace::expand`] should be
+    /// used instead whenever possible.
+    pub fn expand_exact(&mut self, new_size_blocks: usize) {
+        if new_size_blocks <= self.capacity {
+            return;
+        }
+
+        self.data = unsafe {
+            std::alloc::realloc(
+                self.data,
+                Layout::from_size_align_unchecked(
+                    self.capacity * GarbageCollector::BLOCK_SIZE,
+                    GarbageCollector::BLOCK_SIZE,
+                ),
+                new_size_blocks,
+            )
+        };
+
+        self.capacity = new_size_blocks;
+    }
+
     /// Grows the allocation to be at least `new_size_blocks` blocks
     pub fn expand(&mut self, new_size_blocks: usize) {
         let mut new_size = self.capacity;
@@ -38,18 +59,7 @@ impl GCSpace {
             return;
         }
 
-        self.data = unsafe {
-            std::alloc::realloc(
-                self.data,
-                Layout::from_size_align_unchecked(
-                    self.capacity * GarbageCollector::BLOCK_SIZE,
-                    GarbageCollector::BLOCK_SIZE,
-                ),
-                new_size,
-            )
-        };
-
-        self.capacity = new_size;
+        self.expand_exact(new_size);
     }
 
     /// Clears the GCSpace. All objects in the space are "forgotten".

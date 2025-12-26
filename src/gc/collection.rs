@@ -74,7 +74,7 @@ impl GarbageCollector {
         }
     }
 
-    /// Does a garbage collection cycle.
+    /// Does a garbage collection cycle if it is deemed neccessary.
     ///
     /// NOTE: All objects contained in `root` will be moved and all references inside of `root` will
     /// be updated. **Any other references will become invalid even if they point to an object that
@@ -83,6 +83,25 @@ impl GarbageCollector {
     /// # Safety
     /// All `Value`s in `root` must point to valid, currently alive objects in `from-space` of the
     /// current `GarbageCollector`.
+    pub unsafe fn collect<'r>(&mut self, root: RootsRef<'r>) {
+        if self.from_space.len < self.from_space.capacity * 9 / 10 {
+            return;
+        }
+
+        unsafe { self.force_collect(root) };
+
+        if self.from_space.len < self.from_space.capacity * 7 / 10 {
+            return;
+        }
+
+        self.to_space.expand_exact(self.from_space.capacity * 2);
+        self.from_space.expand_exact(self.from_space.capacity * 2);
+    }
+
+    /// Forcefully does a garbage collection cycle.
+    ///
+    /// See documentation of [`GarbageCollector::collect`] for safety and any other information.
+    #[cold]
     pub unsafe fn force_collect<'r>(&mut self, root: RootsRef<'r>) {
         unsafe {
             self.copy_roots(root);
