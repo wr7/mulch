@@ -60,8 +60,9 @@ pub struct MemberAccess {
 }
 
 #[derive(Clone, PartialEq, Eq)]
-// `repr(C)` so that it can be stored in the garbage collector. With this representation, the first byte will always be `0x00`, so we can use a 1 in the MSB to indicate a forwarding pointer.
-#[repr(C)]
+// `repr(usize)` so that it can be stored in the garbage collector. With this representation, the
+// `MSB will always be `0`, so we can use a 1 in the MSB to indicate a forwarding pointer.
+#[repr(usize)]
 pub enum Expression {
     Variable(String),
     StringLiteral(String),
