@@ -14,7 +14,7 @@ fn string_list_test() {
     let expected = ["alpha", "beta", "c", "abcdefghijklmnopqrstuvwxyz"];
     let list = create_string_list(&expected, &mut gc, &root);
 
-    let eval::Value::List(list) = list else {
+    let eval::MValue::List(list) = list else {
         panic!()
     };
 
@@ -23,7 +23,7 @@ fn string_list_test() {
     assert_eq!(list.len(), expected.len());
 
     for (i, s) in list.iter().enumerate() {
-        let eval::Value::String(gcstr) = s else {
+        let eval::MValue::String(gcstr) = s else {
             panic!()
         };
 
@@ -35,7 +35,7 @@ fn create_string_list<'r>(
     strings: &[&'static str],
     gc: &mut GarbageCollector,
     parent_root: RootsRef<'r>,
-) -> eval::Value {
+) -> eval::MValue {
     let mut root = parent_root.new();
 
     for s in strings {
@@ -56,7 +56,7 @@ fn create_string_list<'r>(
 
     let vec = root.get(0).unwrap();
 
-    let eval::Value::List(inner) = vec else {
+    let eval::MValue::List(inner) = vec else {
         panic!()
     };
 
@@ -66,7 +66,7 @@ fn create_string_list<'r>(
     vec
 }
 
-fn create_string_val<'r>(val: &str, gc: &mut GarbageCollector, root: RootsRef<'r>) -> eval::Value {
+fn create_string_val<'r>(val: &str, gc: &mut GarbageCollector, root: RootsRef<'r>) -> eval::MValue {
     let string = GCString::new(gc, val);
 
     let mut root = root.new();

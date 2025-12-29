@@ -11,7 +11,7 @@ mod test;
 
 pub struct GCRoot<'r> {
     prev: Option<&'r GCRoot<'r>>,
-    data: UnsafeCell<IVec<1, eval::Value>>,
+    data: UnsafeCell<IVec<1, eval::MValue>>,
 }
 
 impl<'r> GCRoot<'r> {
@@ -32,7 +32,7 @@ impl<'r> GCRoot<'r> {
         }
     }
 
-    pub fn get(&self, idx: usize) -> Option<eval::Value> {
+    pub fn get(&self, idx: usize) -> Option<eval::MValue> {
         unsafe {
             self.data
                 .get()
@@ -43,12 +43,12 @@ impl<'r> GCRoot<'r> {
         }
     }
 
-    pub fn push(&mut self, value: eval::Value) {
+    pub fn push(&mut self, value: eval::MValue) {
         self.data.get_mut().push(value);
     }
 
     /// Returns a slice with all of the `Values` in the current level of the root.
-    pub fn as_mut_slice(&mut self) -> &mut [eval::Value] {
+    pub fn as_mut_slice(&mut self) -> &mut [eval::MValue] {
         self.data.get_mut().as_mut_slice()
     }
 }
