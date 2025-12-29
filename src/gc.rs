@@ -2,6 +2,7 @@ mod collection;
 mod gcspace;
 mod primitives;
 
+pub use collection::{GCRoot, GCValue, GCValueEnum};
 pub use gcspace::GCPtr;
 pub use primitives::*;
 

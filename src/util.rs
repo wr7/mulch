@@ -22,6 +22,18 @@ pub(crate) const fn ceil_power_two(n: usize) -> usize {
     ret
 }
 
+/// Transmute a mutable slice
+pub(crate) unsafe fn transmute_mut_slice<T, U>(from: &mut [T]) -> &mut [U] {
+    const {
+        assert!(std::mem::size_of::<T>() == std::mem::size_of::<U>());
+    }
+
+    let len = from.len();
+    let ptr = from.as_mut_ptr().cast::<U>();
+
+    unsafe { std::slice::from_raw_parts_mut(ptr, len) }
+}
+
 pub(crate) struct MultiPeekable<I: Iterator, const N: usize> {
     iter: I,
     buf: [MaybeUninit<I::Item>; N],

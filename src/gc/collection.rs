@@ -9,9 +9,14 @@ use crate::{
 #[cfg(test)]
 mod test;
 
+mod gcvalue;
+
+pub use gcvalue::GCValue;
+pub use gcvalue::GCValueEnum;
+
 pub struct GCRoot<'r> {
     prev: Option<&'r GCRoot<'r>>,
-    data: UnsafeCell<IVec<1, eval::MValue>>,
+    data: UnsafeCell<IVec<1, GCValue>>,
 }
 
 impl<'r> GCRoot<'r> {
@@ -32,7 +37,11 @@ impl<'r> GCRoot<'r> {
         }
     }
 
-    pub fn get(&self, idx: usize) -> Option<eval::MValue> {
+    pub fn get_value(&self, idx: usize) -> Option<eval::MValue> {
+        self.get(idx).and_then(|v| v.try_into().ok())
+    }
+
+    pub fn get(&self, idx: usize) -> Option<GCValue> {
         unsafe {
             self.data
                 .get()
@@ -43,13 +52,26 @@ impl<'r> GCRoot<'r> {
         }
     }
 
-    pub fn push(&mut self, value: eval::MValue) {
-        self.data.get_mut().push(value);
+    pub fn push(&mut self, value: impl Into<GCValue>) {
+        self.data.get_mut().push(value.into());
     }
 
-    /// Returns a slice with all of the `Values` in the current level of the root.
-    pub fn as_mut_slice(&mut self) -> &mut [eval::MValue] {
-        self.data.get_mut().as_mut_slice()
+    /// Returns a slice of all `MValue`s in the root
+    ///
+    /// # Safety
+    /// - The current root must not contain any non-`MValue` `GCValue`s
+    pub unsafe fn as_mut_mvalue_slice(&mut self) -> &mut [eval::MValue] {
+        const {
+            // These are needed to ensure that `GCValue` can be transmuted into `MValue`
+            assert!(std::mem::size_of::<eval::MValue>() == std::mem::size_of::<GCValue>());
+            assert!(std::mem::align_of::<eval::MValue>() <= std::mem::align_of::<GCValue>());
+        }
+
+        unsafe {
+            crate::util::transmute_mut_slice::<GCValue, eval::MValue>(
+                self.data.get_mut().as_mut_slice(),
+            )
+        }
     }
 }
 

@@ -4,7 +4,6 @@ use parser::binary::Op;
 
 // TODO:
 //  - create "GCDebug" trait for displaying garbage-collected values
-//  - create `GCValue` for `GCRoot` type
 
 pub mod error;
 pub mod eval;

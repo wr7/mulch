@@ -4,7 +4,7 @@ use crate::gc::{GCPtr, GCString, GCVec};
 #[derive(Clone, Copy)]
 #[repr(usize)]
 pub enum MValue {
-    String(GCString),
+    String(GCString) = 1,
     List(GCVec<MValue>),
 }
 
