@@ -1,7 +1,7 @@
 use crate::{
     eval,
     gc::{
-        GarbageCollector,
+        GCString, GCVec, GarbageCollector,
         collection::{GCRoot, RootsRef},
     },
 };
@@ -45,7 +45,7 @@ fn create_string_list<'r>(
     create_string_val("fffffffffffffffffffffffffffffffffffffffff", gc, &root);
     // We don't use this value, so it should be freed next cycle
 
-    let vec = unsafe { gc.from_space.alloc_vec(root.as_mut_slice()) };
+    let vec = unsafe { GCVec::new(gc, root.as_mut_slice()) };
 
     let mut root = parent_root.new();
     root.push(vec.into());
@@ -67,7 +67,7 @@ fn create_string_list<'r>(
 }
 
 fn create_string_val<'r>(val: &str, gc: &mut GarbageCollector, root: RootsRef<'r>) -> eval::Value {
-    let string = gc.from_space.alloc_string(val);
+    let string = GCString::new(gc, val);
 
     let mut root = root.new();
     root.push(string.into());

@@ -31,6 +31,11 @@ pub struct GCString {
 }
 
 impl GCString {
+    /// Creates a new garbage collected string.
+    pub fn new(gc: &mut GarbageCollector, string: &str) -> Self {
+        Self::new_in_space(&mut gc.from_space, string)
+    }
+
     /// Gets the string if it is less than 2 * sizeof(usize) bytes long. Otherwise returns `None`
     pub fn get_inline(&self) -> Option<&str> {
         if self.ptr.get() & (0b1 << usize::BITS - 1) == 0 {
@@ -53,13 +58,11 @@ impl GCString {
     /// # Safety
     /// `self` must be valid, and a garbage-collection cycle must not be in progress
     pub unsafe fn get<'a>(&'a self, gc: &'a GarbageCollector) -> &'a str {
-        unsafe { gc.from_space.get_string(self) }
+        unsafe { self.get_in_space(&gc.from_space) }
     }
-}
 
-impl GCSpace {
-    /// Creates a garbage collected string without invoking a GC pass and WITHOUT CREATING A ROOT
-    pub fn alloc_string(&mut self, string: &str) -> GCString {
+    /// Creates a garbage collected string in a given `GCSpace`
+    fn new_in_space(space: &mut GCSpace, string: &str) -> Self {
         // If the string is small enough, it can be stored inline rather than on the GC Heap
 
         if string.len() < std::mem::size_of::<GCString>() && string.len() <= 127 {
@@ -83,13 +86,13 @@ impl GCSpace {
         }
 
         let num_blocks = string.len().div_ceil(GarbageCollector::BLOCK_SIZE);
-        self.expand(self.len + num_blocks);
+        space.expand(space.len + num_blocks);
 
-        let data_ptr = self.len;
-        self.len += num_blocks;
+        let data_ptr = space.len;
+        space.len += num_blocks;
 
         unsafe {
-            std::ptr::copy_nonoverlapping(string.as_ptr(), self.block_ptr(data_ptr), string.len())
+            std::ptr::copy_nonoverlapping(string.as_ptr(), space.block_ptr(data_ptr), string.len())
         };
 
         GCString {
@@ -98,20 +101,20 @@ impl GCSpace {
         }
     }
 
-    /// Gets string data from the GC heap.
+    /// Gets string data from a GC space.
     ///
     /// # Safety
     /// - `string` must point to a valid, currently alive string that was obtained from this GC store.
     /// - The object pointed to by `string` cannot be destroyed before the returned reference is dropped.
-    pub unsafe fn get_string<'a>(&'a self, string: &'a GCString) -> &'a str {
-        if let Some(string) = string.get_inline() {
+    unsafe fn get_in_space<'a>(&'a self, space: &'a GCSpace) -> &'a str {
+        if let Some(string) = self.get_inline() {
             return string;
         }
 
         unsafe {
             std::str::from_utf8_unchecked(std::slice::from_raw_parts(
-                self.block_ptr(string.ptr),
-                string.len,
+                space.block_ptr(self.ptr),
+                self.len,
             ))
         }
     }
@@ -151,9 +154,9 @@ unsafe impl GCPtr for GCString {
             return forward;
         }
 
-        let to_value = gc
-            .to_space
-            .alloc_string(unsafe { gc.from_space.get_string(&self) });
+        let to_value = Self::new_in_space(&mut gc.to_space, unsafe {
+            self.get_in_space(&gc.from_space)
+        });
 
         let forward = to_value.ptr.get() | 0xFF;
         unsafe {
