@@ -142,6 +142,10 @@ impl GCString {
 }
 
 unsafe impl GCPtr for GCString {
+    // we could change the memory layout slightly and then enable this optimization, but
+    // `GCBox<GCString>` is a fairly useless type, so it's not worth the effort.
+    const MSB_RESERVED: bool = false;
+
     unsafe fn gc_copy(self, gc: &mut GarbageCollector) -> Self {
         if let Some(forward) = unsafe { self.get_forwarded_value(gc) } {
             return forward;

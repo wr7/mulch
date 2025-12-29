@@ -119,6 +119,8 @@ unsafe impl<T> GCPtr for GCVec<T>
 where
     T: GCPtr,
 {
+    const MSB_RESERVED: bool = true;
+
     unsafe fn gc_copy(self, gc: &mut GarbageCollector) -> Self {
         if let Some(fwd) = unsafe { self.get_forwarded_value(gc) } {
             return fwd;

@@ -14,8 +14,20 @@ use crate::gc::{GCSpace, GarbageCollector};
 /// # Safety
 /// - The alignment of `Self` must be less than or equal to `GarbageCollector::BLOCK_SIZE`
 pub unsafe trait GCPtr: Sized + Clone + Copy {
+    /// Can be set to true if the following conditions are met:
+    /// - The most-significant-bit of the first `usize` in `self` is reserved and always `0`.
+    /// - `align_of::<Self>() >= align_of::<usize>()`
+    ///
+    /// These properties can be used to save some memory with `GCBox<Self>`. Otherwise, an
+    /// additional block is used to keep track of whether or not the current value is a forward.
+    const MSB_RESERVED: bool;
+
     /// Copies `self` into `to-space` and leaves behind a forward pointer. Returns a pointer to the
     /// new object in `to-space`.
+    ///
+    /// When implementing this method, make sure that any references contained in the object are
+    /// copied AFTER a forward for the current object is created. Otherwise, there will be issues if
+    /// the subreferences directly or indirectly refer back to `Self`.
     ///
     /// # Safety
     /// `self` must be a valid, currently-alive value in `from-space`.
