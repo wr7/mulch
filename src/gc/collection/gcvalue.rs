@@ -2,7 +2,7 @@ use std::ptr::addr_of;
 
 use crate::{
     eval::MValue,
-    gc::{GCBox, GCPtr, GCString, GCVec},
+    gc::{GCBox, GCPtr, GCString, GCVec, util::GCDebug},
 };
 
 #[derive(Clone, Copy)]
@@ -46,6 +46,23 @@ unsafe impl GCPtr for GCValue {
                 GCValueEnum::MValue(mvalue) => mvalue.gc_copy(gc).into(),
                 GCValueEnum::Other(other_gcvalue) => match other_gcvalue {
                     OtherGCValue::BoxMValue(mbox) => mbox.gc_copy(gc).into(),
+                },
+            }
+        }
+    }
+}
+
+impl GCDebug for GCValue {
+    unsafe fn gc_debug(
+        self,
+        gc: &crate::gc::GarbageCollector,
+        f: &mut std::fmt::Formatter,
+    ) -> std::fmt::Result {
+        unsafe {
+            match self.get() {
+                GCValueEnum::MValue(mvalue) => mvalue.gc_debug(gc, f),
+                GCValueEnum::Other(other_gcvalue) => match other_gcvalue {
+                    OtherGCValue::BoxMValue(gcbox) => gcbox.gc_debug(gc, f),
                 },
             }
         }

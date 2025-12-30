@@ -1,6 +1,6 @@
 use std::{num::NonZeroUsize, ptr::addr_of_mut};
 
-use crate::gc::{GCPtr, GCSpace, GarbageCollector};
+use crate::gc::{GCPtr, GCSpace, GarbageCollector, util::GCDebug};
 
 /// A garbage collected string.
 ///
@@ -167,5 +167,15 @@ unsafe impl GCPtr for GCString {
         }
 
         to_value
+    }
+}
+
+impl GCDebug for GCString {
+    unsafe fn gc_debug(
+        self,
+        gc: &GarbageCollector,
+        f: &mut std::fmt::Formatter,
+    ) -> std::fmt::Result {
+        std::fmt::Debug::fmt(unsafe { self.get(gc) }, f)
     }
 }

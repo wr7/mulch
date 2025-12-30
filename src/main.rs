@@ -2,9 +2,6 @@ use error::{SourceDB, dresult_unwrap};
 use indoc::indoc;
 use parser::binary::Op;
 
-// TODO:
-//  - create "GCDebug" trait for displaying garbage-collected values
-
 pub mod error;
 pub mod eval;
 pub mod gc;

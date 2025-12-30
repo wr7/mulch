@@ -7,7 +7,7 @@ use std::{
     ptr::{NonNull, addr_of_mut},
 };
 
-use crate::gc::{GCSpace, GarbageCollector};
+use crate::gc::{GCSpace, GarbageCollector, util::GCWrap};
 
 /// Represents a pointer to a garbage-collectable object.
 ///
@@ -33,6 +33,15 @@ pub unsafe trait GCPtr: Sized + Clone + Copy {
     /// `self` must be a valid, currently-alive value in `from-space`.
     #[must_use]
     unsafe fn gc_copy(self, gc: &mut GarbageCollector) -> Self;
+
+    /// Wraps `self` with a reference to the garbage collector. This wrapper may implement `Debug`
+    /// and similar traits.
+    ///
+    /// # Safety
+    /// - This object must not be used if (or when) `self` is frozen or invalid.
+    unsafe fn wrap<'gc>(self, gc: &'gc GarbageCollector) -> GCWrap<'gc, Self> {
+        unsafe { GCWrap::new(self, gc) }
+    }
 }
 
 impl GCSpace {

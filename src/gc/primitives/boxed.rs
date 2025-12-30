@@ -1,6 +1,6 @@
 use std::{marker::PhantomData, mem, num::NonZeroUsize};
 
-use crate::gc::{GCPtr, GCSpace, GarbageCollector};
+use crate::gc::{GCPtr, GCSpace, GarbageCollector, util::GCDebug};
 
 /// Analogous to `std::boxed::Box`. This can be useful for recursively-defined datastructures.
 /// # Memory layout in GCSpace
@@ -125,5 +125,15 @@ unsafe impl<T: GCPtr> GCPtr for GCBox<T> {
         unsafe { new_box.ptr_in_space(&gc.to_space).write(new_value) };
 
         new_box
+    }
+}
+
+impl<T: GCDebug> GCDebug for GCBox<T> {
+    unsafe fn gc_debug(
+        self,
+        gc: &GarbageCollector,
+        f: &mut std::fmt::Formatter,
+    ) -> std::fmt::Result {
+        unsafe { self.get(gc).gc_debug(gc, f) }
     }
 }

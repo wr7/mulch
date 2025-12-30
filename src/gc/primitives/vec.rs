@@ -1,6 +1,6 @@
 use std::{marker::PhantomData, num::NonZeroUsize};
 
-use crate::gc::{GCPtr, GCSpace, GarbageCollector};
+use crate::gc::{GCPtr, GCSpace, GarbageCollector, util::GCDebug};
 
 /// A garbage collected dynamically-sized array.
 ///
@@ -129,5 +129,22 @@ where
         }
 
         new_vec
+    }
+}
+
+impl<T: GCDebug> GCDebug for GCVec<T> {
+    unsafe fn gc_debug(
+        self,
+        gc: &GarbageCollector,
+        f: &mut std::fmt::Formatter,
+    ) -> std::fmt::Result {
+        let mut debug_list = f.debug_list();
+
+        for el in unsafe { self.as_slice(gc) } {
+            let el = unsafe { el.wrap(gc) };
+            debug_list.entry(&el);
+        }
+
+        debug_list.finish()
     }
 }
