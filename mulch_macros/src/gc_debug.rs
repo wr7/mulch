@@ -1,6 +1,6 @@
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
-use syn::{DeriveInput, parse_macro_input};
+use quote::{format_ident, quote, quote_spanned};
+use syn::{DeriveInput, parse_macro_input, spanned::Spanned};
 
 pub fn derive_gc_debug(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(item as DeriveInput);
@@ -29,7 +29,28 @@ fn gcdebug_fn_body_enum(data_enum: &syn::DataEnum) -> TokenStream {
         let variant_ident = &variant.ident;
         let variant_name = variant.ident.to_string();
 
-        let code = match &variant.fields {
+        let debug_direct = variant
+            .attrs
+            .iter()
+            .find(|a| {
+                a.meta
+                    .path()
+                    .get_ident()
+                    .is_some_and(|i| i == "debug_direct")
+            })
+            ;
+
+        let code = if let Some(debug_direct) = debug_direct{
+            if
+                let syn::Fields::Unnamed(fields) = &variant.fields
+                && let Some(_field) = fields.unnamed.first()
+                && fields.unnamed.len() == 1
+            {
+                quote! { (v0) => crate::gc::util::GCDebug::gc_debug(v0, gc, f) }
+            } else {
+                return quote_spanned! { debug_direct.span() => compile_error!("#[debug_direct] is only supported on single-value tuple variants")}
+            }
+        } else {match &variant.fields {
             syn::Fields::Named(fields_named) => {
                 let per_field_in = fields_named
                     .named
@@ -43,7 +64,7 @@ fn gcdebug_fn_body_enum(data_enum: &syn::DataEnum) -> TokenStream {
                     quote! {.field(#field_string, &crate::gc::util::GCWrap::new(#field_ident, gc))}
                 });
 
-                quote! {{#(#per_field_in),*} => f.debug_struct(#variant_name) #(#per_field_out)*}
+                quote! {{#(#per_field_in),*} => f.debug_struct(#variant_name) #(#per_field_out)*.finish()}
             }
             syn::Fields::Unnamed(fields_unnamed) => {
                 let per_field_in = (0..fields_unnamed.unnamed.len()).map(|i| format_ident!("v{i}"));
@@ -52,12 +73,12 @@ fn gcdebug_fn_body_enum(data_enum: &syn::DataEnum) -> TokenStream {
 
                     quote! {.field(&crate::gc::util::GCWrap::new(#field_name, gc))}
                 });
-                quote! {(#(#per_field_in),*) => f.debug_tuple(#variant_name) #(#per_field_out)*}
+                quote! {(#(#per_field_in),*) => f.debug_tuple(#variant_name) #(#per_field_out)*.finish()}
             }
-            syn::Fields::Unit => quote! {() => f.debug_tuple(#variant_name)},
-        };
+            syn::Fields::Unit => quote! {() => f.debug_tuple(#variant_name).finish()},
+        }};
 
-        quote!(Self::#variant_ident #code .finish())
+        quote!(Self::#variant_ident #code)
     });
 
     quote! {

@@ -10,6 +10,8 @@ pub mod parser;
 
 mod util;
 
+// TODO: derive(GCPtr, GCDebug) for `OtherGCValue`
+
 pub fn main() {
     let db = SourceDB::new();
 
