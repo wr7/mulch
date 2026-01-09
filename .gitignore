@@ -4,3 +4,5 @@
 !.gitignore
 !src
 !src/**
+!mulch_macros
+!mulch_macros/**

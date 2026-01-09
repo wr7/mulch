@@ -12,6 +12,10 @@ pub struct GCWrap<'gc, T> {
 }
 
 impl<'gc, T> GCWrap<'gc, T> {
+    pub unsafe fn new(inner: T, gc: &'gc GarbageCollector) -> Self {
+        Self { inner, gc }
+    }
+
     pub fn gc_ref<'a>(&'a self) -> &'gc GarbageCollector {
         self.gc
     }
@@ -61,12 +65,6 @@ impl<'gc, T: GCGet> Deref for GCWrap<'gc, T> {
 
     fn deref(&self) -> &Self::Target {
         self.get()
-    }
-}
-
-impl<'gc, T> GCWrap<'gc, T> {
-    pub unsafe fn new(inner: T, gc: &'gc GarbageCollector) -> Self {
-        Self { inner, gc }
     }
 }
 

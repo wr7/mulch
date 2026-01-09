@@ -12,6 +12,8 @@ use crate::{
     lexer::{BracketType, Sym, Token},
 };
 
+/// Module for new, garbage-collected, AST nodes
+mod ast;
 mod attr_set;
 mod error;
 mod let_in;
