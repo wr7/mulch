@@ -1,6 +1,9 @@
-use std::{num::NonZeroUsize, ptr::addr_of_mut};
+use std::{fmt::Debug, num::NonZeroUsize, ptr::addr_of_mut};
 
-use crate::gc::{GCPtr, GCSpace, GarbageCollector, util::GCDebug};
+use crate::gc::{
+    GCPtr, GCSpace, GarbageCollector,
+    util::{GCDebug, GCEq, GCGet, GCWrap},
+};
 
 /// A garbage collected string.
 ///
@@ -170,12 +173,32 @@ unsafe impl GCPtr for GCString {
     }
 }
 
+impl GCGet for GCString {
+    type Borrowed = str;
+
+    unsafe fn get<'a>(&'a self, gc: &'a GarbageCollector) -> &'a Self::Borrowed {
+        unsafe { self.get(gc) }
+    }
+}
+
 impl GCDebug for GCString {
     unsafe fn gc_debug(
         self,
         gc: &GarbageCollector,
         f: &mut std::fmt::Formatter,
     ) -> std::fmt::Result {
-        std::fmt::Debug::fmt(unsafe { self.get(gc) }, f)
+        unsafe { Debug::fmt(self.get(gc), f) }
+    }
+}
+
+impl GCEq<str> for GCString {
+    unsafe fn gc_eq(&self, gc: &GarbageCollector, rhs: &str) -> bool {
+        unsafe { self.get(gc) == rhs }
+    }
+}
+
+impl<'gc> GCEq<GCWrap<'gc, GCString>> for GCString {
+    unsafe fn gc_eq(&self, gc: &GarbageCollector, rhs: &GCWrap<'gc, GCString>) -> bool {
+        unsafe { self.get(gc) == rhs.get() }
     }
 }

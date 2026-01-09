@@ -1,10 +1,20 @@
-use std::fmt::{self, Debug, Formatter};
+use std::{
+    fmt::{self, Debug, Formatter},
+    ops::Deref,
+};
 
 use crate::gc::{GCPtr, GarbageCollector};
 
+#[derive(Clone, Copy)]
 pub struct GCWrap<'gc, T> {
     inner: T,
     gc: &'gc GarbageCollector,
+}
+
+impl<'gc, T> GCWrap<'gc, T> {
+    pub fn gc_ref<'a>(&'a self) -> &'gc GarbageCollector {
+        self.gc
+    }
 }
 
 pub trait GCDebug: GCPtr {
@@ -13,6 +23,19 @@ pub trait GCDebug: GCPtr {
     /// # Safety
     /// `self` must be a valid, non-frozen object in `gc`
     unsafe fn gc_debug(self, gc: &GarbageCollector, f: &mut Formatter) -> std::fmt::Result;
+}
+
+pub trait GCEq<Rhs: ?Sized>: GCPtr {
+    unsafe fn gc_eq(&self, gc: &GarbageCollector, rhs: &Rhs) -> bool;
+
+    unsafe fn gc_ne(&self, gc: &GarbageCollector, rhs: &Rhs) -> bool {
+        !unsafe { self.gc_eq(gc, rhs) }
+    }
+}
+
+pub trait GCGet: GCPtr {
+    type Borrowed: ?Sized;
+    unsafe fn get<'a>(&'a self, gc: &'a GarbageCollector) -> &'a Self::Borrowed;
 }
 
 impl<'gc, T> Debug for GCWrap<'gc, T>
@@ -24,8 +47,31 @@ where
     }
 }
 
+impl<'gc, T, Rhs: ?Sized> PartialEq<Rhs> for GCWrap<'gc, T>
+where
+    T: GCEq<Rhs>,
+{
+    fn eq(&self, other: &Rhs) -> bool {
+        unsafe { self.inner.gc_eq(self.gc, other) }
+    }
+}
+
+impl<'gc, T: GCGet> Deref for GCWrap<'gc, T> {
+    type Target = T::Borrowed;
+
+    fn deref(&self) -> &Self::Target {
+        self.get()
+    }
+}
+
 impl<'gc, T> GCWrap<'gc, T> {
     pub unsafe fn new(inner: T, gc: &'gc GarbageCollector) -> Self {
         Self { inner, gc }
+    }
+}
+
+impl<'gc, T: GCGet> GCWrap<'gc, T> {
+    pub fn get<'a>(&'a self) -> &'a T::Borrowed {
+        unsafe { self.inner.get(self.gc) }
     }
 }

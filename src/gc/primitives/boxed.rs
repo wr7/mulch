@@ -1,6 +1,9 @@
 use std::{marker::PhantomData, mem, num::NonZeroUsize};
 
-use crate::gc::{GCPtr, GCSpace, GarbageCollector, util::GCDebug};
+use crate::gc::{
+    GCPtr, GCSpace, GarbageCollector,
+    util::{GCDebug, GCEq, GCGet},
+};
 
 /// Analogous to `std::boxed::Box`. This can be useful for recursively-defined datastructures.
 /// # Memory layout in GCSpace
@@ -135,5 +138,22 @@ impl<T: GCDebug> GCDebug for GCBox<T> {
         f: &mut std::fmt::Formatter,
     ) -> std::fmt::Result {
         unsafe { self.get(gc).gc_debug(gc, f) }
+    }
+}
+
+impl<T: GCPtr> GCGet for GCBox<T> {
+    type Borrowed = T;
+
+    unsafe fn get<'a>(&'a self, gc: &'a GarbageCollector) -> &'a Self::Borrowed {
+        unsafe { &*self.ptr_in_space(&gc.from_space) }
+    }
+}
+
+impl<T, Rhs> GCEq<Rhs> for GCBox<T>
+where
+    T: GCEq<Rhs>,
+{
+    unsafe fn gc_eq(&self, gc: &GarbageCollector, rhs: &Rhs) -> bool {
+        unsafe { self.get(gc).gc_eq(gc, rhs) }
     }
 }

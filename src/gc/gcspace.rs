@@ -34,8 +34,8 @@ pub unsafe trait GCPtr: Sized + Clone + Copy {
     #[must_use]
     unsafe fn gc_copy(self, gc: &mut GarbageCollector) -> Self;
 
-    /// Wraps `self` with a reference to the garbage collector. This wrapper may implement `Debug`
-    /// and similar traits.
+    /// Wraps `self` with a reference to the garbage collector. This wrapper may implement `Debug`,
+    /// `PartialEq`, and similar traits.
     ///
     /// # Safety
     /// - This object must not be used if (or when) `self` is frozen or invalid.
