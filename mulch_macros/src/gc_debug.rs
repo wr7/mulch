@@ -14,8 +14,8 @@ pub fn derive_gc_debug(input: DeriveInput) -> TokenStream {
 
     quote! {
         #[automatically_derived]
-        impl #impl_generics crate::gc::util::GCDebug for #type_name #ty_generics #where_clause {
-            unsafe fn gc_debug(self, gc: &crate::gc::GarbageCollector, f: &mut ::core::fmt::Formatter) -> ::std::fmt::Result {#fn_body}
+        impl #impl_generics ::mulch::gc::util::GCDebug for #type_name #ty_generics #where_clause {
+            unsafe fn gc_debug(self, gc: &::mulch::gc::GarbageCollector, f: &mut ::core::fmt::Formatter) -> ::std::fmt::Result {#fn_body}
         }
     }
 }
@@ -43,7 +43,7 @@ fn gcdebug_fn_body_enum(data_enum: &syn::DataEnum) -> TokenStream {
                 && let Some(_field) = fields.unnamed.first()
                 && fields.unnamed.len() == 1
             {
-                quote! { (v0) => crate::gc::util::GCDebug::gc_debug(v0, gc, f) }
+                quote! { (v0) => ::mulch::gc::util::GCDebug::gc_debug(v0, gc, f) }
             } else {
                 return quote_spanned! { debug_direct.span() => compile_error!("#[debug_direct] is only supported on single-value tuple variants")}
             }
@@ -58,7 +58,7 @@ fn gcdebug_fn_body_enum(data_enum: &syn::DataEnum) -> TokenStream {
                     let field_ident = field.ident.as_ref().unwrap();
                     let field_string = field_ident.to_string();
 
-                    quote! {.field(#field_string, &crate::gc::util::GCWrap::new(#field_ident, gc))}
+                    quote! {.field(#field_string, &::mulch::gc::util::GCWrap::new(#field_ident, gc))}
                 });
 
                 quote! {{#(#per_field_in),*} => f.debug_struct(#variant_name) #(#per_field_out)*.finish()}
@@ -68,7 +68,7 @@ fn gcdebug_fn_body_enum(data_enum: &syn::DataEnum) -> TokenStream {
                 let per_field_out = (0..fields_unnamed.unnamed.len()).map(|i| {
                     let field_name = format_ident!("v{i}");
 
-                    quote! {.field(&crate::gc::util::GCWrap::new(#field_name, gc))}
+                    quote! {.field(&::mulch::gc::util::GCWrap::new(#field_name, gc))}
                 });
                 quote! {(#(#per_field_in),*) => f.debug_tuple(#variant_name) #(#per_field_out)*.finish()}
             }
@@ -99,7 +99,7 @@ fn gcdebug_fn_body_struct(input: &DeriveInput, data_struct: &syn::DataStruct) ->
         let ident_string = ident.to_string();
 
         quote! {
-            .field(#ident_string, &crate::gc::util::GCWrap::new(self.#ident, gc))
+            .field(#ident_string, &::mulch::gc::util::GCWrap::new(self.#ident, gc))
         }
     });
 

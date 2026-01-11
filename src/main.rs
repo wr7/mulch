@@ -2,6 +2,8 @@ use error::{SourceDB, dresult_unwrap};
 use indoc::indoc;
 use parser::binary::Op;
 
+extern crate self as mulch;
+
 pub mod error;
 pub mod eval;
 pub mod gc;
@@ -9,8 +11,6 @@ pub mod lexer;
 pub mod parser;
 
 mod util;
-
-// TODO: derive(GCPtr, GCDebug) for `OtherGCValue`
 
 pub fn main() {
     let db = SourceDB::new();

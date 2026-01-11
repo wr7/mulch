@@ -24,10 +24,10 @@ pub fn derive_gc_ptr(item: DeriveInput) -> TokenStream {
 
     quote! {
         #[automatically_derived]
-        unsafe impl #impl_generics crate::gc::GCPtr for #type_name #ty_generics #where_clause {
+        unsafe impl #impl_generics ::mulch::gc::GCPtr for #type_name #ty_generics #where_clause {
             const MSB_RESERVED: bool = #msb_reserved;
 
-            unsafe fn gc_copy(self, gc: &mut crate::gc::GarbageCollector) -> Self {
+            unsafe fn gc_copy(self, gc: &mut ::mulch::gc::GarbageCollector) -> Self {
                 #body
             }
         }
@@ -41,7 +41,7 @@ fn gcptr_fn_body_struct(data_struct: &DataStruct) -> TokenStream {
                 let field_name = f.ident.as_ref().unwrap();
 
                 quote! {
-                    #field_name: crate::gc::GCPtr::gc_copy(self.#field_name, gc)
+                    #field_name: ::mulch::gc::GCPtr::gc_copy(self.#field_name, gc)
                 }
             });
             quote! {
@@ -50,7 +50,7 @@ fn gcptr_fn_body_struct(data_struct: &DataStruct) -> TokenStream {
         }
         Fields::Unnamed(fields_unnamed) => {
             let per_field = (0..fields_unnamed.unnamed.len())
-                .map(|i| quote! {crate::gc::GCPtr::gc_copy(self.#i, gc)});
+                .map(|i| quote! {::mulch::gc::GCPtr::gc_copy(self.#i, gc)});
 
             quote! {
                 Self(#(#per_field),*)
@@ -70,14 +70,14 @@ fn gcptr_fn_body_enum(data_enum: &DataEnum) -> TokenStream {
                 let per_field_output = fields_named.named.iter().map(|field| {
                     let field_name = field.ident.as_ref().unwrap();
 
-                    quote! {#field_name: crate::gc::GCPtr::gc_copy(#field_name, gc)}
+                    quote! {#field_name: ::mulch::gc::GCPtr::gc_copy(#field_name, gc)}
                 });
 
                 quote!{Self::#variant_name {#(#per_field_input),*} => Self::#variant_name{#(#per_field_output),*}}
             },
             Fields::Unnamed(fields_unnamed) => {
                 let per_field_input = (0..fields_unnamed.unnamed.len()).map(|i| format_ident!("v{i}"));
-                let per_field_output = per_field_input.clone().map(|field_name| quote! {crate::gc::GCPtr::gc_copy(#field_name, gc)});
+                let per_field_output = per_field_input.clone().map(|field_name| quote! {::mulch::gc::GCPtr::gc_copy(#field_name, gc)});
 
                 quote!{Self::#variant_name(#(#per_field_input),*) => Self::#variant_name(#(#per_field_output),*)}
             },
@@ -151,7 +151,7 @@ fn calculate_msb_reserved(item: &DeriveInput) -> Result<TokenStream, TokenStream
         {
             let first_field_type = &first_field.ty;
 
-            quote! { <#first_field_type as crate::gc::GCPtr>::MSB_RESERVED }
+            quote! { <#first_field_type as ::mulch::gc::GCPtr>::MSB_RESERVED }
         } else {
             quote! { false }
         }
