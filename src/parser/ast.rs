@@ -1,8 +1,10 @@
-use mulch_macros::GCDebug;
+use mulch_macros::{GCDebug, GCPtr};
 
-use crate::gc::{GCPtr, GCString};
+use crate::gc::GCString;
 
-#[derive(GCDebug, Clone, Copy)]
+#[derive(GCPtr, GCDebug, Clone, Copy)]
+#[repr(usize)]
+#[msb_reserved]
 pub enum Expression {
     Variable(GCString),
     StringLiteral(GCString),
@@ -19,10 +21,9 @@ pub enum Expression {
     // MemberAccess(MemberAccess),
 }
 
-unsafe impl GCPtr for Expression {
-    const MSB_RESERVED: bool = false;
-
-    unsafe fn gc_copy(self, gc: &mut crate::gc::GarbageCollector) -> Self {
-        todo!()
-    }
+#[derive(GCPtr, GCDebug, Clone, Copy)]
+#[repr(C)]
+struct TestStruct {
+    expr: Expression,
+    other: GCString,
 }

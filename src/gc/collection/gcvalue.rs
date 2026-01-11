@@ -1,5 +1,7 @@
 use std::ptr::addr_of;
 
+use mulch_macros::{GCDebug, GCPtr};
+
 use crate::{
     eval::MValue,
     gc::{GCBox, GCPtr, GCString, GCVec, util::GCDebug},
@@ -31,7 +33,7 @@ pub enum GCValueEnum {
 }
 
 #[repr(usize)]
-#[derive(Clone, Copy)]
+#[derive(GCPtr, GCDebug, Clone, Copy)]
 pub enum OtherGCValue {
     // This variant is mostly a placeholder and will probably be removed in the future.
     BoxMValue(GCBox<MValue>) = 1usize.rotate_right(1),
@@ -44,9 +46,7 @@ unsafe impl GCPtr for GCValue {
         unsafe {
             match self.get() {
                 GCValueEnum::MValue(mvalue) => mvalue.gc_copy(gc).into(),
-                GCValueEnum::Other(other_gcvalue) => match other_gcvalue {
-                    OtherGCValue::BoxMValue(mbox) => mbox.gc_copy(gc).into(),
-                },
+                GCValueEnum::Other(other_gcvalue) => other_gcvalue.gc_copy(gc).into(),
             }
         }
     }
@@ -61,9 +61,7 @@ impl GCDebug for GCValue {
         unsafe {
             match self.get() {
                 GCValueEnum::MValue(mvalue) => mvalue.gc_debug(gc, f),
-                GCValueEnum::Other(other_gcvalue) => match other_gcvalue {
-                    OtherGCValue::BoxMValue(gcbox) => gcbox.gc_debug(gc, f),
-                },
+                GCValueEnum::Other(other_gcvalue) => other_gcvalue.gc_debug(gc, f),
             }
         }
     }

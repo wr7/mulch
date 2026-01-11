@@ -1,9 +1,9 @@
-use mulch_macros::GCDebug;
+use mulch_macros::{GCDebug, GCPtr};
 
-use crate::gc::{GCPtr, GCString, GCVec, util::GCDebug};
+use crate::gc::{GCString, GCVec};
 
 /// A `mulch` value
-#[derive(Clone, Copy, GCDebug)]
+#[derive(GCPtr, GCDebug, Clone, Copy)]
 #[repr(usize)]
 pub enum MValue {
     #[debug_direct]
@@ -21,16 +21,5 @@ impl From<GCString> for MValue {
 impl From<GCVec<MValue>> for MValue {
     fn from(value: GCVec<MValue>) -> Self {
         MValue::List(value)
-    }
-}
-
-unsafe impl GCPtr for MValue {
-    const MSB_RESERVED: bool = true;
-
-    unsafe fn gc_copy(self, gc: &mut crate::gc::GarbageCollector) -> Self {
-        match self {
-            MValue::String(gcstring) => unsafe { gcstring.gc_copy(gc) }.into(),
-            MValue::List(gcvec) => unsafe { gcvec.gc_copy(gc) }.into(),
-        }
     }
 }

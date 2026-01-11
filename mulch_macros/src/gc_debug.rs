@@ -1,10 +1,8 @@
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, quote_spanned};
-use syn::{DeriveInput, parse_macro_input, spanned::Spanned};
+use syn::{DeriveInput, spanned::Spanned};
 
-pub fn derive_gc_debug(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let input = parse_macro_input!(item as DeriveInput);
-
+pub fn derive_gc_debug(input: DeriveInput) -> TokenStream {
     let fn_body = match &input.data {
         syn::Data::Struct(data_struct) => gcdebug_fn_body_struct(&input, data_struct),
         syn::Data::Enum(data_enum) => gcdebug_fn_body_enum(data_enum),
@@ -20,7 +18,6 @@ pub fn derive_gc_debug(item: proc_macro::TokenStream) -> proc_macro::TokenStream
             unsafe fn gc_debug(self, gc: &crate::gc::GarbageCollector, f: &mut ::core::fmt::Formatter) -> ::std::fmt::Result {#fn_body}
         }
     }
-    .into()
 }
 
 /// Gets the derived GCDebug function body for an enum
