@@ -4,7 +4,7 @@ use crate::{
     T,
     error::{DResult, FullSpan, PartialSpanned},
     lexer::Token,
-    parser::{
+    parser_old::{
         Expression, NameExpressionMap, NonBracketedIter, TokenStream, error, parse_expression,
     },
 };

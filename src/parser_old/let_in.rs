@@ -2,7 +2,7 @@ use crate::{
     T,
     error::{DResult, FullSpan, PartialSpanned, Spanned},
     lexer::Token,
-    parser::{
+    parser_old::{
         Expression, LetIn, NameExpressionMap, NonBracketedIter, TokenStream, WithIn, error,
         parse_expression,
     },

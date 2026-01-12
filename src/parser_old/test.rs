@@ -1,5 +1,5 @@
 #[allow(unused)] // false positive
-use {crate::parser::util::ast, indoc::indoc};
+use {crate::parser_old::util::ast, indoc::indoc};
 
 macro_rules! parse_test {
     ($test_name:ident, $src:expr, $expected_ast:expr) => {
@@ -14,7 +14,7 @@ macro_rules! parse_test {
             let token_stream =
                 $crate::dresult_unwrap($crate::lexer::Lexer::new($src, 0).lex(), &db);
             let expr =
-                $crate::dresult_unwrap($crate::parser::parse_expression(&token_stream, 0), &db);
+                $crate::dresult_unwrap($crate::parser_old::parse_expression(&token_stream, 0), &db);
 
             assert_eq!(expr, Some($expected_ast));
         }

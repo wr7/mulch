@@ -314,7 +314,7 @@ pub fn parse_function_call(tokens: &TokenStream, file_id: usize) -> DResult<Opti
         let opening_bracket = opening_bracket_tok.as_ref().with_file_id(file_id);
         let expr_span = crate::error::span_of(tokens).unwrap();
 
-        return Err(crate::parser::error::invalid_function_call_args(
+        return Err(crate::parser_old::error::invalid_function_call_args(
             FullSpan::new(expr_span, file_id),
             opening_bracket,
         ));

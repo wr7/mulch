@@ -7,7 +7,7 @@ use crate::{
     T,
     error::{DResult, FullSpan, PartialSpanned, span_of},
     lexer::Token,
-    parser::{self, parse_expression},
+    parser_old::{self, parse_expression},
     util::element_offset,
 };
 
@@ -47,7 +47,7 @@ pub fn parse_lambda(tokens: &TokenStream, file_id: usize) -> DResult<Option<Expr
 
     let args = &tokens[0..arrow];
     let Some(args) = parse_args(args, file_id)? else {
-        return Err(parser::error::expected_lambda_arguments(FullSpan::new(
+        return Err(parser_old::error::expected_lambda_arguments(FullSpan::new(
             arrow_span.span_at(),
             file_id,
         )));
@@ -55,7 +55,7 @@ pub fn parse_lambda(tokens: &TokenStream, file_id: usize) -> DResult<Option<Expr
 
     let expr = &tokens[arrow + 1..];
     let Some(expr) = parse_expression(expr, file_id)? else {
-        return Err(parser::error::expected_expression(FullSpan::new(
+        return Err(parser_old::error::expected_expression(FullSpan::new(
             arrow_span.span_after(),
             file_id,
         )));
@@ -74,8 +74,8 @@ fn parse_args(tokens: &TokenStream, file_id: usize) -> DResult<Option<PartialSpa
 
     let parsers = [parse_single_arg, parse_list_args, parse_set_args];
 
-    for parser in parsers {
-        let res = parser(tokens, file_id)?;
+    for parser_old in parsers {
+        let res = parser_old(tokens, file_id)?;
 
         if let Some(parsed) = res {
             return Ok(Some(PartialSpanned(parsed, span_of(tokens).unwrap())));

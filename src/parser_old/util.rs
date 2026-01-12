@@ -3,7 +3,7 @@ use std::iter::Fuse;
 use crate::{
     error::{DResult, FullSpan, PartialSpanned},
     lexer::{BracketType, Token},
-    parser::error,
+    parser_old::error,
 };
 
 /// Iterates over tokens that are not surrounded by brackets.
@@ -212,7 +212,7 @@ macro_rules! ast {
             $name: expr $(,)?
         )
     } => {
-        $crate::parser::Expression::Variable(
+        $crate::parser_old::Expression::Variable(
             ::std::string::String::from($name)
         )
     };
@@ -221,7 +221,7 @@ macro_rules! ast {
             $name: expr $(,)?
         )
     } => {
-        $crate::parser::Expression::StringLiteral(
+        $crate::parser_old::Expression::StringLiteral(
             ::std::string::String::from($name)
         )
     };
@@ -230,14 +230,14 @@ macro_rules! ast {
             $name: expr
         )
     } => {
-        $crate::parser::Expression::NumericLiteral(
+        $crate::parser_old::Expression::NumericLiteral(
             ::std::string::String::from($name)
         )
     };
     {
         Unit()
     } => {
-        $crate::parser::Expression::Unit()
+        $crate::parser_old::Expression::Unit()
     };
     {
         Set[$(
@@ -247,15 +247,15 @@ macro_rules! ast {
             )
         ),* $(,)?]
     } => {
-        $crate::parser::Expression::Set(
+        $crate::parser_old::Expression::Set(
             ::std::vec![
                 $(
                     (
-                        $crate::parser::PartialSpanned(
+                        $crate::parser_old::PartialSpanned(
                             ::std::string::String::from($attr),
                             ::copyspan::Span::from($span)
                         ),
-                        $crate::parser::util::ast!($value_ident $value_args)
+                        $crate::parser_old::util::ast!($value_ident $value_args)
                     )
                 ),*
             ]
@@ -267,9 +267,9 @@ macro_rules! ast {
             $(,)?
         ]
     } => {
-        $crate::parser::Expression::List(
+        $crate::parser_old::Expression::List(
             ::std::vec![
-                $($crate::parser::util::ast!($name $args)),*
+                $($crate::parser_old::util::ast!($name $args)),*
             ]
         )
     };
@@ -279,10 +279,10 @@ macro_rules! ast {
             expression: $exp_name:ident $exp_args:tt $(,)?
         }
     } => {
-        $crate::parser::Expression::WithIn(
-            $crate::parser::WithIn {
-                set:        ::std::boxed::Box::new($crate::parser::util::ast!($set_name $set_args)),
-                expression: ::std::boxed::Box::new($crate::parser::util::ast!($exp_name $exp_args))
+        $crate::parser_old::Expression::WithIn(
+            $crate::parser_old::WithIn {
+                set:        ::std::boxed::Box::new($crate::parser_old::util::ast!($set_name $set_args)),
+                expression: ::std::boxed::Box::new($crate::parser_old::util::ast!($exp_name $exp_args))
             }
         )
     };
@@ -297,21 +297,21 @@ macro_rules! ast {
             expression: $expr_ident:ident $expr_args:tt $(,)?
         }
     } => {
-        $crate::parser::Expression::LetIn(
-            $crate::parser::LetIn {
+        $crate::parser_old::Expression::LetIn(
+            $crate::parser_old::LetIn {
                 bindings: ::std::vec![
                     $(
                         (
-                            $crate::parser::PartialSpanned(
+                            $crate::parser_old::PartialSpanned(
                                 ::std::string::String::from($var_name),
                                 ::copyspan::Span::from($var_name_span)
                             ),
-                            $crate::parser::util::ast!($value_ident $value_args)
+                            $crate::parser_old::util::ast!($value_ident $value_args)
                         )
                     ),*
                 ],
                 expression: ::std::boxed::Box::new(
-                    $crate::parser::util::ast!($expr_ident $expr_args)
+                    $crate::parser_old::util::ast!($expr_ident $expr_args)
                 )
             }
         )
@@ -322,10 +322,10 @@ macro_rules! ast {
             args: $args_name:ident $args_args:tt $(,)?
         }
     } => {
-        $crate::parser::Expression::FunctionCall(
-            $crate::parser::FunctionCall {
-                function: ::std::boxed::Box::new($crate::parser::util::ast!($function_name $function_args)),
-                args: ::std::boxed::Box::new($crate::parser::util::function_call_args_ast!($args_name $args_args))
+        $crate::parser_old::Expression::FunctionCall(
+            $crate::parser_old::FunctionCall {
+                function: ::std::boxed::Box::new($crate::parser_old::util::ast!($function_name $function_args)),
+                args: ::std::boxed::Box::new($crate::parser_old::util::function_call_args_ast!($args_name $args_args))
             }
         )
     };
@@ -335,10 +335,10 @@ macro_rules! ast {
             expression: $expr_name:ident $expr_args:tt $(,)?
         }
     } => {
-        $crate::parser::Expression::Lambda(
-            $crate::parser::Lambda{
-                args: ::std::boxed::Box::new($crate::parser::util::lambda_args_ast!($args_ident $args_args)),
-                expression: ::std::boxed::Box::new($crate::parser::util::ast!($expr_name $expr_args))
+        $crate::parser_old::Expression::Lambda(
+            $crate::parser_old::Lambda{
+                args: ::std::boxed::Box::new($crate::parser_old::util::lambda_args_ast!($args_ident $args_args)),
+                expression: ::std::boxed::Box::new($crate::parser_old::util::ast!($expr_name $expr_args))
             }
         )
     };
@@ -348,10 +348,10 @@ macro_rules! ast {
             rhs: Spanned($rhs:literal, $rhs_span:expr) $(,)?
         }
     } => {
-        $crate::parser::Expression::MemberAccess(
-            $crate::parser::MemberAccess {
-                lhs: ::std::boxed::Box::new($crate::parser::util::ast!($lhs_name $lhs_args)),
-                rhs: $crate::parser::PartialSpanned(
+        $crate::parser_old::Expression::MemberAccess(
+            $crate::parser_old::MemberAccess {
+                lhs: ::std::boxed::Box::new($crate::parser_old::util::ast!($lhs_name $lhs_args)),
+                rhs: $crate::parser_old::PartialSpanned(
                     ::std::string::String::from($rhs),
                     ::copyspan::Span::from($rhs_span)
                 ),
@@ -364,11 +364,11 @@ macro_rules! ast {
             $rhs_name:ident $rhs_args:tt $(,)?
         )
     } => {
-        $crate::parser::Expression::BinaryOperation(
-            $crate::parser::BinaryOperation {
-                lhs: ::std::boxed::Box::new($crate::parser::util::ast!($lhs_name $lhs_args)),
-                operator: $crate::parser::binary::BinaryOperator::$binary_op,
-                rhs: ::std::boxed::Box::new($crate::parser::util::ast!($rhs_name $rhs_args))
+        $crate::parser_old::Expression::BinaryOperation(
+            $crate::parser_old::BinaryOperation {
+                lhs: ::std::boxed::Box::new($crate::parser_old::util::ast!($lhs_name $lhs_args)),
+                operator: $crate::parser_old::binary::BinaryOperator::$binary_op,
+                rhs: ::std::boxed::Box::new($crate::parser_old::util::ast!($rhs_name $rhs_args))
             }
         )
     };
@@ -378,8 +378,8 @@ macro_rules! ast {
             $span:expr $(,)?
         )
     } => {
-        $crate::parser::PartialSpanned(
-            $crate::parser::util::ast!($name $args),
+        $crate::parser_old::PartialSpanned(
+            $crate::parser_old::util::ast!($name $args),
             ::copyspan::Span::from($span)
         )
     };
@@ -396,15 +396,15 @@ macro_rules! function_call_args_ast {
             )
         ),* $(,)?]
     } => {
-        $crate::parser::FunctionArgs::Set(
+        $crate::parser_old::FunctionArgs::Set(
             ::std::vec![
                 $(
                     (
-                        $crate::parser::PartialSpanned(
+                        $crate::parser_old::PartialSpanned(
                             ::std::borrow::Cow::from($attr),
                             ::copyspan::Span::from($span)
                         ),
-                        $crate::parser::util::ast!($value_ident $value_args)
+                        $crate::parser_old::util::ast!($value_ident $value_args)
                     )
                 ),*
             ]
@@ -416,9 +416,9 @@ macro_rules! function_call_args_ast {
             $(,)?
         ]
     } => {
-        $crate::parser::FunctionArgs::List(
+        $crate::parser_old::FunctionArgs::List(
             ::std::vec![
-                $($crate::parser::util::ast!($name $args)),*
+                $($crate::parser_old::util::ast!($name $args)),*
             ]
         )
     };
@@ -428,8 +428,8 @@ macro_rules! function_call_args_ast {
             $span:expr $(,)?
         )
     } => {
-        $crate::parser::PartialSpanned(
-            $crate::parser::util::function_call_args_ast!($name $args),
+        $crate::parser_old::PartialSpanned(
+            $crate::parser_old::util::function_call_args_ast!($name $args),
             ::copyspan::Span::from($span)
         )
     };
@@ -440,16 +440,16 @@ macro_rules! lambda_args_ast {
     {
         Single($name:literal $(,)?)
     } => {
-        $crate::parser::lambda::Args::Single(::std::string::String::from($name))
+        $crate::parser_old::lambda::Args::Single(::std::string::String::from($name))
     };
     {
         List[$(
             $name:ident $args:tt
         ),* $(,)?]
     } => {
-        $crate::parser::lambda::Args::List(::std::vec![
+        $crate::parser_old::lambda::Args::List(::std::vec![
             $(
-                $crate::parser::util::lambda_args_ast!($name $args)
+                $crate::parser_old::util::lambda_args_ast!($name $args)
             ),*
         ])
     };
@@ -461,11 +461,11 @@ macro_rules! lambda_args_ast {
             }
         ),* $(,)?]
     } => {
-        $crate::parser::lambda::Args::AttrSet(::std::vec![
+        $crate::parser_old::lambda::Args::AttrSet(::std::vec![
             $(
-                $crate::parser::lambda::ArgAttribute {
-                    name: $crate::parser::PartialSpanned(::std::string::String::from($name), ::copyspan::Span::from($span)),
-                    default: $crate::parser::util::option_ast!($($d)+)
+                $crate::parser_old::lambda::ArgAttribute {
+                    name: $crate::parser_old::PartialSpanned(::std::string::String::from($name), ::copyspan::Span::from($span)),
+                    default: $crate::parser_old::util::option_ast!($($d)+)
                 }
             ),*
         ])
@@ -476,8 +476,8 @@ macro_rules! lambda_args_ast {
             $span:expr $(,)?
         )
     } => {
-        $crate::parser::PartialSpanned(
-            $crate::parser::util::lambda_args_ast!($name $args),
+        $crate::parser_old::PartialSpanned(
+            $crate::parser_old::util::lambda_args_ast!($name $args),
             ::copyspan::Span::from($span)
         )
     };
@@ -490,7 +490,7 @@ macro_rules! option_ast {
         None
     };
     (Some($name:ident $args:tt)) => {
-        Some($crate::parser::util::ast!($name $args))
+        Some($crate::parser_old::util::ast!($name $args))
     };
 }
 

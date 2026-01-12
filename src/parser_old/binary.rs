@@ -1,7 +1,7 @@
 use crate::{
     error::{DResult, FullSpan, PartialSpanned},
     lexer::Token,
-    parser::{self, NonBracketedIter},
+    parser_old::{self, NonBracketedIter},
     util,
 };
 use std::fmt::Debug;
@@ -49,7 +49,7 @@ pub fn parse_binary_operators(
 
     let iter = NonBracketedIter::new(tokens, file_id);
     let mut iter = if right_to_left {
-        // Since this is a top-down parser, the direction that we parse is actually opposite to the associativity of the operator
+        // Since this is a top-down parser_old, the direction that we parse is actually opposite to the associativity of the operator
         itertools::Either::Left(iter)
     } else {
         itertools::Either::Right(iter.rev())
@@ -72,14 +72,14 @@ pub fn parse_binary_operators(
                 let rhs = &tokens[op_idx + 1..];
 
                 let Some(lhs) = parse_expression(lhs, file_id)? else {
-                    return Err(parser::error::expected_expression(FullSpan::new(
+                    return Err(parser_old::error::expected_expression(FullSpan::new(
                         op_tok.1.span_at(),
                         file_id,
                     )));
                 };
 
                 let Some(rhs) = parse_expression(rhs, file_id)? else {
-                    return Err(parser::error::expected_expression(FullSpan::new(
+                    return Err(parser_old::error::expected_expression(FullSpan::new(
                         op_tok.1.span_after(),
                         file_id,
                     )));
@@ -127,31 +127,31 @@ impl BinaryOperator {
 
 macro_rules! Op {
     (+) => {
-        $crate::parser::binary::BinaryOperator::Add
+        $crate::parser_old::binary::BinaryOperator::Add
     };
     (-) => {
-        $crate::parser::binary::BinaryOperator::Subtract
+        $crate::parser_old::binary::BinaryOperator::Subtract
     };
     (/) => {
-        $crate::parser::binary::BinaryOperator::Divide
+        $crate::parser_old::binary::BinaryOperator::Divide
     };
     (*) => {
-        $crate::parser::binary::BinaryOperator::Multiply
+        $crate::parser_old::binary::BinaryOperator::Multiply
     };
     (^) => {
-        $crate::parser::binary::BinaryOperator::Exponent
+        $crate::parser_old::binary::BinaryOperator::Exponent
     };
     (<) => {
-        $crate::parser::binary::BinaryOperator::LessThan
+        $crate::parser_old::binary::BinaryOperator::LessThan
     };
     (>) => {
-        $crate::parser::binary::BinaryOperator::GreaterThan
+        $crate::parser_old::binary::BinaryOperator::GreaterThan
     };
     (<=) => {
-        $crate::parser::binary::BinaryOperator::LessThanOrEqual
+        $crate::parser_old::binary::BinaryOperator::LessThanOrEqual
     };
     (>=) => {
-        $crate::parser::binary::BinaryOperator::GreaterThanOrEqual
+        $crate::parser_old::binary::BinaryOperator::GreaterThanOrEqual
     };
 }
 
