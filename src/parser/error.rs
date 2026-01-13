@@ -8,7 +8,7 @@ use crate::{
         parse::{ParseDiagnostic, parse_error},
     },
     lexer::Token,
-    parser::Keyword,
+    parser::{Keyword, Punct},
 };
 
 pub fn invalid_expression(span: Span) -> ParseDiagnostic {
@@ -37,6 +37,10 @@ pub fn expected_attribute_name(got: PartialSpanned<&Token>) -> ParseDiagnostic {
 
 pub fn expected_token(expected: &Token, got: PartialSpanned<&Token>) -> ParseDiagnostic {
     parse_error!("EP0007", format!("Expected token `{}`; got `{}`", expected, &got.0), [{"here", got.1, primary}])
+}
+
+pub fn expected_punctuation<const S: u8>(span: Span) -> ParseDiagnostic {
+    parse_error!("EP0007", format!("Expected token `{}`", Punct::<S>::SYMBOL.str()), [{"here", span, primary}])
 }
 
 pub fn let_in_eof(eof_span: Span, let_span: Span) -> ParseDiagnostic {

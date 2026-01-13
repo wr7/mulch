@@ -67,7 +67,7 @@ impl<'src> Display for Token<'src> {
 
 impl Symbol {
     /// Gets the string representation of the symbol
-    pub fn str(self) -> &'static str {
+    pub const fn str(self) -> &'static str {
         match self {
             Sym!(.) => ".",
             Sym!(,) => ",",

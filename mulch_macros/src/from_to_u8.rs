@@ -16,7 +16,7 @@ pub fn derive_from_to_u8(item: DeriveInput) -> TokenStream {
     quote! {
         #[automatically_derived]
         impl #impl_generics #type_name #ty_generics #where_clause {
-            pub const fn as_u8(&self) -> u8 { #from_self_fn_body }
+            pub const fn to_u8(&self) -> u8 { #from_self_fn_body }
 
             pub const fn from_u8(val: u8) -> ::std::option::Option<Self> { #try_from_u8_fn_body }
         }

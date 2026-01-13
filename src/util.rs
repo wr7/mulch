@@ -168,7 +168,7 @@ pub fn element_offset<T>(slice: &[T], element: &T) -> Option<usize> {
 
     let byte_offset = elem_start.wrapping_sub(self_start);
 
-    if byte_offset % size_of::<T>() != 0 {
+    if !byte_offset.is_multiple_of(size_of::<T>()) {
         return None;
     }
 
