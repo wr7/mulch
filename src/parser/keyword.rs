@@ -1,6 +1,12 @@
 use copyspan::Span;
 use mulch_macros::{GCDebug, GCPtr};
 
+use crate::{
+    error::PartialSpanned,
+    lexer::Token,
+    parser::{FindLeft, Parse, ParseLeft, error, traits::impl_using_parse_left},
+};
+
 /// Parses a literal that matches a specific keyword. This type should only be referred to using the
 /// [`keyword`](mulch_macros::keyword) macro, and the value of `K` should only be accessed through
 /// the `KEYWORD` associated constant.
@@ -14,9 +20,10 @@ pub struct Keyword<const K: u128> {
 }
 
 impl<const K: u128> Keyword<K> {
-    const RAW_BYTES: [u8; 16] = K.to_be_bytes();
+    /// The string literal contained in the `Keyword` type
     pub const KEYWORD: &'static str = Self::get();
 
+    const RAW_BYTES: [u8; 16] = K.to_be_bytes();
     const fn get() -> &'static str {
         let mut ret: Option<&'static [u8]> = None;
         let mut remaining = Self::RAW_BYTES.as_slice();
@@ -37,4 +44,49 @@ impl<const K: u128> Keyword<K> {
 
         panic!("Invalid string generic for `Keyword`")
     }
+}
+
+impl<const K: u128> ParseLeft for Keyword<K> {
+    fn parse_from_left(
+        gc: &mut crate::gc::GarbageCollector,
+        tokens: &mut &super::TokenStream,
+    ) -> crate::error::parse::PDResult<Option<Self>> {
+        let [
+            PartialSpanned(Token::Identifier(ident), span),
+            remainder @ ..,
+        ] = tokens
+        else {
+            return Ok(None);
+        };
+
+        if ident != Self::KEYWORD {
+            return Ok(None);
+        }
+
+        *tokens = remainder;
+        Ok(Some(Self { span: *span }))
+    }
+}
+
+impl<const K: u128> FindLeft for Keyword<K> {
+    fn find_left<'a, 'src>(
+        tokens: &'a super::TokenStream<'src>,
+    ) -> crate::error::parse::PDResult<std::ops::RangeFrom<usize>> {
+        let idx = tokens
+            .iter()
+            .position(|tok| {
+                matches!(tok, PartialSpanned(Token::Identifier(ident), _)
+                if ident == Self::KEYWORD)
+            })
+            .unwrap_or(tokens.len());
+
+        Ok(idx..)
+    }
+}
+
+impl<const K: u128> Parse for Keyword<K> {
+    const EXPECTED_ERROR_FUNCTION: fn(Span) -> crate::error::parse::ParseDiagnostic =
+        error::expected_keyword::<K>;
+
+    impl_using_parse_left! {}
 }

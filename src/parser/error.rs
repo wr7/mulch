@@ -8,6 +8,7 @@ use crate::{
         parse::{ParseDiagnostic, parse_error},
     },
     lexer::Token,
+    parser::Keyword,
 };
 
 pub fn invalid_expression(span: Span) -> ParseDiagnostic {
@@ -80,4 +81,8 @@ pub fn invalid_function_call_args(
             {format!("expected `{{` or `[`; got `{}`", open_br.0.to_string()), open_br.1, secondary}
         ]
     )
+}
+
+pub fn expected_keyword<const K: u128>(span: Span) -> ParseDiagnostic {
+    parse_error!("EP0014", format!("Expected keyword `{}`", Keyword::<K>::KEYWORD), [{"here", span, primary}])
 }
