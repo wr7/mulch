@@ -1,3 +1,4 @@
+pub mod parse;
 mod sourcedb;
 mod spanned;
 

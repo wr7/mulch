@@ -1,13 +1,12 @@
 use crate::{
-    error::{DResult, PartialSpanned},
+    error::{PartialSpanned, parse::PDResult},
     gc::GarbageCollector,
     lexer::Token,
 };
 
 pub mod ast;
+pub mod error;
 mod keyword;
-
-pub use crate::parser_old::error;
 
 pub use keyword::Keyword;
 
@@ -16,10 +15,10 @@ pub type TokenStream<'src> = [PartialSpanned<Token<'src>>];
 pub trait ParseLeft: Sized {
     /// Attempts to parse `Self` from the left of a [`TokenStream`]. Writes the remaining
     /// `TokenStream` to `tokens` upon success.
-    fn parse_from_left_mut(
+    fn parse_from_left(
         gc: &mut GarbageCollector,
         tokens: &mut &TokenStream,
-    ) -> DResult<Option<Self>> {
+    ) -> PDResult<Option<Self>> {
         match Self::parse_from_left_imm(gc, *tokens) {
             Ok(Some((self_, remaining))) => {
                 *tokens = remaining;
@@ -36,16 +35,16 @@ pub trait ParseLeft: Sized {
     fn parse_from_left_imm<'gc, 'a, 'src>(
         gc: &'gc mut GarbageCollector,
         tokens: &'a TokenStream<'src>,
-    ) -> DResult<Option<(Self, &'a TokenStream<'src>)>>;
+    ) -> PDResult<Option<(Self, &'a TokenStream<'src>)>>;
 }
 
 pub trait ParseRight: Sized + Parse {
     /// Attempts to parse `Self` from the right of a [`TokenStream`]. Writes the remaining
     /// `TokenStream` to `tokens` upon success.
-    fn parse_from_right_mut(
+    fn parse_from_right(
         gc: &mut GarbageCollector,
         tokens: &mut &TokenStream,
-    ) -> DResult<Option<Self>> {
+    ) -> PDResult<Option<Self>> {
         match Self::parse_from_right_imm(gc, *tokens) {
             Ok(Some((self_, remaining))) => {
                 *tokens = remaining;
@@ -62,7 +61,7 @@ pub trait ParseRight: Sized + Parse {
     fn parse_from_right_imm<'gc, 'a, 'src>(
         gc: &'gc mut GarbageCollector,
         tokens: &'a TokenStream<'src>,
-    ) -> DResult<Option<(Self, &'a TokenStream<'src>)>>;
+    ) -> PDResult<Option<(Self, &'a TokenStream<'src>)>>;
 }
 
 pub trait SplitLeft: Sized {
@@ -71,7 +70,7 @@ pub trait SplitLeft: Sized {
     /// after.
     fn split_left<'a, 'src>(
         tokens: &'a TokenStream<'src>,
-    ) -> DResult<(&'a TokenStream<'src>, &'a TokenStream<'src>)>;
+    ) -> PDResult<(&'a TokenStream<'src>, &'a TokenStream<'src>)>;
 }
 
 pub trait SplitRight: Sized {
@@ -80,10 +79,40 @@ pub trait SplitRight: Sized {
     /// after.
     fn split_right<'a, 'src>(
         tokens: &'a TokenStream<'src>,
-    ) -> DResult<(&'a TokenStream<'src>, &'a TokenStream<'src>)>;
+    ) -> PDResult<(&'a TokenStream<'src>, &'a TokenStream<'src>)>;
 }
 
 pub trait Parse: Sized {
     /// Attempts to parse a whole [`TokenStream`] as `Self`.
-    fn parse(gc: &mut GarbageCollector, tokens: &TokenStream) -> DResult<Option<Self>>;
+    fn parse(gc: &mut GarbageCollector, tokens: &TokenStream) -> PDResult<Option<Self>>;
+
+    fn parse_from_left_until<B: SplitLeft>(
+        gc: &mut GarbageCollector,
+        tokens: &mut &TokenStream,
+    ) -> PDResult<Option<Self>> {
+        let (left, right) = B::split_left(&tokens)?;
+
+        let res = Self::parse(gc, left);
+
+        if let Ok(Some(_)) = &res {
+            *tokens = right;
+        }
+
+        res
+    }
+
+    fn parse_from_right_until<B: SplitRight>(
+        gc: &mut GarbageCollector,
+        tokens: &mut &TokenStream,
+    ) -> PDResult<Option<Self>> {
+        let (left, right) = B::split_right(&tokens)?;
+
+        let res = Self::parse(gc, right);
+
+        if let Ok(Some(_)) = &res {
+            *tokens = left;
+        }
+
+        res
+    }
 }
