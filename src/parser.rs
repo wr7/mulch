@@ -4,6 +4,7 @@ pub mod ast;
 pub mod error;
 mod keyword;
 mod traits;
+mod util;
 
 pub use traits::FindLeft;
 pub use traits::FindRight;

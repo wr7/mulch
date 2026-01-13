@@ -1,10 +1,14 @@
 use copyspan::Span;
+use itertools::Itertools;
 use mulch_macros::{GCDebug, GCPtr};
 
 use crate::{
     error::PartialSpanned,
     lexer::Token,
-    parser::{FindLeft, Parse, ParseLeft, error, traits::impl_using_parse_left},
+    parser::{
+        FindLeft, Parse, ParseLeft, error, traits::impl_using_parse_left, util::NonBracketedIter,
+    },
+    util::element_offset,
 };
 
 /// Parses a literal that matches a specific keyword. This type should only be referred to using the
@@ -48,7 +52,7 @@ impl<const K: u128> Keyword<K> {
 
 impl<const K: u128> ParseLeft for Keyword<K> {
     fn parse_from_left(
-        gc: &mut crate::gc::GarbageCollector,
+        _: &mut crate::gc::GarbageCollector,
         tokens: &mut &super::TokenStream,
     ) -> crate::error::parse::PDResult<Option<Self>> {
         let [
@@ -72,12 +76,13 @@ impl<const K: u128> FindLeft for Keyword<K> {
     fn find_left<'a, 'src>(
         tokens: &'a super::TokenStream<'src>,
     ) -> crate::error::parse::PDResult<std::ops::RangeFrom<usize>> {
-        let idx = tokens
-            .iter()
-            .position(|tok| {
-                matches!(tok, PartialSpanned(Token::Identifier(ident), _)
-                if ident == Self::KEYWORD)
-            })
+        let idx = NonBracketedIter::new(tokens)
+            .process_results(|mut it|
+                it.find(|tok|
+                    matches!(tok, PartialSpanned(Token::Identifier(ident), _) if ident == Self::KEYWORD)
+                )
+            )?
+            .and_then(|tok| element_offset(tokens, tok))
             .unwrap_or(tokens.len());
 
         Ok(idx..)
