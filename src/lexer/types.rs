@@ -3,7 +3,8 @@ use std::{
     fmt::{Debug, Display},
 };
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, FromToU8)]
+#[repr(u8)]
 #[non_exhaustive]
 pub enum Symbol {
     Dot,
@@ -51,19 +52,7 @@ impl<'src> Display for Token<'src> {
             Token::StringLiteral(ref cow) => {
                 return write!(f, "\"{}\"", cow.escape_debug());
             }
-            T!(.) => ".",
-            T!(,) => ",",
-            T!(;) => ";",
-            T!(->) => "->",
-            T!(=) => "=",
-            T!(|) => "|",
-            T!(+) => "+",
-            T!(-) => "-",
-            T!(/) => "/",
-            T!(*) => "*",
-            T!(^) => "^",
-            T!(>) => ">",
-            T!(<) => "<",
+            Token::Symbol(sym) => sym.str(),
             T!('(') => "(",
             T!(')') => ")",
             T!('[') => "[",
@@ -73,6 +62,27 @@ impl<'src> Display for Token<'src> {
         };
 
         write!(f, "{string}")
+    }
+}
+
+impl Symbol {
+    /// Gets the string representation of the symbol
+    pub fn str(self) -> &'static str {
+        match self {
+            Sym!(.) => ".",
+            Sym!(,) => ",",
+            Sym!(;) => ";",
+            Sym!(->) => "->",
+            Sym!(=) => "=",
+            Sym!(|) => "|",
+            Sym!(+) => "+",
+            Sym!(-) => "-",
+            Sym!(/) => "/",
+            Sym!(*) => "*",
+            Sym!(^) => "^",
+            Sym!(>) => ">",
+            Sym!(<) => "<",
+        }
     }
 }
 
@@ -86,6 +96,7 @@ impl<'src> Debug for Token<'src> {
     }
 }
 
+/// Macro for defining [`Token`]s
 #[macro_export]
 macro_rules! T {
     ('(') => {
@@ -107,43 +118,43 @@ macro_rules! T {
         $crate::lexer::Token::ClosingBracket($crate::lexer::BracketType::Curly)
     };
     (.) => {
-        $crate::lexer::Token::Symbol($crate::lexer::Symbol::Dot)
+        $crate::lexer::Token::Symbol($crate::Sym!(.))
     };
     (,) => {
-        $crate::lexer::Token::Symbol($crate::lexer::Symbol::Comma)
+        $crate::lexer::Token::Symbol($crate::Sym!(,))
     };
     (;) => {
-        $crate::lexer::Token::Symbol($crate::lexer::Symbol::Semicolon)
+        $crate::lexer::Token::Symbol($crate::Sym!(;))
     };
     (->) => {
-        $crate::lexer::Token::Symbol($crate::lexer::Symbol::RightArrow)
+        $crate::lexer::Token::Symbol($crate::Sym!(->))
     };
     (=) => {
-        $crate::lexer::Token::Symbol($crate::lexer::Symbol::Equals)
+        $crate::lexer::Token::Symbol($crate::Sym!(=))
     };
     (|) => {
-        $crate::lexer::Token::Symbol($crate::lexer::Symbol::Pipe)
+        $crate::lexer::Token::Symbol($crate::Sym!(|))
     };
     (+) => {
-        $crate::lexer::Token::Symbol($crate::lexer::Symbol::Plus)
+        $crate::lexer::Token::Symbol($crate::Sym!(+))
     };
     (-) => {
-        $crate::lexer::Token::Symbol($crate::lexer::Symbol::Hyphen)
+        $crate::lexer::Token::Symbol($crate::Sym!(-))
     };
     (/) => {
-        $crate::lexer::Token::Symbol($crate::lexer::Symbol::Slash)
+        $crate::lexer::Token::Symbol($crate::Sym!(/))
     };
     (*) => {
-        $crate::lexer::Token::Symbol($crate::lexer::Symbol::Asterisk)
+        $crate::lexer::Token::Symbol($crate::Sym!(*))
     };
     (^) => {
-        $crate::lexer::Token::Symbol($crate::lexer::Symbol::Caret)
+        $crate::lexer::Token::Symbol($crate::Sym!(^))
     };
     (<) => {
-        $crate::lexer::Token::Symbol($crate::lexer::Symbol::LessThan)
+        $crate::lexer::Token::Symbol($crate::Sym!(<))
     };
     (>) => {
-        $crate::lexer::Token::Symbol($crate::lexer::Symbol::GreaterThan)
+        $crate::lexer::Token::Symbol($crate::Sym!(>))
     };
     (_) => {
         $crate::lexer::Token::Identifier("_")
@@ -181,7 +192,8 @@ impl TokenLiteralHelper<u64> {
     }
 }
 
-/// Macro for defining `lexer::Symbol`s
+/// Macro for defining [`Symbol`]s
+#[macro_export]
 macro_rules! Sym {
     (.) => {
         $crate::lexer::Symbol::Dot
@@ -225,3 +237,4 @@ macro_rules! Sym {
 }
 
 pub(crate) use Sym;
+use mulch_macros::FromToU8;

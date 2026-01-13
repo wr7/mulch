@@ -13,8 +13,6 @@ pub mod parser_old;
 
 mod util;
 
-// TODO: add "parser diagnostic" types which lack a file index
-
 pub fn main() {
     let db = SourceDB::new();
 

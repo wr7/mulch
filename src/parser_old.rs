@@ -7,9 +7,9 @@ use std::fmt::Debug;
 use util::NonBracketedIter;
 
 use crate::{
-    Op, T,
+    Op, Sym, T,
     error::{DResult, FullSpan, PartialSpanned, span_of},
-    lexer::{BracketType, Sym, Token},
+    lexer::{BracketType, Token},
 };
 
 mod attr_set;

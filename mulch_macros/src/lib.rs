@@ -1,5 +1,6 @@
 use syn::{DeriveInput, LitStr, parse_macro_input};
 
+mod from_to_u8;
 mod gc_debug;
 mod gc_ptr;
 mod parser;
@@ -20,4 +21,9 @@ pub fn derive_gc_ptr(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
 #[proc_macro]
 pub fn keyword(lit: proc_macro::TokenStream) -> proc_macro::TokenStream {
     parser::keyword(parse_macro_input!(lit as LitStr)).into()
+}
+
+#[proc_macro_derive(FromToU8)]
+pub fn derive_from_to_u8(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    from_to_u8::derive_from_to_u8(parse_macro_input!(item as DeriveInput)).into()
 }
