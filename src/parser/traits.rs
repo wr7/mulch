@@ -12,20 +12,15 @@ use crate::{
 pub trait ParseLeft: Sized + Parse {
     /// Attempts to parse `Self` from the left of a [`TokenStream`]. Writes the remaining
     /// `TokenStream` to `tokens` upon success.
-    fn parse_from_left(
-        gc: &mut GarbageCollector,
-        tokens: &mut &TokenStream,
-    ) -> PDResult<Option<Self>>;
+    fn parse_from_left(gc: &GarbageCollector, tokens: &mut &TokenStream) -> PDResult<Option<Self>>;
 }
 
 /// Types that can be parsed from the right side with a remainder.
 pub trait ParseRight: Sized + Parse {
     /// Attempts to parse `Self` from the right of a [`TokenStream`]. Writes the remaining
     /// `TokenStream` to `tokens` upon success.
-    fn parse_from_right(
-        gc: &mut GarbageCollector,
-        tokens: &mut &TokenStream,
-    ) -> PDResult<Option<Self>>;
+    fn parse_from_right(gc: &GarbageCollector, tokens: &mut &TokenStream)
+    -> PDResult<Option<Self>>;
 }
 
 /// Types where you can search through a `TokenStream` and find the index of the leftmost occurance.
@@ -45,10 +40,10 @@ pub trait Parse: Sized {
     const EXPECTED_ERROR_FUNCTION: fn(Span) -> ParseDiagnostic;
 
     /// Attempts to parse a whole [`TokenStream`] as `Self`.
-    fn parse(gc: &mut GarbageCollector, tokens: &TokenStream) -> PDResult<Option<Self>>;
+    fn parse(gc: &GarbageCollector, tokens: &TokenStream) -> PDResult<Option<Self>>;
 
     fn parse_from_left_until<B: FindLeft>(
-        gc: &mut GarbageCollector,
+        gc: &GarbageCollector,
         tokens: &mut &TokenStream,
     ) -> PDResult<Option<Self>> {
         let range = B::find_left(&tokens)?;
@@ -63,7 +58,7 @@ pub trait Parse: Sized {
     }
 
     fn parse_from_right_until<B: FindRight>(
-        gc: &mut GarbageCollector,
+        gc: &GarbageCollector,
         tokens: &mut &TokenStream,
     ) -> PDResult<Option<Self>> {
         let range = B::find_right(&tokens)?;
@@ -81,7 +76,7 @@ pub trait Parse: Sized {
 macro_rules! impl_using_parse_left {
     () => {
         fn parse(
-            gc: &mut $crate::gc::GarbageCollector,
+            gc: &$crate::gc::GarbageCollector,
             mut tokens: &$crate::parser::TokenStream,
         ) -> $crate::error::parse::PDResult<::core::option::Option<Self>> {
             let Some(val) = Self::parse_from_left(gc, &mut tokens)? else {

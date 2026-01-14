@@ -24,12 +24,10 @@ pub struct GCBox<T: GCPtr> {
 impl<T: GCPtr> GCBox<T> {
     /// Allocates a new `GCBox`
     ///
-    /// This will never trigger a garbage-collection cycle.
-    ///
     /// # Safety
     /// - `value` must point to a valid, non-frozen object in `gc`
-    pub unsafe fn new(gc: &mut GarbageCollector, value: T) -> Self {
-        let ptr = Self::alloc_uninit_in_space(&mut gc.from_space);
+    pub unsafe fn new(gc: &GarbageCollector, value: T) -> Self {
+        let ptr = Self::alloc_uninit_in_space(&gc.from_space);
         unsafe { ptr.ptr_in_space(&gc.from_space).write(value) };
 
         ptr
@@ -45,8 +43,8 @@ impl<T: GCPtr> GCBox<T> {
     }
 
     /// Allocates an uninitialized `GCBox` in a given `GCSpace`
-    fn alloc_uninit_in_space(space: &mut GCSpace) -> Self {
-        let ptr = space.len;
+    fn alloc_uninit_in_space(space: &GCSpace) -> Self {
+        let ptr = space.len();
 
         let mut size_blocks = mem::size_of::<T>().div_ceil(GarbageCollector::BLOCK_SIZE);
 
@@ -54,8 +52,7 @@ impl<T: GCPtr> GCBox<T> {
             size_blocks += 1; // An additional block must be used to keep track of whether the value is a forward pointer.
         }
 
-        space.expand(space.len + size_blocks);
-        space.len += size_blocks;
+        space.set_len(space.len() + size_blocks);
 
         if !T::MSB_RESERVED {
             // Zero the forward pointer of the newly allocated object

@@ -35,8 +35,8 @@ pub struct GCString {
 
 impl GCString {
     /// Creates a new garbage collected string.
-    pub fn new(gc: &mut GarbageCollector, string: &str) -> Self {
-        Self::new_in_space(&mut gc.from_space, string)
+    pub fn new(gc: &GarbageCollector, string: &str) -> Self {
+        Self::new_in_space(&gc.from_space, string)
     }
 
     /// Gets the string if it is less than 2 * sizeof(usize) bytes long. Otherwise returns `None`
@@ -65,7 +65,7 @@ impl GCString {
     }
 
     /// Creates a garbage collected string in a given `GCSpace`
-    fn new_in_space(space: &mut GCSpace, string: &str) -> Self {
+    fn new_in_space(space: &GCSpace, string: &str) -> Self {
         // If the string is small enough, it can be stored inline rather than on the GC Heap
 
         if string.len() < std::mem::size_of::<GCString>() && string.len() <= 127 {
@@ -89,10 +89,9 @@ impl GCString {
         }
 
         let num_blocks = string.len().div_ceil(GarbageCollector::BLOCK_SIZE);
-        space.expand(space.len + num_blocks);
+        let data_ptr = space.len();
 
-        let data_ptr = space.len;
-        space.len += num_blocks;
+        space.set_len(space.len() + num_blocks);
 
         unsafe {
             std::ptr::copy_nonoverlapping(string.as_ptr(), space.block_ptr(data_ptr), string.len())
@@ -124,7 +123,7 @@ impl GCString {
 }
 
 impl GCString {
-    unsafe fn get_forwarded_value(self, gc: &mut GarbageCollector) -> Option<Self> {
+    unsafe fn get_forwarded_value(self, gc: &GarbageCollector) -> Option<Self> {
         if self.get_inline().is_some() {
             return Some(self);
         }
@@ -157,9 +156,8 @@ unsafe impl GCPtr for GCString {
             return forward;
         }
 
-        let to_value = Self::new_in_space(&mut gc.to_space, unsafe {
-            self.get_in_space(&gc.from_space)
-        });
+        let to_value =
+            Self::new_in_space(&gc.to_space, unsafe { self.get_in_space(&gc.from_space) });
 
         let forward = to_value.ptr.get() | 0xFF;
         unsafe {

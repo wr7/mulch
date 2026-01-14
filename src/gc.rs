@@ -7,6 +7,7 @@ use std::marker::PhantomData;
 
 pub use collection::{GCRoot, GCValue, GCValueEnum};
 pub use gcspace::GCPtr;
+pub use gcspace::GCSpace;
 pub use primitives::*;
 
 use crate::gc::util::GCDebug;
@@ -14,17 +15,13 @@ use crate::gc::util::GCDebug;
 #[cfg(test)]
 mod test;
 
+/// The garbage collector.
+///
+/// New objects may be allocated through an immutable reference. A garbage-collection cycle can only
+/// be triggered by methods that take a mutable reference.
 pub struct GarbageCollector {
     from_space: GCSpace,
     to_space: GCSpace,
-}
-
-pub struct GCSpace {
-    data: *mut u8,
-    /// Currently occupied space (in blocks)
-    len: usize,
-    /// Capacity (in blocks)
-    capacity: usize,
 }
 
 impl GarbageCollector {

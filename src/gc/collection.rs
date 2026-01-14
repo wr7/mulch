@@ -106,18 +106,18 @@ impl GarbageCollector {
     /// All `Value`s in `root` must point to valid, currently alive objects in `from-space` of the
     /// current `GarbageCollector`.
     pub unsafe fn collect<'r>(&mut self, root: RootsRef<'r>) {
-        if self.from_space.len < self.from_space.capacity * 9 / 10 {
+        if self.from_space.len() < self.from_space.capacity() * 15 / 16 {
             return;
         }
 
         unsafe { self.force_collect(root) };
 
-        if self.from_space.len < self.from_space.capacity * 7 / 10 {
+        if self.from_space.len() < self.from_space.capacity() * 12 / 16 {
             return;
         }
 
-        self.to_space.expand_exact(self.from_space.capacity * 2);
-        self.from_space.expand_exact(self.from_space.capacity * 2);
+        self.to_space.expand_exact(self.from_space.capacity() * 2);
+        self.from_space.expand_exact(self.from_space.capacity() * 2);
     }
 
     /// Forcefully does a garbage collection cycle.

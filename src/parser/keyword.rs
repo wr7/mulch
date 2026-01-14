@@ -4,6 +4,7 @@ use mulch_macros::{GCDebug, GCPtr};
 
 use crate::{
     error::PartialSpanned,
+    gc::GarbageCollector,
     lexer::Token,
     parser::{
         FindLeft, Parse, ParseLeft, error, traits::impl_using_parse_left, util::NonBracketedIter,
@@ -52,7 +53,7 @@ impl<const K: u128> Keyword<K> {
 
 impl<const K: u128> ParseLeft for Keyword<K> {
     fn parse_from_left(
-        _: &mut crate::gc::GarbageCollector,
+        _: &GarbageCollector,
         tokens: &mut &super::TokenStream,
     ) -> crate::error::parse::PDResult<Option<Self>> {
         let [
