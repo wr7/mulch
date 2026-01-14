@@ -1,3 +1,4 @@
+use crate::gc::GarbageCollector;
 use crate::{error::PartialSpanned, lexer::Token};
 
 pub mod ast;
@@ -18,3 +19,10 @@ pub use traits::ParseRight;
 pub use keyword::Keyword;
 
 pub type TokenStream<'src> = [PartialSpanned<Token<'src>>];
+
+/// Contains parser state. Currently only contains a reference to the garbage collector, but that
+/// will change if or when custom parsers are added.
+pub struct Parser<'a> {
+    #[allow(unused)]
+    gc: &'a GarbageCollector,
+}

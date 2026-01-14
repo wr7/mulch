@@ -4,10 +4,10 @@ use mulch_macros::{GCDebug, GCPtr};
 
 use crate::{
     error::{PartialSpanned, parse::ParseDiagnostic},
-    gc::GarbageCollector,
     lexer::{Symbol, Token},
     parser::{
-        self, FindLeft, Parse, ParseLeft, traits::impl_using_parse_left, util::NonBracketedIter,
+        self, FindLeft, Parse, ParseLeft, Parser, traits::impl_using_parse_left,
+        util::NonBracketedIter,
     },
     util::element_offset,
 };
@@ -29,7 +29,7 @@ impl<const S: u8> Punct<S> {
 
 impl<const S: u8> ParseLeft for Punct<S> {
     fn parse_from_left(
-        _gc: &GarbageCollector,
+        _gc: &Parser,
         tokens: &mut &super::TokenStream,
     ) -> crate::error::parse::PDResult<Option<Self>> {
         let [PartialSpanned(Token::Symbol(sym), span), rem @ ..] = tokens else {
@@ -47,6 +47,7 @@ impl<const S: u8> ParseLeft for Punct<S> {
 
 impl<const S: u8> FindLeft for Punct<S> {
     fn find_left<'a, 'src>(
+        _: &Parser,
         tokens: &'a parser::TokenStream<'src>,
     ) -> crate::error::parse::PDResult<std::ops::RangeFrom<usize>> {
         let idx = NonBracketedIter::new(tokens)

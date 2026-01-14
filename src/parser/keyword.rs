@@ -4,10 +4,10 @@ use mulch_macros::{GCDebug, GCPtr};
 
 use crate::{
     error::PartialSpanned,
-    gc::GarbageCollector,
     lexer::Token,
     parser::{
-        FindLeft, Parse, ParseLeft, error, traits::impl_using_parse_left, util::NonBracketedIter,
+        FindLeft, Parse, ParseLeft, Parser, error, traits::impl_using_parse_left,
+        util::NonBracketedIter,
     },
     util::element_offset,
 };
@@ -53,7 +53,7 @@ impl<const K: u128> Keyword<K> {
 
 impl<const K: u128> ParseLeft for Keyword<K> {
     fn parse_from_left(
-        _: &GarbageCollector,
+        _: &Parser,
         tokens: &mut &super::TokenStream,
     ) -> crate::error::parse::PDResult<Option<Self>> {
         let [
@@ -75,6 +75,7 @@ impl<const K: u128> ParseLeft for Keyword<K> {
 
 impl<const K: u128> FindLeft for Keyword<K> {
     fn find_left<'a, 'src>(
+        _: &Parser,
         tokens: &'a super::TokenStream<'src>,
     ) -> crate::error::parse::PDResult<std::ops::RangeFrom<usize>> {
         let idx = NonBracketedIter::new(tokens)
