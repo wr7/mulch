@@ -106,7 +106,7 @@ unsafe impl<T: GCPtr> GCPtr for GCBox<T> {
 
         let old_value = unsafe { self.ptr_in_space(&gc.from_space).read() };
 
-        let new_box = Self::alloc_uninit_in_space(&mut gc.to_space);
+        let new_box = Self::alloc_uninit_in_space(&gc.to_space);
 
         let fwd_storage_ptr = if T::MSB_RESERVED {
             self.ptr.get()

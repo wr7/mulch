@@ -76,4 +76,5 @@ macro_rules! punct {
     };
 }
 
+#[allow(unused)]
 pub(crate) use punct;

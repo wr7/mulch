@@ -123,6 +123,7 @@ impl GarbageCollector {
     /// Forcefully does a garbage collection cycle.
     ///
     /// See documentation of [`GarbageCollector::collect`] for safety and any other information.
+    #[allow(clippy::missing_safety_doc)]
     #[cold]
     pub unsafe fn force_collect<'r>(&mut self, root: RootsRef<'r>) {
         unsafe {

@@ -8,7 +8,6 @@ mod traits;
 mod util;
 
 pub use punct::Punct;
-pub(crate) use punct::punct;
 
 pub use traits::FindLeft;
 pub use traits::FindRight;

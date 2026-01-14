@@ -20,10 +20,3 @@ pub enum Expression {
     // BinaryOperation(BinaryOperation),
     // MemberAccess(MemberAccess),
 }
-
-#[derive(GCPtr, GCDebug, Clone, Copy)]
-#[repr(C)]
-struct TestStruct {
-    expr: Expression,
-    other: GCString,
-}

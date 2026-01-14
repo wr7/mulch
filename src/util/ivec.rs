@@ -114,10 +114,7 @@ struct IVecHeapData<const N: usize, T> {
 
 impl<const N: usize, T> Clone for IVecHeapData<N, T> {
     fn clone(&self) -> Self {
-        Self {
-            capacity: self.capacity,
-            ptr: self.ptr,
-        }
+        *self
     }
 }
 
@@ -191,7 +188,7 @@ impl<const N: usize, T> From<Vec<T>> for IVec<N, T> {
         std::mem::forget(value);
 
         IVec {
-            len: len,
+            len,
             data: IVecData {
                 heap: IVecHeapData { capacity, ptr },
             },

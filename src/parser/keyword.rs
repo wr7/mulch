@@ -41,10 +41,10 @@ impl<const K: u128> Keyword<K> {
             }
         }
 
-        if let Some(ret) = ret {
-            if let Ok(ret) = std::str::from_utf8(ret) {
-                return ret;
-            }
+        if let Some(ret) = ret
+            && let Ok(ret) = std::str::from_utf8(ret)
+        {
+            return ret;
         }
 
         panic!("Invalid string generic for `Keyword`")

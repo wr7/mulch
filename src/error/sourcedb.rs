@@ -24,6 +24,12 @@ pub struct SourceDB {
     sources: UnsafeCell<Vec<Source>>,
 }
 
+impl Default for SourceDB {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SourceDB {
     pub fn new() -> Self {
         Self {
@@ -78,7 +84,7 @@ impl SourceDB {
             data: path.0.ptr,
             len: path.0.len,
         });
-        filename_to_index.insert(path.into(), index);
+        filename_to_index.insert(path, index);
 
         let line_starts: Vec<usize> = codespan_reporting::files::line_starts(&src).collect();
 
@@ -100,7 +106,7 @@ impl<'a> Files<'a> for SourceDB {
 
     fn name(&'a self, id: Self::FileId) -> Result<Self::Name, codespan_reporting::files::Error> {
         self.name(id)
-            .map(|os_str| DisplayableOsStr(os_str))
+            .map(DisplayableOsStr)
             .ok_or(codespan_reporting::files::Error::FileMissing)
     }
 

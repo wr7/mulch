@@ -218,7 +218,7 @@ pub fn parse_list(tokens: &TokenStream, file_id: usize) -> DResult<Option<Expres
     let Some(list) = parse_list_raw(tokens, file_id)? else {
         return Ok(None);
     };
-    return Ok(Some(Expression::List(list)));
+    Ok(Some(Expression::List(list)))
 }
 
 fn parse_list_raw(
@@ -244,7 +244,7 @@ fn parse_list_raw(
     };
 
     let mut iter = NonBracketedIter::new(inside, file_id)
-        .filter_ok(|tok| &***tok == &T!(,))
+        .filter_ok(|tok| ***tok == T!(,))
         .map_ok(|tok| crate::util::element_offset(tokens, tok).unwrap());
 
     let mut start = 1;

@@ -46,7 +46,7 @@ pub trait Parse: Sized {
         gc: &GarbageCollector,
         tokens: &mut &TokenStream,
     ) -> PDResult<Option<Self>> {
-        let range = B::find_left(&tokens)?;
+        let range = B::find_left(tokens)?;
 
         let res = Self::parse(gc, &tokens[..range.start]);
 
@@ -61,7 +61,7 @@ pub trait Parse: Sized {
         gc: &GarbageCollector,
         tokens: &mut &TokenStream,
     ) -> PDResult<Option<Self>> {
-        let range = B::find_right(&tokens)?;
+        let range = B::find_right(tokens)?;
 
         let res = Self::parse(gc, &tokens[range.end..]);
 

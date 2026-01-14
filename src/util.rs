@@ -99,11 +99,11 @@ impl<I: Iterator, const N: usize> Iterator for MultiPeekable<I, N> {
 
         unsafe { std::ptr::copy(ptr_src, ptr_dst, self.len) };
 
-        if self.len + 1 == N {
-            if let Some(next) = self.iter.next() {
-                self.buf[self.len].write(next);
-                self.len += 1;
-            }
+        if self.len + 1 == N
+            && let Some(next) = self.iter.next()
+        {
+            self.buf[self.len].write(next);
+            self.len += 1;
         }
 
         Some(item)
@@ -117,6 +117,7 @@ where
     fn clone(&self) -> Self {
         let mut buf = [const { MaybeUninit::uninit() }; N];
 
+        #[allow(clippy::needless_range_loop)]
         for i in 0..self.len {
             let clone = unsafe { self.buf[i].assume_init_read() }.clone();
             buf[i].write(clone);

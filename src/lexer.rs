@@ -247,7 +247,7 @@ impl<'a> Lexer<'a> {
                     )));
                 }
                 tokens => {
-                    let end = tokens.get(0).map_or(self.src.len(), |&(idx, _)| idx);
+                    let end = tokens.first().map_or(self.src.len(), |&(idx, _)| idx);
 
                     break end;
                 }

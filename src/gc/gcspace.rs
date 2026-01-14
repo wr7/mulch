@@ -53,6 +53,12 @@ pub unsafe trait GCPtr: Sized + Clone + Copy {
     }
 }
 
+impl Default for GCSpace {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl GCSpace {
     const STARTING_BLOCKS: usize = 64;
 

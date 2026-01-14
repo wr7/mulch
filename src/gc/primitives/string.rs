@@ -41,7 +41,7 @@ impl GCString {
 
     /// Gets the string if it is less than 2 * sizeof(usize) bytes long. Otherwise returns `None`
     pub fn get_inline(&self) -> Option<&str> {
-        if self.ptr.get() & (0b1 << usize::BITS - 1) == 0 {
+        if self.ptr.get() & (0b1 << (usize::BITS - 1)) == 0 {
             return None;
         }
 

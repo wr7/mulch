@@ -22,6 +22,8 @@ pub struct GCVec<T: GCPtr> {
 }
 
 impl<T: GCPtr> GCVec<T> {
+    /// # Safety
+    /// - All `elements` must be valid and alive
     pub unsafe fn new(gc: &GarbageCollector, elements: &[T]) -> Self {
         let vec = unsafe { Self::new_uninit_in_space(&gc.from_space, elements.len()) };
         let ptr = gc
@@ -43,10 +45,11 @@ impl<T: GCPtr> GCVec<T> {
     ///
     /// # Safety
     /// - `self` must be valid and alive
+    ///
     /// The user must uphold the following conditions while the returned slice is alive:
     /// - No new objects are allocated to the GC heap
     /// - No garbage collection cycles are performed
-    pub unsafe fn as_slice<'a, 'b>(self, gc: &'a GarbageCollector) -> &'b [T] {
+    pub unsafe fn as_slice<'b>(self, gc: &GarbageCollector) -> &'b [T] {
         let base_ptr = gc.from_space.block_ptr(self.ptr);
 
         let len = unsafe { base_ptr.cast::<usize>().read() };
@@ -85,11 +88,9 @@ impl<T: GCPtr> GCVec<T> {
     unsafe fn element_ptr_in_space(self, space: &GCSpace, index: usize) -> *mut T {
         let base_ptr = space.block_ptr(self.ptr);
 
-        let ptr = base_ptr
+        base_ptr
             .wrapping_byte_add(GarbageCollector::BLOCK_SIZE + index * std::mem::size_of::<T>())
-            .cast::<T>();
-
-        ptr
+            .cast::<T>()
     }
 
     unsafe fn get_forwarded_value(self, gc: &GarbageCollector) -> Option<Self> {
@@ -122,7 +123,7 @@ where
 
         // We must allocate the vec and write the forward pointer before copying the elements
         // because they may contain references to `self`
-        let new_vec = unsafe { Self::new_uninit_in_space(&mut gc.to_space, len) };
+        let new_vec = unsafe { Self::new_uninit_in_space(&gc.to_space, len) };
         let discriminant = new_vec.ptr | 1usize.rotate_right(1);
         unsafe { from_base_ptr.cast::<usize>().write(discriminant.get()) };
 

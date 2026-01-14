@@ -114,7 +114,7 @@ fn parse_list_args(tokens: &TokenStream, file_id: usize) -> DResult<Option<Args>
     };
 
     let mut iter = NonBracketedIter::new(inside, file_id)
-        .filter_ok(|tok| &***tok == &T!(,))
+        .filter_ok(|tok| ***tok == T!(,))
         .map_ok(|tok| crate::util::element_offset(tokens, tok).unwrap());
 
     let mut start = 1;
@@ -143,7 +143,7 @@ fn parse_single_arg(tokens: &TokenStream, _file_id: usize) -> DResult<Option<Arg
         return Ok(None);
     };
 
-    return Ok(Some(Args::Single(name.to_string())));
+    Ok(Some(Args::Single(name.to_string())))
 }
 
 fn parse_set_args(tokens: &TokenStream, file_id: usize) -> DResult<Option<Args>> {
@@ -172,7 +172,7 @@ fn parse_set_args(tokens: &TokenStream, file_id: usize) -> DResult<Option<Args>>
     };
 
     let mut iter = NonBracketedIter::new(inside, file_id)
-        .filter_ok(|tok| &***tok == &T!(,))
+        .filter_ok(|tok| ***tok == T!(,))
         .map_ok(|tok| crate::util::element_offset(tokens, tok).unwrap());
 
     let mut start = 1;
@@ -195,7 +195,7 @@ fn parse_set_args(tokens: &TokenStream, file_id: usize) -> DResult<Option<Args>>
         }
 
         let bs = attrs.binary_search_by_key(&&**attr, |a| &a.name);
-        let idx = bs.map_or_else(|i| i, |i| i);
+        let idx = bs.unwrap_or_else(|i| i);
 
         if bs.is_ok() {
             return Err(super::error::multiple_declarations_of_attribute(

@@ -1,3 +1,6 @@
+#![allow(clippy::enum_clike_unportable_variant)]
+#![allow(clippy::type_complexity)]
+
 use error::{SourceDB, dresult_unwrap};
 use indoc::indoc;
 use parser_old::binary::Op;

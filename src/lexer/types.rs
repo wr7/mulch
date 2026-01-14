@@ -176,7 +176,7 @@ pub struct TokenLiteralHelper<T>(pub T);
 
 impl TokenLiteralHelper<&'static str> {
     pub const fn create(self, _: &'static str) -> Token<'static> {
-        Token::StringLiteral(Cow::Borrowed(&self.0))
+        Token::StringLiteral(Cow::Borrowed(self.0))
     }
 }
 

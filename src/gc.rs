@@ -24,6 +24,12 @@ pub struct GarbageCollector {
     to_space: GCSpace,
 }
 
+impl Default for GarbageCollector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl GarbageCollector {
     const BLOCK_SIZE: usize = crate::util::ceil_power_two(crate::util::max!(
         std::mem::align_of::<crate::parser_old::Expression>(),

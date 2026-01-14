@@ -12,6 +12,10 @@ pub struct GCWrap<'gc, T> {
 }
 
 impl<'gc, T> GCWrap<'gc, T> {
+    /// Wraps a GC object with a reference to the GarbageCollector.
+    ///
+    /// # Safety
+    /// - `inner` must be valid and alive in `gc`
     pub unsafe fn new(inner: T, gc: &'gc GarbageCollector) -> Self {
         Self { inner, gc }
     }
@@ -30,8 +34,16 @@ pub trait GCDebug: GCPtr {
 }
 
 pub trait GCEq<Rhs: ?Sized>: GCPtr {
+    /// Compares a garbage-collected value with a non-garbage collected value or a wrapped value.
+    ///
+    /// # Safety
+    /// - `inner` must be valid and alive in `gc`
     unsafe fn gc_eq(&self, gc: &GarbageCollector, rhs: &Rhs) -> bool;
 
+    /// Compares a garbage-collected value with a non-garbage collected value or a wrapped value.
+    ///
+    /// # Safety
+    /// - `inner` must be valid and alive in `gc`
     unsafe fn gc_ne(&self, gc: &GarbageCollector, rhs: &Rhs) -> bool {
         !unsafe { self.gc_eq(gc, rhs) }
     }
@@ -39,6 +51,10 @@ pub trait GCEq<Rhs: ?Sized>: GCPtr {
 
 pub trait GCGet: GCPtr {
     type Borrowed: ?Sized;
+    /// Gets the data pointed to by `self`
+    ///
+    /// # Safety
+    /// - `self` must be valid and alive in `gc`
     unsafe fn get<'a>(&'a self, gc: &'a GarbageCollector) -> &'a Self::Borrowed;
 }
 
@@ -69,7 +85,7 @@ impl<'gc, T: GCGet> Deref for GCWrap<'gc, T> {
 }
 
 impl<'gc, T: GCGet> GCWrap<'gc, T> {
-    pub fn get<'a>(&'a self) -> &'a T::Borrowed {
+    pub fn get(&self) -> &T::Borrowed {
         unsafe { self.inner.get(self.gc) }
     }
 }

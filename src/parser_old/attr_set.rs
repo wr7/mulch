@@ -14,7 +14,7 @@ pub fn parse_attribute_set(tokens: &TokenStream, file_id: usize) -> DResult<Opti
         return Ok(None);
     };
 
-    return Ok(Some(Expression::Set(set)));
+    Ok(Some(Expression::Set(set)))
 }
 
 pub(super) fn parse_attribute_set_raw(
@@ -40,7 +40,7 @@ pub(super) fn parse_attribute_set_raw(
     };
 
     let mut iter = NonBracketedIter::new(inside, file_id)
-        .filter_ok(|tok| &***tok == &T!(;))
+        .filter_ok(|tok| ***tok == T!(;))
         .map_ok(|tok| crate::util::element_offset(tokens, tok).unwrap());
 
     let mut start = 1;
@@ -62,7 +62,7 @@ pub(super) fn parse_attribute_set_raw(
                 return Err(error::multiple_declarations_of_attribute(
                     FullSpan::new(entries[idx].0.1, file_id),
                     FullSpan::new(name.1, file_id),
-                    &**name,
+                    &name,
                 ));
             }
             Err(idx) => entries.insert(idx, (name, expression)),
