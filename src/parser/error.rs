@@ -8,7 +8,7 @@ use crate::{
         parse::{ParseDiagnostic, parse_error},
     },
     lexer::Token,
-    parser::{Keyword, Punct},
+    parser::{Keyword, Punct, bracketed::Bracketed},
 };
 
 pub fn invalid_expression(span: Span) -> ParseDiagnostic {
@@ -33,10 +33,6 @@ pub fn multiple_declarations_of_attribute(def1: Span, def2: Span, attr: &str) ->
 
 pub fn expected_attribute_name(got: PartialSpanned<&Token>) -> ParseDiagnostic {
     parse_error!("EP0006", format!("Expected attribute name; got `{}`", &got.0), [{"here", got.1, primary}])
-}
-
-pub fn expected_token(expected: &Token, got: PartialSpanned<&Token>) -> ParseDiagnostic {
-    parse_error!("EP0007", format!("Expected token `{}`; got `{}`", expected, &got.0), [{"here", got.1, primary}])
 }
 
 pub fn expected_punctuation<const S: u8>(span: Span) -> ParseDiagnostic {
@@ -89,4 +85,14 @@ pub fn invalid_function_call_args(
 
 pub fn expected_keyword<const K: u128>(span: Span) -> ParseDiagnostic {
     parse_error!("EP0014", format!("Expected keyword `{}`", Keyword::<K>::KEYWORD), [{"here", span, primary}])
+}
+
+pub fn expected_opening_bracket<const B: u8>(span: Span) -> ParseDiagnostic {
+    let msg = match Bracketed::<B, ()>::BRACKET_TYPE {
+        crate::lexer::BracketType::Round => "Expected token `(`",
+        crate::lexer::BracketType::Square => "Expected token `[`",
+        crate::lexer::BracketType::Curly => "Expected token `{`",
+    };
+
+    parse_error!("EP0015", msg, [{"here", span, primary}])
 }

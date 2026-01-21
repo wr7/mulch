@@ -16,12 +16,15 @@ pub(super) struct NonBracketedIter<'a, 'src> {
 
 impl<'a, 'src> NonBracketedIter<'a, 'src> {
     pub fn new(slc: &'a [PartialSpanned<Token<'src>>]) -> Fuse<Self> {
+        Self::new_unfused(slc).fuse()
+    }
+
+    pub fn new_unfused(slc: &'a [PartialSpanned<Token<'src>>]) -> Self {
         Self {
             remaining: slc,
             opening_bracket: None,
             closing_bracket: None,
         }
-        .fuse()
     }
 
     #[allow(unused)]

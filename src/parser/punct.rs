@@ -73,7 +73,7 @@ impl<const S: u8> Parse for Punct<S> {
 #[macro_export]
 macro_rules! punct {
     [$($sym:tt)+] => {
-        $crate::parser::Punct<{$crate::Sym!($($sym)+).to_u8()}>
+        $crate::parser::Punct::<{$crate::Sym!($($sym)+).to_u8()}>
     };
 }
 

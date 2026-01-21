@@ -22,7 +22,8 @@ pub enum Symbol {
     GreaterThan,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, FromToU8)]
+#[repr(u8)]
 pub enum BracketType {
     Round,
     Square,

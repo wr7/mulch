@@ -2,12 +2,17 @@ use crate::gc::GarbageCollector;
 use crate::{error::PartialSpanned, lexer::Token};
 
 pub mod ast;
+mod bracketed;
 pub mod error;
 mod keyword;
 mod punct;
 mod traits;
 mod util;
 
+pub use bracketed::Bracketed;
+pub use bracketed::CurlyBracketed;
+pub use bracketed::Parenthesized;
+pub use bracketed::SquareBracketed;
 pub use punct::Punct;
 
 pub use traits::FindLeft;

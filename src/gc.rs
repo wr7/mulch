@@ -76,6 +76,7 @@ macro_rules! gc_trivial_impl {
 }
 
 gc_trivial_impl! {
+    (),
     u8,
     u16,
     u32,
