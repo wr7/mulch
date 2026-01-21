@@ -96,3 +96,7 @@ pub fn expected_opening_bracket<const B: u8>(span: Span) -> ParseDiagnostic {
 
     parse_error!("EP0015", msg, [{"here", span, primary}])
 }
+
+pub fn expected_identifier(span: Span) -> ParseDiagnostic {
+    parse_error!("EP0016", "Expected identifier", [{"here", span, primary}])
+}

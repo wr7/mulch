@@ -4,15 +4,18 @@ use crate::{error::PartialSpanned, lexer::Token};
 pub mod ast;
 mod bracketed;
 pub mod error;
+mod ident;
 mod keyword;
 mod punct;
 mod traits;
 mod util;
 
-pub use bracketed::Bracketed;
 pub use bracketed::CurlyBracketed;
 pub use bracketed::Parenthesized;
 pub use bracketed::SquareBracketed;
+
+pub use bracketed::Bracketed;
+pub use ident::Ident;
 pub use punct::Punct;
 
 pub use traits::FindLeft;
