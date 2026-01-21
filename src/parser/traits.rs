@@ -1,9 +1,13 @@
-use std::ops::{RangeFrom, RangeTo};
+use std::{
+    marker::PhantomData,
+    ops::{RangeFrom, RangeTo},
+};
 
 use copyspan::Span;
 
 use crate::{
     error::parse::{PDResult, ParseDiagnostic},
+    gc::{GCBox, GCPtr},
     parser::{Parser, TokenStream},
 };
 
@@ -68,6 +72,70 @@ pub trait Parse: Sized {
         }
 
         res
+    }
+}
+
+impl<T: Parse> Parse for PhantomData<T> {
+    const EXPECTED_ERROR_FUNCTION: fn(Span) -> ParseDiagnostic = T::EXPECTED_ERROR_FUNCTION;
+
+    fn parse(parser: &Parser, tokens: &TokenStream) -> PDResult<Option<Self>> {
+        Ok(T::parse(parser, tokens)?.map(|_| PhantomData))
+    }
+}
+
+impl<T: Parse + GCPtr> Parse for GCBox<T> {
+    const EXPECTED_ERROR_FUNCTION: fn(Span) -> ParseDiagnostic = T::EXPECTED_ERROR_FUNCTION;
+
+    fn parse(parser: &Parser, tokens: &TokenStream) -> PDResult<Option<Self>> {
+        Ok(T::parse(parser, tokens)?.map(|val| unsafe { GCBox::new(parser.gc, val) }))
+    }
+}
+
+impl<T: ParseLeft> ParseLeft for PhantomData<T> {
+    fn parse_from_left(parser: &Parser, tokens: &mut &TokenStream) -> PDResult<Option<Self>> {
+        Ok(T::parse_from_left(parser, tokens)?.map(|_| PhantomData))
+    }
+}
+
+impl<T: ParseLeft + GCPtr> ParseLeft for GCBox<T> {
+    fn parse_from_left(parser: &Parser, tokens: &mut &TokenStream) -> PDResult<Option<Self>> {
+        Ok(T::parse_from_left(parser, tokens)?.map(|val| unsafe { GCBox::new(parser.gc, val) }))
+    }
+}
+
+impl<T: FindLeft> FindLeft for PhantomData<T> {
+    fn find_left(parser: &Parser, tokens: &TokenStream) -> PDResult<RangeFrom<usize>> {
+        T::find_left(parser, tokens)
+    }
+}
+
+impl<T: FindLeft + GCPtr> FindLeft for GCBox<T> {
+    fn find_left(parser: &Parser, tokens: &TokenStream) -> PDResult<RangeFrom<usize>> {
+        T::find_left(parser, tokens)
+    }
+}
+
+impl<T: ParseRight> ParseRight for PhantomData<T> {
+    fn parse_from_right(parser: &Parser, tokens: &mut &TokenStream) -> PDResult<Option<Self>> {
+        Ok(T::parse_from_right(parser, tokens)?.map(|_| PhantomData))
+    }
+}
+
+impl<T: ParseRight + GCPtr> ParseRight for GCBox<T> {
+    fn parse_from_right(parser: &Parser, tokens: &mut &TokenStream) -> PDResult<Option<Self>> {
+        Ok(T::parse_from_right(parser, tokens)?.map(|val| unsafe { GCBox::new(parser.gc, val) }))
+    }
+}
+
+impl<T: FindRight> FindRight for PhantomData<T> {
+    fn find_right(parser: &Parser, tokens: &TokenStream) -> PDResult<RangeTo<usize>> {
+        T::find_right(parser, tokens)
+    }
+}
+
+impl<T: FindRight + GCPtr> FindRight for GCBox<T> {
+    fn find_right(parser: &Parser, tokens: &TokenStream) -> PDResult<RangeTo<usize>> {
+        T::find_right(parser, tokens)
     }
 }
 
