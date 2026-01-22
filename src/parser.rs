@@ -7,6 +7,7 @@ pub mod error;
 mod ident;
 mod keyword;
 mod punct;
+mod separatedlist;
 mod traits;
 mod util;
 
@@ -17,6 +18,8 @@ pub use bracketed::SquareBracketed;
 pub use bracketed::Bracketed;
 pub use ident::Ident;
 pub use punct::Punct;
+pub use separatedlist::SeparatedList;
+pub use separatedlist::SeparatedListIter;
 
 pub use traits::FindLeft;
 pub use traits::FindRight;

@@ -27,13 +27,19 @@ pub trait ParseRight: Sized + Parse {
 
 /// Types where you can search through a `TokenStream` and find the index of the leftmost occurance.
 pub trait FindLeft: Sized {
-    /// Returns a range containing the leftmost instance of `Self` and everything to the right of it.
+    /// Returns a range containing the leftmost instance of `Self` and everything to the right of
+    /// it. If nothing is found, this returns `tokens.len..`.
+    ///
+    /// NOTE: if the returned range is not `tokens.len..`, `parse_left` MUST NOT return `Ok(None)`
     fn find_left(parser: &Parser, tokens: &TokenStream) -> PDResult<RangeFrom<usize>>;
 }
 
 /// Types where you can search through a `TokenStream` and find the index of the rightmost occurance.
 pub trait FindRight: Sized {
-    /// Returns a range containing the rightmost instance of `Self` and everything to the left of it.
+    /// Returns a range containing the rightmost instance of `Self` and everything to the left of
+    /// it. If nothing is found, this returns `..0`.
+    ///
+    /// NOTE: if the returned range is not `..0`, `parse_right` MUST NOT return `Ok(None)`
     fn find_right(parser: &Parser, tokens: &TokenStream) -> PDResult<RangeTo<usize>>;
 }
 
