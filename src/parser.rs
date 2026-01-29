@@ -35,3 +35,9 @@ pub struct Parser<'a> {
     #[allow(unused)]
     gc: &'a GarbageCollector,
 }
+
+impl<'a> Parser<'a> {
+    pub fn new_default(gc: &'a GarbageCollector) -> Self {
+        Self { gc }
+    }
+}

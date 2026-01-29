@@ -10,6 +10,7 @@ pub use gcspace::GCPtr;
 pub use gcspace::GCSpace;
 pub use primitives::*;
 
+use crate::error::PartialSpanned;
 use crate::gc::util::GCDebug;
 
 #[cfg(test)]
@@ -35,6 +36,7 @@ impl GarbageCollector {
         std::mem::align_of::<crate::parser_old::Expression>(),
         std::mem::align_of::<crate::eval::MValue>(),
         std::mem::align_of::<usize>(),
+        std::mem::align_of::<copyspan::Span>(),
         std::mem::size_of::<usize>()
     ));
 
@@ -109,5 +111,28 @@ impl<T: ?Sized> GCDebug for PhantomData<T> {
         f: &mut std::fmt::Formatter,
     ) -> std::fmt::Result {
         std::fmt::Debug::fmt(&self, f)
+    }
+}
+
+unsafe impl<T: GCPtr> GCPtr for PartialSpanned<T> {
+    const MSB_RESERVED: bool = T::MSB_RESERVED;
+
+    unsafe fn gc_copy(self, gc: &mut GarbageCollector) -> Self {
+        let inner_copy = unsafe { self.0.gc_copy(gc) };
+
+        PartialSpanned(inner_copy, self.1)
+    }
+}
+
+impl<T: GCDebug> GCDebug for PartialSpanned<T> {
+    unsafe fn gc_debug(
+        self,
+        gc: &GarbageCollector,
+        f: &mut std::fmt::Formatter,
+    ) -> std::fmt::Result {
+        f.debug_tuple("PartialSpanned")
+            .field(&unsafe { self.0.wrap(gc) })
+            .field(&self.1)
+            .finish()
     }
 }

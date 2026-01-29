@@ -1,6 +1,8 @@
 use proc_macro2::TokenStream;
 use quote::{quote, quote_spanned};
 
+pub mod parse;
+
 pub fn keyword(lit_ast: syn::LitStr) -> TokenStream {
     let lit = lit_ast.value();
 

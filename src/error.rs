@@ -13,6 +13,10 @@ pub use spanned::*;
 
 pub type DResult<T> = Result<T, Diagnostic>;
 
+pub fn pdresult_unwrap<T>(result: PDResult<T>, file_id: usize, db: &SourceDB) -> T {
+    dresult_unwrap(result.map_err(|err| err.with_file_id(file_id)), db)
+}
+
 pub fn dresult_unwrap<T>(result: DResult<T>, db: &SourceDB) -> T {
     match result {
         Ok(inner) => inner,
@@ -166,3 +170,5 @@ macro_rules! error {
 }
 
 pub(crate) use error;
+
+use crate::error::parse::PDResult;
