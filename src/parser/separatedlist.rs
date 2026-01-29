@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use mulch_macros::GCPtr;
 
 use crate::{
-    error::{parse::PDResult, span_of},
+    error::{PartialSpanned, parse::PDResult, span_of},
     gc::{GCPtr, GCVec, util::GCDebug},
     parser::{FindLeft, Parse, ParseLeft, Parser, TokenStream},
 };
@@ -72,7 +72,7 @@ impl<'a, 'p, 't, T: Parse, S: FindLeft + ParseLeft> SeparatedListIter<'a, 'p, 't
 impl<'a, 'p, 't, T: Parse, S: FindLeft + ParseLeft> Iterator
     for SeparatedListIter<'a, 'p, 't, T, S>
 {
-    type Item = PDResult<(T, Option<S>)>;
+    type Item = PDResult<(T, Option<PartialSpanned<S>>)>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let idx = match S::find_left(self.parser, self.remaining) {

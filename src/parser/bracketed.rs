@@ -21,10 +21,7 @@ pub type CurlyBracketed<T> = Bracketed<{ BracketType::Curly.to_u8() }, T>;
 /// Parses a syntax construct surrounded by brackets. This type typically shouldn't be referred to
 /// directly. Instead, its type aliases should be used.
 #[derive(Clone, Copy, GCPtr, GCDebug)]
-pub struct Bracketed<const BRACKET_TYPE: u8, T: GCPtr + GCDebug> {
-    inner: T,
-    span: Span,
-}
+pub struct Bracketed<const BRACKET_TYPE: u8, T: GCPtr + GCDebug>(T);
 
 impl<const B: u8, T: GCPtr + GCDebug> Bracketed<B, T> {
     pub const BRACKET_TYPE: BracketType = if let Some(bt) = BracketType::from_u8(B) {
@@ -35,17 +32,17 @@ impl<const B: u8, T: GCPtr + GCDebug> Bracketed<B, T> {
 }
 
 impl<const B: u8, T: GCPtr + GCDebug + Parse> Parse for Bracketed<B, T> {
-    const EXPECTED_ERROR_FUNCTION: fn(Span) -> crate::error::parse::ParseDiagnostic =
-        parser::error::expected_opening_bracket::<B>;
-
     impl_using_parse_left!();
 }
 
 impl<const B: u8, T: GCPtr + GCDebug + Parse> ParseLeft for Bracketed<B, T> {
+    const EXPECTED_ERROR_FUNCTION_LEFT: fn(Span) -> crate::error::parse::ParseDiagnostic =
+        parser::error::expected_opening_bracket::<B>;
+
     fn parse_from_left(
         parser: &super::Parser,
         tokens: &mut &super::TokenStream,
-    ) -> crate::error::parse::PDResult<Option<Self>> {
+    ) -> crate::error::parse::PDResult<Option<PartialSpanned<Self>>> {
         let mut nb_iter = NonBracketedIter::new_unfused(&tokens);
 
         let Some(&PartialSpanned(Token::OpeningBracket(bt), opening_span)) =
@@ -77,7 +74,7 @@ impl<const B: u8, T: GCPtr + GCDebug + Parse> ParseLeft for Bracketed<B, T> {
         *tokens = nb_iter.remainder();
 
         let span = opening_span.with_end(closing.1.end);
-        Ok(Some(Self { inner, span }))
+        Ok(Some(PartialSpanned(Self(inner), span)))
     }
 }
 
@@ -101,13 +98,13 @@ impl<const B: u8, T: GCPtr + GCDebug> FindLeft for Bracketed<B, T> {
 
 impl<const B: u8, T: GCPtr + GCDebug> AsRef<T> for Bracketed<B, T> {
     fn as_ref(&self) -> &T {
-        &self.inner
+        &self.0
     }
 }
 
 impl<const B: u8, T: GCPtr + GCDebug> AsMut<T> for Bracketed<B, T> {
     fn as_mut(&mut self) -> &mut T {
-        &mut self.inner
+        &mut self.0
     }
 }
 
@@ -115,12 +112,12 @@ impl<const B: u8, T: GCPtr + GCDebug> Deref for Bracketed<B, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        &self.inner
+        &self.0
     }
 }
 
 impl<const B: u8, T: GCPtr + GCDebug> DerefMut for Bracketed<B, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.inner
+        &mut self.0
     }
 }

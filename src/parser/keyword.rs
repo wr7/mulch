@@ -20,9 +20,7 @@ use crate::{
 /// this, we're storing the `0xff`-terminated bytes in a big-endian u128. The actual string can be
 /// accessed through the associated constant `KEYWORD`.
 #[derive(GCDebug, GCPtr, Clone, Copy, Debug)]
-pub struct Keyword<const K: u128> {
-    span: Span,
-}
+pub struct Keyword<const K: u128>();
 
 impl<const K: u128> Keyword<K> {
     /// The string literal contained in the `Keyword` type
@@ -52,10 +50,13 @@ impl<const K: u128> Keyword<K> {
 }
 
 impl<const K: u128> ParseLeft for Keyword<K> {
+    const EXPECTED_ERROR_FUNCTION_LEFT: fn(Span) -> crate::error::parse::ParseDiagnostic =
+        error::expected_keyword::<K>;
+
     fn parse_from_left(
         _: &Parser,
         tokens: &mut &super::TokenStream,
-    ) -> crate::error::parse::PDResult<Option<Self>> {
+    ) -> crate::error::parse::PDResult<Option<PartialSpanned<Self>>> {
         let [
             PartialSpanned(Token::Identifier(ident), span),
             remainder @ ..,
@@ -69,7 +70,7 @@ impl<const K: u128> ParseLeft for Keyword<K> {
         }
 
         *tokens = remainder;
-        Ok(Some(Self { span: *span }))
+        Ok(Some(PartialSpanned(Self(), *span)))
     }
 }
 
@@ -92,8 +93,5 @@ impl<const K: u128> FindLeft for Keyword<K> {
 }
 
 impl<const K: u128> Parse for Keyword<K> {
-    const EXPECTED_ERROR_FUNCTION: fn(Span) -> crate::error::parse::ParseDiagnostic =
-        error::expected_keyword::<K>;
-
     impl_using_parse_left! {}
 }

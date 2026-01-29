@@ -22,10 +22,8 @@ pub use separatedlist::SeparatedList;
 pub use separatedlist::SeparatedListIter;
 
 pub use traits::FindLeft;
-pub use traits::FindRight;
 pub use traits::Parse;
 pub use traits::ParseLeft;
-pub use traits::ParseRight;
 
 pub use keyword::Keyword;
 

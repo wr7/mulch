@@ -15,9 +15,7 @@ use crate::{
 /// Parses a specific symbol token. This type should only be referred to using the [`punct`] macro.
 /// The represented [`Symbol`] value can be accessed via the associated constant [`Self::SYMBOL`].
 #[derive(GCDebug, GCPtr, Clone, Copy, Debug)]
-pub struct Punct<const S: u8> {
-    span: Span,
-}
+pub struct Punct<const S: u8>();
 
 impl<const S: u8> Punct<S> {
     pub const SYMBOL: Symbol = if let Some(symbol) = Symbol::from_u8(S) {
@@ -28,10 +26,13 @@ impl<const S: u8> Punct<S> {
 }
 
 impl<const S: u8> ParseLeft for Punct<S> {
+    const EXPECTED_ERROR_FUNCTION_LEFT: fn(Span) -> ParseDiagnostic =
+        parser::error::expected_punctuation::<S>;
+
     fn parse_from_left(
         _gc: &Parser,
         tokens: &mut &super::TokenStream,
-    ) -> crate::error::parse::PDResult<Option<Self>> {
+    ) -> crate::error::parse::PDResult<Option<PartialSpanned<Self>>> {
         let [PartialSpanned(Token::Symbol(sym), span), rem @ ..] = tokens else {
             return Ok(None);
         };
@@ -41,7 +42,7 @@ impl<const S: u8> ParseLeft for Punct<S> {
         }
 
         *tokens = rem;
-        Ok(Some(Self { span: *span }))
+        Ok(Some(PartialSpanned(Self(), *span)))
     }
 }
 
@@ -64,9 +65,6 @@ impl<const S: u8> FindLeft for Punct<S> {
 }
 
 impl<const S: u8> Parse for Punct<S> {
-    const EXPECTED_ERROR_FUNCTION: fn(Span) -> ParseDiagnostic =
-        parser::error::expected_punctuation::<S>;
-
     impl_using_parse_left!();
 }
 

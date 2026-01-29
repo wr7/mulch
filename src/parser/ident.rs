@@ -9,16 +9,16 @@ use crate::{
 };
 
 #[derive(Clone, Copy, GCPtr, GCDebug)]
-pub struct Ident {
-    string: GCString,
-    span: Span,
-}
+pub struct Ident(GCString);
 
 impl ParseLeft for Ident {
+    const EXPECTED_ERROR_FUNCTION_LEFT: fn(Span) -> crate::error::parse::ParseDiagnostic =
+        parser::error::expected_identifier;
+
     fn parse_from_left(
         parser: &super::Parser,
         tokens: &mut &super::TokenStream,
-    ) -> crate::error::parse::PDResult<Option<Self>> {
+    ) -> crate::error::parse::PDResult<Option<PartialSpanned<Self>>> {
         let [
             PartialSpanned(Token::Identifier(ident), span),
             remainder @ ..,
@@ -28,16 +28,13 @@ impl ParseLeft for Ident {
         };
 
         *tokens = remainder;
-        Ok(Some(Self {
-            string: GCString::new(parser.gc, &ident),
-            span: *span,
-        }))
+        Ok(Some(PartialSpanned(
+            Self(GCString::new(parser.gc, &ident)),
+            *span,
+        )))
     }
 }
 
 impl Parse for Ident {
-    const EXPECTED_ERROR_FUNCTION: fn(Span) -> crate::error::parse::ParseDiagnostic =
-        parser::error::expected_identifier;
-
     impl_using_parse_left!();
 }
