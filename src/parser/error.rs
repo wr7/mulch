@@ -31,8 +31,8 @@ pub fn multiple_declarations_of_attribute(def1: Span, def2: Span, attr: &str) ->
     parse_error!("EP0005", format!("Multiple declarations of attribute {attr}"), [{"First defined here", def1, secondary}, {"Then defined here", def2, primary}])
 }
 
-pub fn expected_attribute_name(got: PartialSpanned<&Token>) -> ParseDiagnostic {
-    parse_error!("EP0006", format!("Expected attribute name; got `{}`", &got.0), [{"here", got.1, primary}])
+pub fn expected_ident_or_string(span: Span) -> ParseDiagnostic {
+    parse_error!("EP0006", "Expected identifier or string", [{"here", span, primary}])
 }
 
 pub fn expected_punctuation<const S: u8>(span: Span) -> ParseDiagnostic {

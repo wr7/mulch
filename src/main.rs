@@ -16,6 +16,8 @@ pub mod parser_old;
 
 mod util;
 
+// TODO: consider having the parse traits return `PartialSpanned<Self>`
+
 pub fn main() {
     let db = SourceDB::new();
 

@@ -1,7 +1,7 @@
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, quote_spanned};
 use syn::{
-    DataEnum, DataStruct, DeriveInput, Field, Fields, Token, punctuated::Punctuated,
+    DataEnum, DataStruct, DeriveInput, Field, Fields, Index, Token, punctuated::Punctuated,
     spanned::Spanned,
 };
 
@@ -50,6 +50,7 @@ fn gcptr_fn_body_struct(data_struct: &DataStruct) -> TokenStream {
         }
         Fields::Unnamed(fields_unnamed) => {
             let per_field = (0..fields_unnamed.unnamed.len())
+                .map(|i| Index::from(i))
                 .map(|i| quote! {::mulch::gc::GCPtr::gc_copy(self.#i, gc)});
 
             quote! {

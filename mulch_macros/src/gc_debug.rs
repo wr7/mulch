@@ -1,6 +1,6 @@
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, quote_spanned};
-use syn::{DeriveInput, spanned::Spanned};
+use syn::{DeriveInput, Index, spanned::Spanned};
 
 pub fn derive_gc_debug(input: DeriveInput) -> TokenStream {
     let fn_body = match &input.data {
@@ -91,23 +91,47 @@ fn gcdebug_fn_body_enum(data_enum: &syn::DataEnum) -> TokenStream {
 fn gcdebug_fn_body_struct(input: &DeriveInput, data_struct: &syn::DataStruct) -> TokenStream {
     let struct_name_stringified = input.ident.to_string();
 
-    let per_field_code = data_struct.fields.iter().map(|field| {
-        let Some(ident) = field.ident.as_ref() else {
-            panic!("derive(GCDebug) does not have support for tuple structs")
-        };
+    let is_tuple_struct = data_struct
+        .fields
+        .iter()
+        .next()
+        .is_none_or(|field| field.ident.is_none());
 
-        let ident_string = ident.to_string();
+    let per_field_code = data_struct.fields.iter().enumerate().map(|(i, field)| {
+        if is_tuple_struct {
+            let i = Index::from(i);
 
-        quote! {
-            .field(#ident_string, &::mulch::gc::util::GCWrap::new(self.#ident, gc))
+            quote! {
+                .field(&::mulch::gc::util::GCWrap::new(self.#i, gc))
+            }
+        } else {
+            let Some(ident) = field.ident.as_ref() else {
+                panic!("Field on non tuple struct is missing a name")
+            };
+
+            let ident_string = ident.to_string();
+
+            quote! {
+                .field(#ident_string, &::mulch::gc::util::GCWrap::new(self.#ident, gc))
+            }
         }
     });
 
-    quote! {
-        unsafe {
-            f.debug_struct(#struct_name_stringified)
-                #(#per_field_code)*
-                .finish()
+    if is_tuple_struct {
+        quote! {
+            unsafe {
+                f.debug_tuple(#struct_name_stringified)
+                    #(#per_field_code)*
+                    .finish()
+            }
+        }
+    } else {
+        quote! {
+            unsafe {
+                f.debug_struct(#struct_name_stringified)
+                    #(#per_field_code)*
+                    .finish()
+            }
         }
     }
 }

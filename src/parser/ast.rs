@@ -2,6 +2,8 @@ use mulch_macros::{GCDebug, GCPtr};
 
 use crate::gc::GCString;
 
+mod ident_or_string;
+
 #[derive(GCPtr, GCDebug, Clone, Copy)]
 #[repr(usize)]
 #[msb_reserved]
