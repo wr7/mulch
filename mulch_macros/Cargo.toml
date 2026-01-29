@@ -10,4 +10,4 @@ proc-macro = true
 itertools = "0.14.0"
 proc-macro2 = "1.0.105"
 quote = "1.0.43"
-syn = "2.0.114"
+syn = { version = "2.0.114", features = ["full"] }

@@ -6,6 +6,7 @@ use crate::{
     error::{
         PartialSpanned,
         parse::{PDResult, ParseDiagnostic},
+        span_of,
     },
     gc::{GCBox, GCPtr},
     parser::{Parser, TokenStream},
@@ -96,7 +97,6 @@ impl<T: ParseLeft + GCPtr> ParseLeft for GCBox<T> {
     }
 }
 
-// We can't implement `Parse` because it doesn't give the required span information
 impl<T: ParseLeft> ParseLeft for PartialSpanned<T> {
     const EXPECTED_ERROR_FUNCTION_LEFT: fn(Span) -> ParseDiagnostic =
         T::EXPECTED_ERROR_FUNCTION_LEFT;
@@ -107,6 +107,18 @@ impl<T: ParseLeft> ParseLeft for PartialSpanned<T> {
     ) -> PDResult<Option<PartialSpanned<Self>>> {
         Ok(T::parse_from_left(parser, tokens)?
             .map(|PartialSpanned(val, span)| PartialSpanned(PartialSpanned(val, span), span)))
+    }
+}
+
+impl<T: Parse> Parse for PartialSpanned<T> {
+    const EXPECTED_ERROR_FUNCTION: fn(Span) -> ParseDiagnostic = T::EXPECTED_ERROR_FUNCTION;
+
+    fn parse(parser: &Parser, tokens: &TokenStream) -> PDResult<Option<Self>> {
+        let Some(span) = span_of(tokens) else {
+            return Ok(None);
+        };
+
+        Ok(T::parse(parser, tokens)?.map(|val| PartialSpanned(val, span)))
     }
 }
 

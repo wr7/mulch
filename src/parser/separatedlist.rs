@@ -84,8 +84,12 @@ impl<'a, 'p, 't, T: Parse, S: FindLeft + ParseLeft> Iterator
         let item = match T::parse(self.parser, item) {
             Ok(Some(item)) => item,
             Ok(None) => {
+                let Some(tok) = self.remaining.first() else {
+                    return None;
+                };
+
                 return Some(Err(T::EXPECTED_ERROR_FUNCTION(
-                    span_of(item).unwrap_or_else(|| self.remaining[0].1),
+                    span_of(item).unwrap_or_else(|| tok.1),
                 )));
             }
             Err(e) => return Some(Err(e)),

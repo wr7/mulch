@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
-use syn::{DataEnum, DataStruct, DeriveInput, ExprPath};
+use syn::{DataEnum, DataStruct, DeriveInput, Expr, ExprPath};
 
 pub fn derive_parse(input: DeriveInput) -> syn::Result<TokenStream> {
     let body = match &input.data {
@@ -33,7 +33,7 @@ pub fn derive_parse(input: DeriveInput) -> syn::Result<TokenStream> {
 fn get_error_function(input: &DeriveInput) -> syn::Result<TokenStream> {
     for attr in &input.attrs {
         if attr.path().is_ident("mulch_parse_error") {
-            let error_fn = attr.parse_args::<ExprPath>()?;
+            let error_fn = attr.parse_args::<Expr>()?;
 
             return Ok(quote! {
                 const EXPECTED_ERROR_FUNCTION: fn(::copyspan::Span) -> ::mulch::error::parse::ParseDiagnostic = #error_fn;
@@ -93,7 +93,7 @@ fn derive_struct_fn_body(data: &DataStruct) -> syn::Result<TokenStream> {
 
         let else_body = if error_if_not_found {
             quote! {
-                let Some(span) = __mulch_prev_span.map(|span| span.span_after()).or_else(|| tokens.first().map(|t| t.1)) else {
+                let Some(span) = tokens.first().map(|t| t.1).or_else(|| __mulch_prev_span.map(|span| span.span_after())) else {
                     return Ok(None);
                 };
 
@@ -113,7 +113,7 @@ fn derive_struct_fn_body(data: &DataStruct) -> syn::Result<TokenStream> {
             }
         } else {
             quote! {
-                let Some(PartialSpanned(#field_name, __mulch_prev_span)) = <#field_type as ::mulch::parser::ParseLeft>::parse_from_left(parser, &mut tokens)? else {
+                let Some(::mulch::error::PartialSpanned(#field_name, __mulch_prev_span)) = <#field_type as ::mulch::parser::ParseLeft>::parse_from_left(parser, &mut tokens)? else {
                     #else_body
                 };
 

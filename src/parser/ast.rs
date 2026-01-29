@@ -34,6 +34,7 @@ pub enum Expression {
 #[derive(GCPtr, GCDebug, Parse, Clone, Copy)]
 #[mulch_parse_error(IdentOrString::EXPECTED_ERROR_FUNCTION)]
 pub struct NamedValue {
+    #[error_if_not_found]
     name: PartialSpanned<IdentOrString>,
 
     #[error_if_not_found]
