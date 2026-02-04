@@ -8,6 +8,7 @@ use crate::{
 };
 
 #[derive(Clone, Copy, GCPtr, GCDebug)]
+#[debug_direct]
 pub struct IdentOrString(GCString);
 
 impl ParseLeft for IdentOrString {

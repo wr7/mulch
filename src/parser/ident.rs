@@ -9,6 +9,7 @@ use crate::{
 };
 
 #[derive(Clone, Copy, GCPtr, GCDebug)]
+#[debug_direct]
 pub struct Ident(GCString);
 
 impl ParseLeft for Ident {

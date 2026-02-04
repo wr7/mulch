@@ -38,11 +38,13 @@ pub enum Expression {
 #[derive(GCPtr, GCDebug, Parse, Clone, Copy)]
 #[mulch_parse_error(<keyword!["let"]>::EXPECTED_ERROR_FUNCTION)]
 pub struct LetIn {
+    #[debug_hidden]
     pub let_: keyword!["let"],
 
     #[parse_until_next]
     pub variables: SeparatedList<NamedValue, punct![";"]>,
 
+    #[debug_hidden]
     pub in_: keyword!["in"],
 
     #[error_if_not_found]
@@ -52,11 +54,13 @@ pub struct LetIn {
 #[derive(GCPtr, GCDebug, Parse, Clone, Copy)]
 #[mulch_parse_error(<keyword!["with"]>::EXPECTED_ERROR_FUNCTION)]
 pub struct WithIn {
+    #[debug_hidden]
     pub with_: keyword!["with"],
 
     #[parse_until_next]
     pub variables: GCBox<Expression>,
 
+    #[debug_hidden]
     pub in_: keyword!["in"],
 
     #[error_if_not_found]
@@ -70,6 +74,7 @@ pub struct NamedValue {
     pub name: PartialSpanned<IdentOrString>,
 
     #[error_if_not_found]
+    #[debug_hidden]
     pub eq_: punct!["="],
 
     #[error_if_not_found]

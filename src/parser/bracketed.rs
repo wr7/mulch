@@ -21,6 +21,7 @@ pub type CurlyBracketed<T> = Bracketed<{ BracketType::Curly.to_u8() }, T>;
 /// Parses a syntax construct surrounded by brackets. This type typically shouldn't be referred to
 /// directly. Instead, its type aliases should be used.
 #[derive(Clone, Copy, GCPtr, GCDebug)]
+#[debug_direct]
 pub struct Bracketed<const BRACKET_TYPE: u8, T: GCPtr + GCDebug>(T);
 
 impl<const B: u8, T: GCPtr + GCDebug> Bracketed<B, T> {
