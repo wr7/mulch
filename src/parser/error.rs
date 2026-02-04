@@ -35,8 +35,8 @@ pub fn expected_ident_or_string(span: Span) -> ParseDiagnostic {
     parse_error!("EP0006", "Expected identifier or string", [{"here", span, primary}])
 }
 
-pub fn expected_punctuation<const S: u8>(span: Span) -> ParseDiagnostic {
-    parse_error!("EP0007", format!("Expected token `{}`", Punct::<S>::SYMBOL.str()), [{"here", span, primary}])
+pub fn expected_punctuation<const S: u128>(span: Span) -> ParseDiagnostic {
+    parse_error!("EP0007", format!("Expected token `{}`", Punct::<S>::STRING), [{"here", span, primary}])
 }
 
 pub fn let_in_eof(eof_span: Span, let_span: Span) -> ParseDiagnostic {

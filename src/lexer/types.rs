@@ -85,6 +85,25 @@ impl Symbol {
             Sym!(<) => "<",
         }
     }
+
+    pub const fn from_u128_str(str: u128) -> Self {
+        match str {
+            u128_string!(".") => Sym!(.),
+            u128_string!(",") => Sym!(,),
+            u128_string!(";") => Sym!(;),
+            u128_string!("->") => Sym!(->),
+            u128_string!("=") => Sym!(=),
+            u128_string!("|") => Sym!(|),
+            u128_string!("+") => Sym!(+),
+            u128_string!("-") => Sym!(-),
+            u128_string!("/") => Sym!(/),
+            u128_string!("*") => Sym!(*),
+            u128_string!("^") => Sym!(^),
+            u128_string!(">") => Sym!(>),
+            u128_string!("<") => Sym!(<),
+            _ => panic!("Invalid symbol"),
+        }
+    }
 }
 
 impl<'src> Debug for Token<'src> {
@@ -238,4 +257,4 @@ macro_rules! Sym {
 }
 
 pub(crate) use Sym;
-use mulch_macros::FromToU8;
+use mulch_macros::{FromToU8, u128_string};

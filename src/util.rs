@@ -182,6 +182,27 @@ pub fn element_offset<T>(slice: &[T], element: &T) -> Option<usize> {
     }
 }
 
+pub(crate) const fn str_from_u128(raw_bytes: &[u8; 16]) -> &str {
+    let mut ret: Option<&[u8]> = None;
+    let mut remaining = raw_bytes.as_slice();
+
+    while let Some((byte, r)) = remaining.split_last() {
+        remaining = r;
+
+        if *byte == 0xff {
+            ret = Some(remaining);
+        }
+    }
+
+    if let Some(ret) = ret
+        && let Ok(ret) = std::str::from_utf8(ret)
+    {
+        return ret;
+    }
+
+    panic!("Invalid string generic for `Keyword`")
+}
+
 /// Gets the maximum of a set of numbers
 macro_rules! max {
     ($a:expr $(,)?) => {

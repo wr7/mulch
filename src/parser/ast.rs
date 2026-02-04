@@ -5,9 +5,8 @@ use crate::{
     gc::GCBox,
     parser::{
         self, CurlyBracketed, Ident, SeparatedList, SquareBracketed,
-        ast::ident_or_string::IdentOrString,
+        ast::ident_or_string::IdentOrString, punct,
     },
-    punct,
 };
 
 mod ident_or_string;
@@ -22,8 +21,8 @@ pub enum Expression {
     // NumericLiteral(GCString),
     // Unit(),
     // Attribute set (note: ordered by index)
-    Set(CurlyBracketed<SeparatedList<NamedValue, punct![;]>>),
-    List(SquareBracketed<SeparatedList<Expression, punct![,]>>),
+    Set(CurlyBracketed<SeparatedList<NamedValue, punct![";"]>>),
+    List(SquareBracketed<SeparatedList<Expression, punct![","]>>),
 
     #[debug_direct]
     WithIn(WithIn),
@@ -42,7 +41,7 @@ pub struct LetIn {
     pub let_: keyword!["let"],
 
     #[parse_until_next]
-    pub variables: SeparatedList<NamedValue, punct![;]>,
+    pub variables: SeparatedList<NamedValue, punct![";"]>,
 
     pub in_: keyword!["in"],
 
@@ -71,7 +70,7 @@ pub struct NamedValue {
     pub name: PartialSpanned<IdentOrString>,
 
     #[error_if_not_found]
-    pub eq_: punct![=],
+    pub eq_: punct!["="],
 
     #[error_if_not_found]
     pub value: Expression,

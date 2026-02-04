@@ -18,6 +18,11 @@ pub use bracketed::SquareBracketed;
 pub use bracketed::Bracketed;
 pub use ident::Ident;
 pub use punct::Punct;
+
+/// The [`Punct`] type. Takes a string literal as input.
+///
+/// The string must be a valid symbol.
+pub use mulch_macros::punct;
 pub use separatedlist::SeparatedList;
 pub use separatedlist::SeparatedListIter;
 
@@ -26,6 +31,11 @@ pub use traits::Parse;
 pub use traits::ParseLeft;
 
 pub use keyword::Keyword;
+
+/// The [`Keyword`] type. Takes a string literal as input.
+///
+/// The string must be less than 16 characters long.
+pub use mulch_macros::keyword;
 
 pub type TokenStream<'src> = [PartialSpanned<Token<'src>>];
 

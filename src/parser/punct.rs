@@ -12,20 +12,20 @@ use crate::{
     util::element_offset,
 };
 
-/// Parses a specific symbol token. This type should only be referred to using the [`punct`] macro.
+/// Parses a specific symbol token. This type should only be referred to using the [`punct`](super::punct!) macro.
 /// The represented [`Symbol`] value can be accessed via the associated constant [`Self::SYMBOL`].
 #[derive(GCDebug, GCPtr, Clone, Copy, Debug)]
-pub struct Punct<const S: u8>();
+pub struct Punct<const S: u128>();
 
-impl<const S: u8> Punct<S> {
-    pub const SYMBOL: Symbol = if let Some(symbol) = Symbol::from_u8(S) {
-        symbol
-    } else {
-        panic!("Invalid symbol id")
-    };
+impl<const S: u128> Punct<S> {
+    pub const SYMBOL: Symbol = Symbol::from_u128_str(S);
+    /// The string literal contained in the `Punct` type
+    pub const STRING: &'static str = crate::util::str_from_u128(&Self::RAW_BYTES);
+
+    const RAW_BYTES: [u8; 16] = S.to_be_bytes();
 }
 
-impl<const S: u8> ParseLeft for Punct<S> {
+impl<const S: u128> ParseLeft for Punct<S> {
     const EXPECTED_ERROR_FUNCTION_LEFT: fn(Span) -> ParseDiagnostic =
         parser::error::expected_punctuation::<S>;
 
@@ -46,7 +46,7 @@ impl<const S: u8> ParseLeft for Punct<S> {
     }
 }
 
-impl<const S: u8> FindLeft for Punct<S> {
+impl<const S: u128> FindLeft for Punct<S> {
     fn find_left<'a, 'src>(
         _: &Parser,
         tokens: &'a parser::TokenStream<'src>,
@@ -64,16 +64,6 @@ impl<const S: u8> FindLeft for Punct<S> {
     }
 }
 
-impl<const S: u8> Parse for Punct<S> {
+impl<const S: u128> Parse for Punct<S> {
     impl_using_parse_left!();
 }
-
-#[macro_export]
-macro_rules! punct {
-    [$($sym:tt)+] => {
-        $crate::parser::Punct::<{$crate::Sym!($($sym)+).to_u8()}>
-    };
-}
-
-#[allow(unused)]
-pub(crate) use punct;

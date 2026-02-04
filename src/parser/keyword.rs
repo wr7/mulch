@@ -16,6 +16,9 @@ use crate::{
 /// [`keyword`](mulch_macros::keyword) macro, and the value of `K` should only be accessed through
 /// the `KEYWORD` associated constant.
 ///
+/// The `mulch` programming language does not make a distinction between "keywords" and
+/// "identifiers", so any string can be used as a keyword.
+///
 /// NOTE: Rust currently doesn't have a way to use string literals as const generics. To get around
 /// this, we're storing the `0xff`-terminated bytes in a big-endian u128. The actual string can be
 /// accessed through the associated constant `KEYWORD`.
@@ -24,29 +27,9 @@ pub struct Keyword<const K: u128>();
 
 impl<const K: u128> Keyword<K> {
     /// The string literal contained in the `Keyword` type
-    pub const KEYWORD: &'static str = Self::get();
+    pub const KEYWORD: &'static str = crate::util::str_from_u128(&Self::RAW_BYTES);
 
     const RAW_BYTES: [u8; 16] = K.to_be_bytes();
-    const fn get() -> &'static str {
-        let mut ret: Option<&'static [u8]> = None;
-        let mut remaining = Self::RAW_BYTES.as_slice();
-
-        while let Some((byte, r)) = remaining.split_last() {
-            remaining = r;
-
-            if *byte == 0xff {
-                ret = Some(remaining);
-            }
-        }
-
-        if let Some(ret) = ret
-            && let Ok(ret) = std::str::from_utf8(ret)
-        {
-            return ret;
-        }
-
-        panic!("Invalid string generic for `Keyword`")
-    }
 }
 
 impl<const K: u128> ParseLeft for Keyword<K> {
