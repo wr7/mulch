@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
-use syn::{DataEnum, DataStruct, DeriveInput, Expr, ExprPath};
+use syn::{DataEnum, DataStruct, DeriveInput, Expr};
 
 pub fn derive_parse(input: DeriveInput) -> syn::Result<TokenStream> {
     let body = match &input.data {
@@ -80,7 +80,20 @@ fn derive_enum_fn_body(data: &DataEnum) -> syn::Result<TokenStream> {
 }
 
 fn derive_struct_fn_body(data: &DataStruct) -> syn::Result<TokenStream> {
-    let per_field = data.fields.iter().enumerate().map(|(i, field)| {
+    let fields = match &data.fields {
+        syn::Fields::Named(fields_named) => fields_named,
+        syn::Fields::Unnamed(_) => {
+            return {
+                Err(syn::Error::new(
+                    Span::call_site(),
+                    "#[derive(Parse)] is not supported on tuple structs",
+                ))
+            };
+        }
+        syn::Fields::Unit => return Ok(quote! { Self {} }),
+    };
+
+    let per_field = fields.named.iter().enumerate().map(|(i, field)| {
         let field_name = field.ident.as_ref().ok_or_else(||
             syn::Error::new(
                 Span::call_site(),
@@ -105,19 +118,35 @@ fn derive_struct_fn_body(data: &DataStruct) -> syn::Result<TokenStream> {
             }
         };
 
-        Ok(if i + 1 == data.fields.len() {
+        let next_field = fields.named.get(i + 1);
+
+        Ok(if let Some(next_field) = next_field {
+            let parse_until_next = field.attrs.iter().any(|attr| attr.path().is_ident("parse_until_next"));
+
+            let parse = if parse_until_next {
+                let next_type = &next_field.ty;
+
+                quote! {
+                    <#field_type as ::mulch::parser::Parse>::parse_from_left_until::<#next_type>(parser, &mut tokens)?
+                }
+            } else {
+                quote! {
+                    <#field_type as ::mulch::parser::ParseLeft>::parse_from_left(parser, &mut tokens)?
+                }
+            };
+
             quote! {
-                let Some(#field_name) = <#field_type as ::mulch::parser::Parse>::parse(parser, tokens)? else {
-                    #else_body
-                };
-            }
-        } else {
-            quote! {
-                let Some(::mulch::error::PartialSpanned(#field_name, __mulch_prev_span)) = <#field_type as ::mulch::parser::ParseLeft>::parse_from_left(parser, &mut tokens)? else {
+                let Some(::mulch::error::PartialSpanned(#field_name, __mulch_prev_span)) = #parse else {
                     #else_body
                 };
 
                 let __mulch_prev_span = Some(__mulch_prev_span);
+            }
+        } else {
+            quote! {
+                let Some(#field_name) = <#field_type as ::mulch::parser::Parse>::parse(parser, tokens)? else {
+                    #else_body
+                };
             }
         })
     });

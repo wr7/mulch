@@ -1,7 +1,8 @@
-use mulch_macros::{GCDebug, GCPtr, Parse};
+use mulch_macros::{GCDebug, GCPtr, Parse, keyword};
 
 use crate::{
     error::PartialSpanned,
+    gc::GCBox,
     parser::{
         self, CurlyBracketed, Ident, SeparatedList, SquareBracketed,
         ast::ident_or_string::IdentOrString,
@@ -23,8 +24,12 @@ pub enum Expression {
     // Attribute set (note: ordered by index)
     Set(CurlyBracketed<SeparatedList<NamedValue, punct![;]>>),
     List(SquareBracketed<SeparatedList<Expression, punct![,]>>),
-    // WithIn(WithIn),
-    // LetIn(LetIn),
+
+    #[debug_direct]
+    WithIn(WithIn),
+
+    #[debug_direct]
+    LetIn(LetIn),
     // FunctionCall(FunctionCall),
     // Lambda(Lambda),
     // BinaryOperation(BinaryOperation),
@@ -32,14 +37,42 @@ pub enum Expression {
 }
 
 #[derive(GCPtr, GCDebug, Parse, Clone, Copy)]
+#[mulch_parse_error(<keyword!["let"]>::EXPECTED_ERROR_FUNCTION)]
+pub struct LetIn {
+    pub let_: keyword!["let"],
+
+    #[parse_until_next]
+    pub variables: SeparatedList<NamedValue, punct![;]>,
+
+    pub in_: keyword!["in"],
+
+    #[error_if_not_found]
+    pub val: GCBox<Expression>,
+}
+
+#[derive(GCPtr, GCDebug, Parse, Clone, Copy)]
+#[mulch_parse_error(<keyword!["with"]>::EXPECTED_ERROR_FUNCTION)]
+pub struct WithIn {
+    pub with_: keyword!["with"],
+
+    #[parse_until_next]
+    pub variables: GCBox<Expression>,
+
+    pub in_: keyword!["in"],
+
+    #[error_if_not_found]
+    pub val: GCBox<Expression>,
+}
+
+#[derive(GCPtr, GCDebug, Parse, Clone, Copy)]
 #[mulch_parse_error(IdentOrString::EXPECTED_ERROR_FUNCTION)]
 pub struct NamedValue {
     #[error_if_not_found]
-    name: PartialSpanned<IdentOrString>,
+    pub name: PartialSpanned<IdentOrString>,
 
     #[error_if_not_found]
-    eq_: punct![=],
+    pub eq_: punct![=],
 
     #[error_if_not_found]
-    value: Expression,
+    pub value: Expression,
 }

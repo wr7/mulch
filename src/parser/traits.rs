@@ -43,16 +43,22 @@ pub trait Parse: Sized {
     fn parse_from_left_until<B: FindLeft>(
         parser: &Parser,
         tokens: &mut &TokenStream,
-    ) -> PDResult<Option<Self>> {
+    ) -> PDResult<Option<PartialSpanned<Self>>> {
         let range = B::find_left(parser, tokens)?;
 
-        let res = Self::parse(parser, &tokens[..range.start]);
+        let Some(ret) = Self::parse(parser, &tokens[..range.start])? else {
+            return Ok(None);
+        };
 
-        if let Ok(Some(_)) = &res {
-            *tokens = &tokens[range];
-        }
+        let Some(span) =
+            span_of(&tokens[..range.start]).or_else(|| tokens.get(0).map(|t| t.1.span_at()))
+        else {
+            return Ok(None);
+        };
 
-        res
+        *tokens = &tokens[range];
+
+        Ok(Some(PartialSpanned(ret, span)))
     }
 }
 
@@ -147,8 +153,8 @@ macro_rules! impl_using_parse_left {
                 return Ok(None);
             };
 
-            if let Some(span) = $crate::error::span_of(tokens) {
-                return Err($crate::parser::error::unexpected_tokens(span));
+            if !tokens.is_empty() {
+                return Ok(None);
             }
 
             Ok(Some(val.0))
