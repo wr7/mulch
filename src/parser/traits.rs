@@ -27,10 +27,10 @@ pub trait ParseLeft: Sized {
 /// Types where you can search through a `TokenStream` and find the index of the leftmost occurance.
 pub trait FindLeft: Sized {
     /// Returns a range containing the leftmost instance of `Self` and everything to the right of
-    /// it. If nothing is found, this returns `tokens.len..`.
+    /// it.
     ///
-    /// NOTE: if the returned range is not `tokens.len..`, `parse_left` MUST NOT return `Ok(None)`
-    fn find_left(parser: &Parser, tokens: &TokenStream) -> PDResult<RangeFrom<usize>>;
+    /// NOTE: if `Some(_)` is returned, `parse_left` must return `Ok(Some(_))`
+    fn find_left(parser: &Parser, tokens: &TokenStream) -> PDResult<Option<RangeFrom<usize>>>;
 }
 
 /// Types that can be parsed from a whole `TokenStream` with no remainder.
@@ -39,27 +39,6 @@ pub trait Parse: Sized {
 
     /// Attempts to parse a whole [`TokenStream`] as `Self`.
     fn parse(parser: &Parser, tokens: &TokenStream) -> PDResult<Option<Self>>;
-
-    fn parse_from_left_until<B: FindLeft>(
-        parser: &Parser,
-        tokens: &mut &TokenStream,
-    ) -> PDResult<Option<PartialSpanned<Self>>> {
-        let range = B::find_left(parser, tokens)?;
-
-        let Some(ret) = Self::parse(parser, &tokens[..range.start])? else {
-            return Ok(None);
-        };
-
-        let Some(span) =
-            span_of(&tokens[..range.start]).or_else(|| tokens.get(0).map(|t| t.1.span_at()))
-        else {
-            return Ok(None);
-        };
-
-        *tokens = &tokens[range];
-
-        Ok(Some(PartialSpanned(ret, span)))
-    }
 }
 
 impl<T: Parse> Parse for PhantomData<T> {
@@ -129,13 +108,13 @@ impl<T: Parse> Parse for PartialSpanned<T> {
 }
 
 impl<T: FindLeft> FindLeft for PhantomData<T> {
-    fn find_left(parser: &Parser, tokens: &TokenStream) -> PDResult<RangeFrom<usize>> {
+    fn find_left(parser: &Parser, tokens: &TokenStream) -> PDResult<Option<RangeFrom<usize>>> {
         T::find_left(parser, tokens)
     }
 }
 
 impl<T: FindLeft + GCPtr> FindLeft for GCBox<T> {
-    fn find_left(parser: &Parser, tokens: &TokenStream) -> PDResult<RangeFrom<usize>> {
+    fn find_left(parser: &Parser, tokens: &TokenStream) -> PDResult<Option<RangeFrom<usize>>> {
         T::find_left(parser, tokens)
     }
 }

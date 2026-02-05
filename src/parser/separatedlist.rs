@@ -76,7 +76,7 @@ impl<'a, 'p, 't, T: Parse, S: FindLeft + ParseLeft> Iterator
 
     fn next(&mut self) -> Option<Self::Item> {
         let idx = match S::find_left(self.parser, self.remaining) {
-            Ok(r) => r.start,
+            Ok(r) => r.map_or(self.remaining.len(), |r| r.start),
             Err(e) => return Some(Err(e)),
         };
 

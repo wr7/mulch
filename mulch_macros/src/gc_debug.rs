@@ -1,7 +1,9 @@
 use itertools::Itertools;
 use proc_macro2::{Span, TokenStream};
-use quote::{TokenStreamExt, format_ident, quote, quote_spanned};
-use syn::{DeriveInput, Index, spanned::Spanned};
+use quote::{format_ident, quote, quote_spanned};
+use syn::{DeriveInput, spanned::Spanned};
+
+use crate::util::FieldName;
 
 pub fn derive_gc_debug(input: DeriveInput) -> syn::Result<TokenStream> {
     let fn_body = match &input.data {
@@ -179,12 +181,6 @@ struct DebugFieldIter<'a> {
     fields: std::iter::Enumerate<syn::punctuated::Iter<'a, syn::Field>>,
 }
 
-#[derive(Clone, Copy)]
-enum FieldName<'a> {
-    Name(&'a syn::Ident),
-    Index(usize),
-}
-
 struct DebugField<'a> {
     name: FieldName<'a>,
     span: proc_macro2::Span,
@@ -223,15 +219,6 @@ impl<'a> Iterator for DebugFieldIter<'a> {
                 name,
                 span: field.span(),
             });
-        }
-    }
-}
-
-impl<'a> quote::ToTokens for FieldName<'a> {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        match self {
-            FieldName::Name(ident) => ident.to_tokens(tokens),
-            FieldName::Index(idx) => tokens.append(proc_macro2::Literal::usize_unsuffixed(*idx)),
         }
     }
 }

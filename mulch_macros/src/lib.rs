@@ -6,6 +6,8 @@ mod gc_debug;
 mod gc_ptr;
 mod parser;
 
+mod util;
+
 #[proc_macro_derive(GCDebug, attributes(debug_direct, debug_hidden))]
 pub fn derive_gc_debug(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     gc_debug::derive_gc_debug(parse_macro_input!(item as DeriveInput))

@@ -42,6 +42,7 @@ pub struct LetIn {
     pub let_: keyword!["let"],
 
     #[parse_until_next]
+    #[error_if_not_found]
     pub variables: SeparatedList<NamedValue, punct![";"]>,
 
     #[debug_hidden]
@@ -58,6 +59,7 @@ pub struct WithIn {
     pub with_: keyword!["with"],
 
     #[parse_until_next]
+    #[error_if_not_found]
     pub variables: GCBox<Expression>,
 
     #[debug_hidden]

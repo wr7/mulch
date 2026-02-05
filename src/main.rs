@@ -25,7 +25,7 @@ mod util;
 pub fn main() {
     let db = SourceDB::new();
 
-    let source = indoc! {"let x = [with sc in co, bar] in {t = x; v = wx;}"};
+    let source = indoc! {"with in"};
 
     let file_id = db.add("main.mulch".into(), source.to_owned());
 

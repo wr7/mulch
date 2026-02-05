@@ -61,17 +61,17 @@ impl<const K: u128> FindLeft for Keyword<K> {
     fn find_left<'a, 'src>(
         _: &Parser,
         tokens: &'a super::TokenStream<'src>,
-    ) -> crate::error::parse::PDResult<std::ops::RangeFrom<usize>> {
-        let idx = NonBracketedIter::new(tokens)
-            .process_results(|mut it|
-                it.find(|tok|
-                    matches!(tok, PartialSpanned(Token::Identifier(ident), _) if ident == Self::KEYWORD)
-                )
-            )?
-            .and_then(|tok| element_offset(tokens, tok))
-            .unwrap_or(tokens.len());
-
-        Ok(idx..)
+    ) -> crate::error::parse::PDResult<Option<std::ops::RangeFrom<usize>>> {
+        Ok(
+            NonBracketedIter::new(tokens)
+                .process_results(|mut it|
+                    it.find(|tok|
+                        matches!(tok, PartialSpanned(Token::Identifier(ident), _) if ident == Self::KEYWORD)
+                    )
+                )?
+                .and_then(|tok| element_offset(tokens, tok))
+                .map(|idx| idx..)
+        )
     }
 }
 

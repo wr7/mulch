@@ -50,17 +50,17 @@ impl<const S: u128> FindLeft for Punct<S> {
     fn find_left<'a, 'src>(
         _: &Parser,
         tokens: &'a parser::TokenStream<'src>,
-    ) -> crate::error::parse::PDResult<std::ops::RangeFrom<usize>> {
-        let idx = NonBracketedIter::new(tokens)
-            .process_results(|mut iter| {
-                iter.find(|tok|
-                    matches!(**tok, PartialSpanned(Token::Symbol(sym), _) if sym == Self::SYMBOL),
-                )
-            })?
-            .and_then(|tok| element_offset(tokens, tok))
-            .unwrap_or(tokens.len());
-
-        Ok(idx..)
+    ) -> crate::error::parse::PDResult<Option<std::ops::RangeFrom<usize>>> {
+        Ok(
+            NonBracketedIter::new(tokens)
+                .process_results(|mut iter| {
+                    iter.find(|tok|
+                        matches!(**tok, PartialSpanned(Token::Symbol(sym), _) if sym == Self::SYMBOL),
+                    )
+                })?
+                .and_then(|tok| element_offset(tokens, tok))
+                .map(|idx| idx..)
+        )
     }
 }
 

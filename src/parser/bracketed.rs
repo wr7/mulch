@@ -83,17 +83,17 @@ impl<const B: u8, T: GCPtr + GCDebug> FindLeft for Bracketed<B, T> {
     fn find_left(
         _parser: &parser::Parser,
         tokens: &parser::TokenStream,
-    ) -> crate::error::parse::PDResult<std::ops::RangeFrom<usize>> {
-        let idx = NonBracketedIter::new(tokens)
-            .process_results(|mut iter|
-                iter.find(|tok|
-                    matches!(tok, PartialSpanned(Token::OpeningBracket(bt), _) if *bt == Self::BRACKET_TYPE)
-                )
-            )?
-            .and_then(|tok| element_offset(tokens, tok))
-            .unwrap_or(tokens.len());
-
-        Ok(idx..)
+    ) -> crate::error::parse::PDResult<Option<std::ops::RangeFrom<usize>>> {
+        Ok(
+            NonBracketedIter::new(tokens)
+                .process_results(|mut iter|
+                    iter.find(|tok|
+                        matches!(tok, PartialSpanned(Token::OpeningBracket(bt), _) if *bt == Self::BRACKET_TYPE)
+                    )
+                )?
+                .and_then(|tok| element_offset(tokens, tok))
+                .map(|idx| idx..)
+        )
     }
 }
 
