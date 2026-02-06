@@ -3,7 +3,11 @@ use std::iter::Fuse;
 use crate::{
     error::{PartialSpanned, parse::PDResult},
     lexer::{BracketType, Token},
-    parser::error,
+    parser::{
+        Parser, TokenStream,
+        ast::{self, Expression},
+        error,
+    },
 };
 
 /// Iterates over tokens that are not surrounded by brackets.
@@ -149,4 +153,12 @@ impl<'a, 'src> DoubleEndedIterator for NonBracketedIter<'a, 'src> {
             Some(Err(error::unmatched_bracket(closing_bracket.1)))
         }
     }
+}
+
+pub fn run_parse_hook(
+    parser: &Parser,
+    tokens: &TokenStream,
+    hook: fn(&Parser, &TokenStream) -> PDResult<Option<Expression>>,
+) -> PDResult<Option<ast::Expression>> {
+    hook(parser, tokens)
 }

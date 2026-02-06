@@ -22,7 +22,7 @@ pub type CurlyBracketed<T> = Bracketed<{ BracketType::Curly.to_u8() }, T>;
 /// directly. Instead, its type aliases should be used.
 #[derive(Clone, Copy, GCPtr, GCDebug)]
 #[debug_direct]
-pub struct Bracketed<const BRACKET_TYPE: u8, T: GCPtr + GCDebug>(T);
+pub struct Bracketed<const BRACKET_TYPE: u8, T: GCPtr + GCDebug>(pub T);
 
 impl<const B: u8, T: GCPtr + GCDebug> Bracketed<B, T> {
     pub const BRACKET_TYPE: BracketType = if let Some(bt) = BracketType::from_u8(B) {

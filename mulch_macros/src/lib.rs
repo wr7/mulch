@@ -44,7 +44,7 @@ pub fn u128_string(lit: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
 #[proc_macro_derive(
     Parse,
-    attributes(mulch_parse_error, error_if_not_found, parse_until_next)
+    attributes(mulch_parse_error, error_if_not_found, parse_until_next, parse_hook)
 )]
 pub fn derive_parse(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     parser::parse::derive_parse(parse_macro_input!(item as DeriveInput))

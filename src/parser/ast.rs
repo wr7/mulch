@@ -1,11 +1,11 @@
 use mulch_macros::{GCDebug, GCPtr, Parse, keyword};
 
 use crate::{
-    error::PartialSpanned,
+    error::{PartialSpanned, parse::PDResult},
     gc::GCBox,
     parser::{
-        self, CurlyBracketed, Ident, SeparatedList, SquareBracketed,
-        ast::ident_or_string::IdentOrString, punct,
+        self, CurlyBracketed, Ident, Parenthesized, Parse, Parser, SeparatedList, SquareBracketed,
+        TokenStream, ast::ident_or_string::IdentOrString, punct,
     },
 };
 
@@ -16,6 +16,7 @@ mod ident_or_string;
 #[msb_reserved]
 #[mulch_parse_error(parser::error::expected_expression)]
 pub enum Expression {
+    #[parse_hook(parse_parenthised_expression)]
     Variable(Ident),
     // StringLiteral(GCString),
     // NumericLiteral(GCString),
@@ -33,6 +34,13 @@ pub enum Expression {
     // Lambda(Lambda),
     // BinaryOperation(BinaryOperation),
     // MemberAccess(MemberAccess),
+}
+
+fn parse_parenthised_expression(
+    parser: &Parser,
+    tokens: &TokenStream,
+) -> PDResult<Option<Expression>> {
+    Ok(Parenthesized::<Expression>::parse(parser, tokens)?.map(|val| val.0))
 }
 
 #[derive(GCPtr, GCDebug, Parse, Clone, Copy)]
