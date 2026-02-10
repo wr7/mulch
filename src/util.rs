@@ -2,6 +2,7 @@ use std::{
     ffi::OsStr,
     fmt::{Debug, Display},
     mem::{ManuallyDrop, MaybeUninit},
+    ops::Range,
     ptr::{self, addr_of, addr_of_mut},
 };
 
@@ -177,6 +178,31 @@ pub fn element_offset<T>(slice: &[T], element: &T) -> Option<usize> {
 
     if offset < slice.len() {
         Some(offset)
+    } else {
+        None
+    }
+}
+
+// https://doc.rust-lang.org/nightly/std/primitive.slice.html#method.subslice_range
+pub fn subslice_range<T>(slice: &[T], subslice: &[T]) -> Option<Range<usize>> {
+    if std::mem::size_of::<T>() == 0 {
+        panic!("elements are zero-sized");
+    }
+
+    let slice_start = slice.as_ptr().addr();
+    let subslice_start = subslice.as_ptr().addr();
+
+    let byte_start = subslice_start.wrapping_sub(slice_start);
+
+    if !byte_start.is_multiple_of(size_of::<T>()) {
+        return None;
+    }
+
+    let start = byte_start / size_of::<T>();
+    let end = start.wrapping_add(subslice.len());
+
+    if start <= slice.len() && end <= slice.len() {
+        Some((start..end).into())
     } else {
         None
     }

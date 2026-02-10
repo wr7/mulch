@@ -136,3 +136,24 @@ impl<T: GCDebug> GCDebug for PartialSpanned<T> {
             .finish()
     }
 }
+
+unsafe impl<T: GCPtr> GCPtr for Option<T> {
+    const MSB_RESERVED: bool = false;
+
+    unsafe fn gc_copy(self, gc: &mut GarbageCollector) -> Self {
+        self.map(|val| unsafe { val.gc_copy(gc) })
+    }
+}
+
+impl<T: GCDebug> GCDebug for Option<T> {
+    unsafe fn gc_debug(
+        self,
+        gc: &GarbageCollector,
+        f: &mut std::fmt::Formatter,
+    ) -> std::fmt::Result {
+        match self {
+            Some(val) => unsafe { f.debug_tuple("Some").field(&val.wrap(gc)).finish() },
+            None => write!(f, "None"),
+        }
+    }
+}

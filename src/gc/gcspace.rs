@@ -60,7 +60,7 @@ impl Default for GCSpace {
 }
 
 impl GCSpace {
-    const STARTING_BLOCKS: usize = 64;
+    const STARTING_BLOCKS: usize = 256;
 
     pub(super) fn ptr(&self) -> *mut u8 {
         self.data.get()

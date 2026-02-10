@@ -17,15 +17,32 @@ pub mod error;
 pub mod eval;
 pub mod gc;
 pub mod lexer;
+#[doc(hidden)]
+pub mod macro_util;
 pub mod parser;
 pub mod parser_old;
 
 mod util;
 
+// TODO:
+// - remove PartialSpanned from ParseLeft trait
+// - Fix segfault in garbage collector (when block size is lower
+
 pub fn main() {
     let db = SourceDB::new();
 
-    let source = indoc! {"with (with a in {x = y}) in x"};
+    let source = indoc! {"
+        {
+            x;
+            y = p;
+            z: [
+                a,
+                b,
+                {w} @ c = {w = cat}
+            ]
+        } @ d
+        -> ssdfg
+    "};
 
     let file_id = db.add("main.mulch".into(), source.to_owned());
 

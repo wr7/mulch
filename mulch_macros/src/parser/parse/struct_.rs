@@ -1,10 +1,15 @@
 use itertools::Itertools as _;
-use proc_macro2::TokenStream;
+use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote};
+use syn::DeriveInput;
 
-use crate::util::FieldName;
+use crate::{ParseTrait, util::FieldName};
 
-pub fn derive_struct_fn_body(data: &syn::DataStruct) -> syn::Result<TokenStream> {
+pub fn derive_struct_fn_body(
+    input: &DeriveInput,
+    data: &syn::DataStruct,
+    trait_: ParseTrait,
+) -> syn::Result<TokenStream> {
     let per_field = StructParseFieldIterator::new(data.fields.iter()).enumerate().map(|(i, field)| {
         let field_var_name = format_ident!("field_{}", field.name);
         let field_type = field.ty;
@@ -25,8 +30,17 @@ pub fn derive_struct_fn_body(data: &syn::DataStruct) -> syn::Result<TokenStream>
 
         let next_field = StructParseFieldIterator::new(data.fields.iter()).nth(i + 1);
 
-        Ok(if let Some(next_field) = next_field {
+        Ok(if next_field.is_some() || trait_ == ParseTrait::ParseLeft {
             let parse = if field.parse_until_next {
+                let Some(next_field) = next_field else {
+                    return Err(
+                        syn::Error::new(
+                            Span::call_site(),
+                            "#[parse_until_next] cannot be applied to the last field of a struct"
+                        )
+                    );
+                };
+
                 parse_until_next_expr(field, next_field)
             } else {
                 quote! {
@@ -71,19 +85,61 @@ pub fn derive_struct_fn_body(data: &syn::DataStruct) -> syn::Result<TokenStream>
         quote! { Self { #(#field_names),* } }
     };
 
-    per_field.process_results(|per_field| {
-        quote! {
-            let mut tokens = tokens;
-            let prev_span: Option<::copyspan::Span> = None;
+    let hooks = input
+        .attrs
+        .iter()
+        .filter(|attr| attr.path().is_ident("parse_hook"))
+        .map(|attr| attr.parse_args::<syn::Expr>());
 
-            #(#per_field)*
+    let per_hook = hooks.map(|hook| -> syn::Result<TokenStream> {
+        let hook = hook?;
 
-            Ok(Some(#struct_initializer))
-        }
-    })
+        Ok(match trait_ {
+            ParseTrait::Parse => quote! {
+                if let Some(res) = ::mulch::parser::run_parse_hook::<Self>(parser, tokens, #hook)? {
+                    return Ok(Some(res));
+                }
+            },
+            ParseTrait::ParseLeft => quote! {
+                if let Some(res) = ::mulch::parser::run_left_parse_hook::<Self>(parser, &mut tokens, #hook)? {
+                    return Ok(Some(res));
+                }
+            },
+        })
+    });
+
+    per_field.process_results(|per_field|
+        per_hook.process_results(|per_hook| match trait_ {
+            ParseTrait::Parse => quote! {
+                let mut tokens = tokens;
+                let prev_span: Option<::copyspan::Span> = None;
+
+                #(#per_hook)*
+
+                #(#per_field)*
+
+                Ok(Some(#struct_initializer))
+            },
+            ParseTrait::ParseLeft => quote! {
+                let mut tokens = *tokens_input;
+                let prev_span: Option<::copyspan::Span> = None;
+
+                #(#per_hook)*
+
+                #(#per_field)*
+
+                let parse_end_idx = ::mulch::macro_util::subslice_range(tokens_input, tokens).unwrap().start;
+                let span = ::mulch::error::span_of(&tokens_input[..parse_end_idx]).unwrap();
+
+                *tokens_input = tokens;
+
+                Ok(Some(::mulch::error::PartialSpanned(#struct_initializer, span)))
+            },
+        })
+    ).flatten()
 }
 
-/// Generates an expression that parses a field with the attribute `#[parse_until_next_expr]`
+/// Generates an expression that parses a field with the attribute `#[parse_until_next]`
 fn parse_until_next_expr(
     field: StructParseField<'_>,
     next_field: StructParseField<'_>,
@@ -91,7 +147,7 @@ fn parse_until_next_expr(
     let next_type = &next_field.ty;
     let field_type = &field.ty;
 
-    let find_left_else_branch = if field.error_if_not_found {
+    let find_left_else_branch = if next_field.error_if_not_found {
         quote! {
             let Some(span) = tokens.last().map(|t| t.1.span_after()).or_else(|| prev_span.map(|span| span.span_after())) else {
                 return Ok(None);
@@ -113,7 +169,7 @@ fn parse_until_next_expr(
 
             let val = <#field_type as ::mulch::parser::Parse>::parse(parser, tokens_to_parse)?
                 .and_then(|val| {
-                    Some(PartialSpanned(val, ::mulch::error::span_of(tokens_to_parse).or(prev_span.map(|span| span.span_after()))?))
+                    Some(::mulch::error::PartialSpanned(val, ::mulch::error::span_of(tokens_to_parse).or(prev_span.map(|span| span.span_after()))?))
                 });
 
             if val.is_some() {

@@ -12,7 +12,7 @@ pub fn derive_enum_fn_body(data: &DataEnum) -> syn::Result<TokenStream> {
         Ok(
             match rule {
                 EnumParseRule::Hook(hook) => quote! {
-                    if let Some(val) = ::mulch::parser::run_parse_hook(parser, tokens, #hook)? {
+                    if let Some(val) = ::mulch::parser::run_parse_hook::<Self>(parser, tokens, #hook)? {
                         return Ok(Some(val))
                     }
                 },

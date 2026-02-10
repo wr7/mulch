@@ -9,7 +9,7 @@ use crate::{
 
 #[derive(Clone, Copy, GCPtr, GCDebug)]
 #[debug_direct]
-pub struct IdentOrString(GCString);
+pub struct IdentOrString(pub GCString);
 
 impl ParseLeft for IdentOrString {
     const EXPECTED_ERROR_FUNCTION_LEFT: fn(copyspan::Span) -> crate::error::parse::ParseDiagnostic =

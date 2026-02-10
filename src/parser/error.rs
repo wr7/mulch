@@ -12,7 +12,11 @@ use crate::{
 };
 
 pub fn invalid_expression(span: Span) -> ParseDiagnostic {
-    parse_error!("EP0001", "Invalid expression", [{"here", span, primary}])
+    if span.is_empty() {
+        parse_error!("EP0001", "Expected expression", [{"here", span, primary}])
+    } else {
+        parse_error!("EP0001", "Invalid expression", [{"here", span, primary}])
+    }
 }
 
 pub fn mismatched_brackets(opening: Span, closing: Span) -> ParseDiagnostic {
@@ -23,9 +27,7 @@ pub fn unmatched_bracket(span: Span) -> ParseDiagnostic {
     parse_error!("EP0003", "No matching bracket found", [{"for bracket here", span, primary}])
 }
 
-pub fn expected_expression(span: Span) -> ParseDiagnostic {
-    parse_error!("EP0004", "Expected expression", [{"here", span, primary}])
-}
+// EP0004 unused
 
 pub fn multiple_declarations_of_attribute(def1: Span, def2: Span, attr: &str) -> ParseDiagnostic {
     parse_error!("EP0005", format!("Multiple declarations of attribute {attr}"), [{"First defined here", def1, secondary}, {"Then defined here", def2, primary}])

@@ -20,6 +20,8 @@ pub enum Symbol {
     Caret,
     LessThan,
     GreaterThan,
+    At,
+    Colon,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, FromToU8)]
@@ -83,6 +85,8 @@ impl Symbol {
             Sym!(^) => "^",
             Sym!(>) => ">",
             Sym!(<) => "<",
+            Sym!(@) => "@",
+            Sym!(:) => ":",
         }
     }
 
@@ -101,6 +105,8 @@ impl Symbol {
             u128_string!("^") => Sym!(^),
             u128_string!(">") => Sym!(>),
             u128_string!("<") => Sym!(<),
+            u128_string!("@") => Sym!(@),
+            u128_string!(":") => Sym!(:),
             _ => panic!("Invalid symbol"),
         }
     }
@@ -175,6 +181,12 @@ macro_rules! T {
     };
     (>) => {
         $crate::lexer::Token::Symbol($crate::Sym!(>))
+    };
+    (@) => {
+        $crate::lexer::Token::Symbol($crate::Sym!(@))
+    };
+    (:) => {
+        $crate::lexer::Token::Symbol($crate::Sym!(:))
     };
     (_) => {
         $crate::lexer::Token::Identifier("_")
@@ -253,6 +265,12 @@ macro_rules! Sym {
     };
     (>) => {
         $crate::lexer::Symbol::GreaterThan
+    };
+    (@) => {
+        $crate::lexer::Symbol::At
+    };
+    (:) => {
+        $crate::lexer::Symbol::Colon
     };
 }
 

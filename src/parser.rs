@@ -15,6 +15,10 @@ mod util;
 #[doc(hidden)]
 pub use util::run_parse_hook;
 
+// Macro helper function used for better error messages
+#[doc(hidden)]
+pub use util::run_left_parse_hook;
+
 pub use bracketed::CurlyBracketed;
 pub use bracketed::Parenthesized;
 pub use bracketed::SquareBracketed;

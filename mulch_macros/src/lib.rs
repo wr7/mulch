@@ -1,6 +1,8 @@
 use quote::quote;
 use syn::{DeriveInput, LitStr, parse_macro_input};
 
+use crate::parser::parse::ParseTrait;
+
 mod from_to_u8;
 mod gc_debug;
 mod gc_ptr;
@@ -47,9 +49,22 @@ pub fn u128_string(lit: proc_macro::TokenStream) -> proc_macro::TokenStream {
     attributes(mulch_parse_error, error_if_not_found, parse_until_next, parse_hook)
 )]
 pub fn derive_parse(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    parser::parse::derive_parse(parse_macro_input!(item as DeriveInput))
+    parser::parse::derive_parse(parse_macro_input!(item as DeriveInput), ParseTrait::Parse)
         .unwrap_or_else(|err| err.into_compile_error())
         .into()
+}
+
+#[proc_macro_derive(
+    ParseLeft,
+    attributes(mulch_parse_error, error_if_not_found, parse_until_next, parse_hook)
+)]
+pub fn derive_parse_left(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    parser::parse::derive_parse(
+        parse_macro_input!(item as DeriveInput),
+        ParseTrait::ParseLeft,
+    )
+    .unwrap_or_else(|err| err.into_compile_error())
+    .into()
 }
 
 #[proc_macro_derive(FromToU8)]

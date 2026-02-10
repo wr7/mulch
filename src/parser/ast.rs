@@ -10,30 +10,34 @@ use crate::{
 };
 
 mod ident_or_string;
+pub mod lambda;
+
+#[doc(inline)]
+pub use lambda::Lambda;
 
 #[derive(GCPtr, GCDebug, Parse, Clone, Copy)]
 #[repr(usize)]
 #[msb_reserved]
-#[mulch_parse_error(parser::error::expected_expression)]
+#[mulch_parse_error(parser::error::invalid_expression)]
 pub enum Expression {
-    #[parse_hook(parse_parenthised_expression)]
     Variable(Ident),
     // StringLiteral(GCString),
     // NumericLiteral(GCString),
     // Unit(),
     // Attribute set (note: ordered by index)
-    Set(CurlyBracketed<SeparatedList<NamedValue, punct![";"]>>),
-    List(SquareBracketed<SeparatedList<Expression, punct![","]>>),
-
     #[debug_direct]
     WithIn(WithIn),
 
     #[debug_direct]
     LetIn(LetIn),
     // FunctionCall(FunctionCall),
-    // Lambda(Lambda),
+    #[debug_direct]
+    Lambda(Lambda),
     // BinaryOperation(BinaryOperation),
     // MemberAccess(MemberAccess),
+    #[parse_hook(parse_parenthised_expression)]
+    Set(CurlyBracketed<SeparatedList<NamedValue, punct![";"]>>),
+    List(SquareBracketed<SeparatedList<Expression, punct![","]>>),
 }
 
 fn parse_parenthised_expression(

@@ -9,7 +9,7 @@ use crate::{
         span_of,
     },
     gc::{GCBox, GCPtr},
-    parser::{Parser, TokenStream},
+    parser::{self, Parser, TokenStream},
 };
 
 /// Types that can be parsed from the left side with a remainder.
@@ -41,11 +41,34 @@ pub trait Parse: Sized {
     fn parse(parser: &Parser, tokens: &TokenStream) -> PDResult<Option<Self>>;
 }
 
-impl<T: Parse> Parse for PhantomData<T> {
-    const EXPECTED_ERROR_FUNCTION: fn(Span) -> ParseDiagnostic = T::EXPECTED_ERROR_FUNCTION;
+impl<T: Parse> Parse for Option<T> {
+    const EXPECTED_ERROR_FUNCTION: fn(Span) -> ParseDiagnostic = parser::error::unexpected_tokens;
 
     fn parse(parser: &Parser, tokens: &TokenStream) -> PDResult<Option<Self>> {
-        Ok(T::parse(parser, tokens)?.map(|_| PhantomData))
+        Ok(match T::parse(parser, tokens)? {
+            Some(val) => Some(Some(val)),
+            None if tokens.is_empty() => Some(None),
+            None => None,
+        })
+    }
+}
+
+impl<T: ParseLeft> ParseLeft for Option<T> {
+    const EXPECTED_ERROR_FUNCTION_LEFT: fn(Span) -> ParseDiagnostic = |_| unreachable!();
+
+    fn parse_from_left(
+        parser: &Parser,
+        tokens: &mut &TokenStream,
+    ) -> PDResult<Option<PartialSpanned<Self>>> {
+        Ok(match T::parse_from_left(parser, tokens)? {
+            Some(PartialSpanned(val, span)) => Some(PartialSpanned(Some(val), span)),
+            None => Some(PartialSpanned(
+                None,
+                tokens
+                    .first()
+                    .map_or(Span::from(0..0), |val| val.1.span_at()), // The fallback value of 0..0 is incredibly janky, but it will work for now
+            )),
+        })
     }
 }
 

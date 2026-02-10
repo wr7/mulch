@@ -3,11 +3,7 @@ use std::iter::Fuse;
 use crate::{
     error::{PartialSpanned, parse::PDResult},
     lexer::{BracketType, Token},
-    parser::{
-        Parser, TokenStream,
-        ast::{self, Expression},
-        error,
-    },
+    parser::{Parser, TokenStream, error},
 };
 
 /// Iterates over tokens that are not surrounded by brackets.
@@ -155,10 +151,24 @@ impl<'a, 'src> DoubleEndedIterator for NonBracketedIter<'a, 'src> {
     }
 }
 
-pub fn run_parse_hook(
+pub fn run_parse_hook<T>(
     parser: &Parser,
     tokens: &TokenStream,
-    hook: fn(&Parser, &TokenStream) -> PDResult<Option<Expression>>,
-) -> PDResult<Option<ast::Expression>> {
+    hook: fn(&Parser, &TokenStream) -> PDResult<Option<T>>,
+) -> PDResult<Option<T>> {
     hook(parser, tokens)
+}
+
+pub fn run_left_parse_hook<T>(
+    parser: &Parser,
+    tokens_input: &mut &TokenStream,
+    hook: fn(&Parser, &mut &TokenStream) -> PDResult<Option<PartialSpanned<T>>>,
+) -> PDResult<Option<PartialSpanned<T>>> {
+    let mut tokens = *tokens_input;
+    let res = hook(parser, &mut tokens)?;
+    if res.is_some() {
+        *tokens_input = tokens;
+    }
+
+    Ok(res)
 }
