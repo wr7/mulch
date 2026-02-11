@@ -56,11 +56,17 @@ pub struct SetArgs {
 }
 
 #[derive(Clone, Copy, GCPtr, GCDebug, Parse)]
-#[mulch_parse_error(|_| todo!())]
+#[mulch_parse_error(|_| unimplemented!())]
 #[parse_hook(parse_simple_arg_attribute)]
 pub struct ArgAttribute {
+    #[error_if_not_found]
     attr: IdentOrString,
+
+    #[debug_hidden]
+    #[error_if_not_found]
     colon_: punct!(":"),
+
+    #[error_if_not_found]
     arg: Args,
 }
 
