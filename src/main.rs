@@ -24,9 +24,6 @@ pub mod parser_old;
 
 mod util;
 
-// TODO:
-// - Fix segfault in garbage collector (when block size is lower
-
 pub fn main() {
     let db = SourceDB::new();
 

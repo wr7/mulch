@@ -60,7 +60,7 @@ impl Default for GCSpace {
 }
 
 impl GCSpace {
-    const STARTING_BLOCKS: usize = 256;
+    const STARTING_BLOCKS: usize = 128;
 
     pub(super) fn ptr(&self) -> *mut u8 {
         self.data.get()
@@ -74,7 +74,7 @@ impl GCSpace {
 
     /// Sets the length and increases the capacity if needed.
     pub(super) fn set_len(&self, len: usize) {
-        self.expand(len);
+        self.expand_to(len);
         self.len.set(len);
     }
 
@@ -98,7 +98,7 @@ impl GCSpace {
                         self.capacity() * GarbageCollector::BLOCK_SIZE,
                         GarbageCollector::BLOCK_SIZE,
                     ),
-                    new_size_blocks,
+                    new_size_blocks * GarbageCollector::BLOCK_SIZE,
                 )
             },
             new_size_blocks,
@@ -107,7 +107,7 @@ impl GCSpace {
 
     /// Grows the allocation to be at least `new_size_blocks` blocks. NOTE: this will not increase
     /// its length.
-    pub fn expand(&self, new_size_blocks: usize) {
+    pub fn expand_to(&self, new_size_blocks: usize) {
         let mut new_size = self.capacity();
 
         while new_size < new_size_blocks {
