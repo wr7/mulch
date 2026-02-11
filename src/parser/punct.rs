@@ -32,8 +32,8 @@ impl<const S: u128> ParseLeft for Punct<S> {
     fn parse_from_left(
         _gc: &Parser,
         tokens: &mut &super::TokenStream,
-    ) -> crate::error::parse::PDResult<Option<PartialSpanned<Self>>> {
-        let [PartialSpanned(Token::Symbol(sym), span), rem @ ..] = tokens else {
+    ) -> crate::error::parse::PDResult<Option<Self>> {
+        let [PartialSpanned(Token::Symbol(sym), _), rem @ ..] = tokens else {
             return Ok(None);
         };
 
@@ -42,7 +42,7 @@ impl<const S: u128> ParseLeft for Punct<S> {
         }
 
         *tokens = rem;
-        Ok(Some(PartialSpanned(Self(), *span)))
+        Ok(Some(Self()))
     }
 }
 

@@ -46,7 +46,7 @@ pub fn derive_parse(input: DeriveInput, trait_: ParseTrait) -> syn::Result<Token
             }
         },
         ParseTrait::ParseLeft => quote! {
-            fn parse_from_left(parser: &::mulch::parser::Parser, tokens_input: &mut &::mulch::parser::TokenStream) -> ::mulch::error::parse::PDResult<Option<::mulch::error::PartialSpanned<Self>>> {
+            fn parse_from_left(parser: &::mulch::parser::Parser, tokens_input: &mut &::mulch::parser::TokenStream) -> ::mulch::error::parse::PDResult<Option<Self>> {
                 #body
             }
         },
@@ -72,7 +72,7 @@ pub fn derive_parse(input: DeriveInput, trait_: ParseTrait) -> syn::Result<Token
                         return Ok(None);
                     }
 
-                    Ok(Some(val.0))
+                    Ok(Some(val))
                 }
             }
         },

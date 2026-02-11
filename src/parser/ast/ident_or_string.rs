@@ -18,9 +18,9 @@ impl ParseLeft for IdentOrString {
     fn parse_from_left(
         parser: &crate::parser::Parser,
         tokens: &mut &crate::parser::TokenStream,
-    ) -> crate::error::parse::PDResult<Option<PartialSpanned<Self>>> {
+    ) -> crate::error::parse::PDResult<Option<Self>> {
         let [
-            PartialSpanned(Token::Identifier(str) | Token::StringLiteral(str), span),
+            PartialSpanned(Token::Identifier(str) | Token::StringLiteral(str), _),
             rem @ ..,
         ] = tokens
         else {
@@ -29,10 +29,7 @@ impl ParseLeft for IdentOrString {
 
         *tokens = rem;
 
-        Ok(Some(PartialSpanned(
-            Self(GCString::new(parser.gc, str)),
-            *span,
-        )))
+        Ok(Some(Self(GCString::new(parser.gc, str))))
     }
 }
 

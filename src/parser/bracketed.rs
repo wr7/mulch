@@ -43,11 +43,10 @@ impl<const B: u8, T: GCPtr + GCDebug + Parse> ParseLeft for Bracketed<B, T> {
     fn parse_from_left(
         parser: &super::Parser,
         tokens: &mut &super::TokenStream,
-    ) -> crate::error::parse::PDResult<Option<PartialSpanned<Self>>> {
+    ) -> crate::error::parse::PDResult<Option<Self>> {
         let mut nb_iter = NonBracketedIter::new_unfused(&tokens);
 
-        let Some(&PartialSpanned(Token::OpeningBracket(bt), opening_span)) =
-            nb_iter.next().transpose()?
+        let Some(&PartialSpanned(Token::OpeningBracket(bt), _)) = nb_iter.next().transpose()?
         else {
             return Ok(None);
         };
@@ -74,8 +73,7 @@ impl<const B: u8, T: GCPtr + GCDebug + Parse> ParseLeft for Bracketed<B, T> {
 
         *tokens = nb_iter.remainder();
 
-        let span = opening_span.with_end(closing.1.end);
-        Ok(Some(PartialSpanned(Self(inner), span)))
+        Ok(Some(Self(inner)))
     }
 }
 

@@ -78,12 +78,13 @@ impl<'a> Iterator for EnumParseRuleIterator<'a> {
                         Ok(hook) => return Some(Ok(EnumParseRule::Hook(hook))),
                         Err(err) => return Some(Err(err)),
                     }
-                } else {
-                    continue;
                 }
+
+                continue;
             }
 
             let _ = self.variants.next();
+            self.attr_idx = 0;
 
             return if let syn::Fields::Unnamed(fields) = &variant.fields
                 && let Some(field) = fields.unnamed.first()

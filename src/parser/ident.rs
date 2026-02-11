@@ -19,20 +19,13 @@ impl ParseLeft for Ident {
     fn parse_from_left(
         parser: &super::Parser,
         tokens: &mut &super::TokenStream,
-    ) -> crate::error::parse::PDResult<Option<PartialSpanned<Self>>> {
-        let [
-            PartialSpanned(Token::Identifier(ident), span),
-            remainder @ ..,
-        ] = &tokens
-        else {
+    ) -> crate::error::parse::PDResult<Option<Self>> {
+        let [PartialSpanned(Token::Identifier(ident), _), remainder @ ..] = &tokens else {
             return Ok(None);
         };
 
         *tokens = remainder;
-        Ok(Some(PartialSpanned(
-            Self(GCString::new(parser.gc, &ident)),
-            *span,
-        )))
+        Ok(Some(Self(GCString::new(parser.gc, &ident))))
     }
 }
 

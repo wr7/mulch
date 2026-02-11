@@ -35,12 +35,12 @@ pub enum Expression {
     Lambda(Lambda),
     // BinaryOperation(BinaryOperation),
     // MemberAccess(MemberAccess),
-    #[parse_hook(parse_parenthised_expression)]
+    #[parse_hook(parse_parenthized_expression)]
     Set(CurlyBracketed<SeparatedList<NamedValue, punct![";"]>>),
     List(SquareBracketed<SeparatedList<Expression, punct![","]>>),
 }
 
-fn parse_parenthised_expression(
+fn parse_parenthized_expression(
     parser: &Parser,
     tokens: &TokenStream,
 ) -> PDResult<Option<Expression>> {

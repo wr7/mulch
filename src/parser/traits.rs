@@ -10,6 +10,7 @@ use crate::{
     },
     gc::{GCBox, GCPtr},
     parser::{self, Parser, TokenStream},
+    util::subslice_range,
 };
 
 /// Types that can be parsed from the left side with a remainder.
@@ -18,10 +19,27 @@ pub trait ParseLeft: Sized {
 
     /// Attempts to parse `Self` from the left of a [`TokenStream`]. Writes the remaining
     /// `TokenStream` to `tokens` upon success.
-    fn parse_from_left(
+    fn parse_from_left(parser: &Parser, tokens: &mut &TokenStream) -> PDResult<Option<Self>>;
+
+    /// Attempts to parse `Self` from the left of a [`TokenStream`]. Writes the remaining
+    /// `TokenStream` to `tokens` upon success. Also returns the `Span` of the parsed tokens (or
+    /// `None` if `tokens` is empty).
+    fn parse_from_left_with_span(
         parser: &Parser,
         tokens: &mut &TokenStream,
-    ) -> PDResult<Option<PartialSpanned<Self>>>;
+    ) -> PDResult<Option<(Self, Option<Span>)>> {
+        let mut tokens_copy = *tokens;
+        let Some(res) = Self::parse_from_left(parser, &mut tokens_copy)? else {
+            return Ok(None);
+        };
+
+        let end_idx = subslice_range(tokens, tokens_copy).unwrap().start;
+        let span = span_of(&tokens[..end_idx]).or_else(|| tokens.first().map(|t| t.1.span_at()));
+
+        *tokens = tokens_copy;
+
+        Ok(Some((res, span)))
+    }
 }
 
 /// Types where you can search through a `TokenStream` and find the index of the leftmost occurance.
@@ -56,19 +74,8 @@ impl<T: Parse> Parse for Option<T> {
 impl<T: ParseLeft> ParseLeft for Option<T> {
     const EXPECTED_ERROR_FUNCTION_LEFT: fn(Span) -> ParseDiagnostic = |_| unreachable!();
 
-    fn parse_from_left(
-        parser: &Parser,
-        tokens: &mut &TokenStream,
-    ) -> PDResult<Option<PartialSpanned<Self>>> {
-        Ok(match T::parse_from_left(parser, tokens)? {
-            Some(PartialSpanned(val, span)) => Some(PartialSpanned(Some(val), span)),
-            None => Some(PartialSpanned(
-                None,
-                tokens
-                    .first()
-                    .map_or(Span::from(0..0), |val| val.1.span_at()), // The fallback value of 0..0 is incredibly janky, but it will work for now
-            )),
-        })
+    fn parse_from_left(parser: &Parser, tokens: &mut &TokenStream) -> PDResult<Option<Self>> {
+        T::parse_from_left(parser, tokens).map(Some)
     }
 }
 
@@ -84,11 +91,8 @@ impl<T: ParseLeft> ParseLeft for PhantomData<T> {
     const EXPECTED_ERROR_FUNCTION_LEFT: fn(Span) -> ParseDiagnostic =
         T::EXPECTED_ERROR_FUNCTION_LEFT;
 
-    fn parse_from_left(
-        parser: &Parser,
-        tokens: &mut &TokenStream,
-    ) -> PDResult<Option<PartialSpanned<Self>>> {
-        Ok(T::parse_from_left(parser, tokens)?.map(|val| val.map(|_| PhantomData)))
+    fn parse_from_left(parser: &Parser, tokens: &mut &TokenStream) -> PDResult<Option<Self>> {
+        Ok(T::parse_from_left(parser, tokens)?.map(|_| PhantomData))
     }
 }
 
@@ -96,12 +100,8 @@ impl<T: ParseLeft + GCPtr> ParseLeft for GCBox<T> {
     const EXPECTED_ERROR_FUNCTION_LEFT: fn(Span) -> ParseDiagnostic =
         T::EXPECTED_ERROR_FUNCTION_LEFT;
 
-    fn parse_from_left(
-        parser: &Parser,
-        tokens: &mut &TokenStream,
-    ) -> PDResult<Option<PartialSpanned<Self>>> {
-        Ok(T::parse_from_left(parser, tokens)?
-            .map(|val| val.map(|val| unsafe { GCBox::new(parser.gc, val) })))
+    fn parse_from_left(parser: &Parser, tokens: &mut &TokenStream) -> PDResult<Option<Self>> {
+        Ok(T::parse_from_left(parser, tokens)?.map(|val| unsafe { GCBox::new(parser.gc, val) }))
     }
 }
 
@@ -109,12 +109,16 @@ impl<T: ParseLeft> ParseLeft for PartialSpanned<T> {
     const EXPECTED_ERROR_FUNCTION_LEFT: fn(Span) -> ParseDiagnostic =
         T::EXPECTED_ERROR_FUNCTION_LEFT;
 
-    fn parse_from_left(
-        parser: &Parser,
-        tokens: &mut &TokenStream,
-    ) -> PDResult<Option<PartialSpanned<Self>>> {
-        Ok(T::parse_from_left(parser, tokens)?
-            .map(|PartialSpanned(val, span)| PartialSpanned(PartialSpanned(val, span), span)))
+    fn parse_from_left(parser: &Parser, tokens: &mut &TokenStream) -> PDResult<Option<Self>> {
+        Ok(T::parse_from_left_with_span(parser, tokens)?
+            .map(|(val, span)|
+                PartialSpanned(
+                    val,
+                    span.unwrap_or_else(||
+                        panic!("The parse trait implementations for `PartialSpanned<{T}>` should not be used because `{T}` can be parsed from an empty tokenstream", T=::core::any::type_name::<T>())
+                    )
+                )
+            ))
     }
 }
 
@@ -123,7 +127,10 @@ impl<T: Parse> Parse for PartialSpanned<T> {
 
     fn parse(parser: &Parser, tokens: &TokenStream) -> PDResult<Option<Self>> {
         let Some(span) = span_of(tokens) else {
-            return Ok(None);
+            panic!(
+                "The parse trait implementations for `PartialSpanned<{T}>` should not be used because `{T}` can be parsed from an empty tokenstream",
+                T = ::core::any::type_name::<T>()
+            );
         };
 
         Ok(T::parse(parser, tokens)?.map(|val| PartialSpanned(val, span)))
@@ -159,7 +166,7 @@ macro_rules! impl_using_parse_left {
                 return Ok(None);
             }
 
-            Ok(Some(val.0))
+            Ok(Some(val))
         }
     };
 }

@@ -25,7 +25,6 @@ pub mod parser_old;
 mod util;
 
 // TODO:
-// - remove PartialSpanned from ParseLeft trait
 // - Fix segfault in garbage collector (when block size is lower
 
 pub fn main() {

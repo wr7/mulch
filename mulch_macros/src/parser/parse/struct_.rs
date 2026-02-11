@@ -44,16 +44,16 @@ pub fn derive_struct_fn_body(
                 parse_until_next_expr(field, next_field)
             } else {
                 quote! {
-                    <#field_type as ::mulch::parser::ParseLeft>::parse_from_left(parser, &mut tokens)?
+                    <#field_type as ::mulch::parser::ParseLeft>::parse_from_left_with_span(parser, &mut tokens)?
                 }
             };
 
             quote! {
-                let Some(::mulch::error::PartialSpanned(#field_var_name, prev_span)) = #parse else {
+                let Some((#field_var_name, span)) = #parse else {
                     #else_body
                 };
 
-                let prev_span = Some(prev_span);
+                let prev_span = span.or(prev_span);
             }
         } else {
             quote! {
@@ -108,35 +108,34 @@ pub fn derive_struct_fn_body(
         })
     });
 
-    per_field.process_results(|per_field|
-        per_hook.process_results(|per_hook| match trait_ {
-            ParseTrait::Parse => quote! {
-                let mut tokens = tokens;
-                let prev_span: Option<::copyspan::Span> = None;
+    per_field
+        .process_results(|per_field| {
+            per_hook.process_results(|per_hook| match trait_ {
+                ParseTrait::Parse => quote! {
+                    let mut tokens = tokens;
+                    let prev_span: Option<::copyspan::Span> = None;
 
-                #(#per_hook)*
+                    #(#per_hook)*
 
-                #(#per_field)*
+                    #(#per_field)*
 
-                Ok(Some(#struct_initializer))
-            },
-            ParseTrait::ParseLeft => quote! {
-                let mut tokens = *tokens_input;
-                let prev_span: Option<::copyspan::Span> = None;
+                    Ok(Some(#struct_initializer))
+                },
+                ParseTrait::ParseLeft => quote! {
+                    let mut tokens = *tokens_input;
+                    let prev_span: Option<::copyspan::Span> = None;
 
-                #(#per_hook)*
+                    #(#per_hook)*
 
-                #(#per_field)*
+                    #(#per_field)*
 
-                let parse_end_idx = ::mulch::macro_util::subslice_range(tokens_input, tokens).unwrap().start;
-                let span = ::mulch::error::span_of(&tokens_input[..parse_end_idx]).unwrap();
+                    *tokens_input = tokens;
 
-                *tokens_input = tokens;
-
-                Ok(Some(::mulch::error::PartialSpanned(#struct_initializer, span)))
-            },
+                    Ok(Some(#struct_initializer))
+                },
+            })
         })
-    ).flatten()
+        .flatten()
 }
 
 /// Generates an expression that parses a field with the attribute `#[parse_until_next]`
@@ -167,16 +166,13 @@ fn parse_until_next_expr(
 
             let (tokens_to_parse, remaining) = tokens.split_at(range.start);
 
-            let val = <#field_type as ::mulch::parser::Parse>::parse(parser, tokens_to_parse)?
-                .and_then(|val| {
-                    Some(::mulch::error::PartialSpanned(val, ::mulch::error::span_of(tokens_to_parse).or(prev_span.map(|span| span.span_after()))?))
-                });
+            let val = <#field_type as ::mulch::parser::Parse>::parse(parser, tokens_to_parse)?;
 
             if val.is_some() {
                 tokens = remaining;
             }
 
-            val
+            val.map(|val| (val, ::mulch::error::span_of(tokens_to_parse)))
         })
     }
 }
