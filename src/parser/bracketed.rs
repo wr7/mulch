@@ -9,7 +9,9 @@ use crate::{
     gc::{GCPtr, util::GCDebug},
     lexer::{BracketType, Token},
     parser::{
-        self, FindLeft, Parse, ParseLeft, traits::impl_using_parse_left, util::NonBracketedIter,
+        self, FindLeft, Parse, ParseLeft,
+        traits::{FindRight, ParseRight, impl_using_parse_left},
+        util::NonBracketedIter,
     },
     util::element_offset,
 };
@@ -91,6 +93,69 @@ impl<const B: u8, T: GCPtr + GCDebug> FindLeft for Bracketed<B, T> {
                 )?
                 .and_then(|tok| element_offset(tokens, tok))
                 .map(|idx| idx..)
+        )
+    }
+}
+
+impl<const B: u8, T: GCPtr + GCDebug + Parse> ParseRight for Bracketed<B, T> {
+    const EXPECTED_ERROR_FUNCTION_RIGHT: fn(Span) -> crate::error::parse::ParseDiagnostic =
+        parser::error::expected_opening_bracket::<B>;
+
+    fn parse_from_right(
+        parser: &parser::Parser,
+        tokens: &mut &parser::TokenStream,
+    ) -> crate::error::parse::PDResult<Option<Self>> {
+        {
+            let mut nb_iter = NonBracketedIter::new_unfused(&tokens);
+
+            let Some(&PartialSpanned(Token::ClosingBracket(bt), _)) =
+                nb_iter.next_back().transpose()?
+            else {
+                return Ok(None);
+            };
+
+            if bt != Self::BRACKET_TYPE {
+                return Ok(None);
+            }
+
+            let Some(opening @ &PartialSpanned(Token::OpeningBracket(bt), _)) =
+                nb_iter.next_back().transpose()?
+            else {
+                unreachable!();
+            };
+
+            assert!(bt == Self::BRACKET_TYPE);
+
+            let opening_idx = element_offset(&tokens, opening).unwrap();
+
+            let inner = &tokens[opening_idx + 1..tokens.len() - 1];
+            let inner = T::parse(parser, inner)?.ok_or_else(|| {
+                let span = crate::error::span_of(inner).unwrap_or(opening.1.span_at());
+                T::EXPECTED_ERROR_FUNCTION(span)
+            })?;
+
+            *tokens = nb_iter.remainder();
+
+            Ok(Some(Self(inner)))
+        }
+    }
+}
+
+impl<const B: u8, T: GCPtr + GCDebug> FindRight for Bracketed<B, T> {
+    fn find_right(
+        _parser: &parser::Parser,
+        tokens: &parser::TokenStream,
+    ) -> crate::error::parse::PDResult<Option<std::ops::RangeTo<usize>>> {
+        Ok(
+            NonBracketedIter::new(tokens)
+                .rev()
+                .process_results(|mut iter|
+                    iter.find(|tok|
+                        matches!(tok, PartialSpanned(Token::ClosingBracket(bt), _) if *bt == Self::BRACKET_TYPE)
+                    )
+                )?
+                .and_then(|tok| element_offset(tokens, tok))
+                .map(|idx| ..(idx + 1))
         )
     }
 }

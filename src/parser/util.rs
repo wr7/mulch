@@ -159,11 +159,11 @@ pub fn run_parse_hook<T>(
     hook(parser, tokens)
 }
 
-pub fn run_left_parse_hook<T>(
+pub fn run_directional_parse_hook<T>(
     parser: &Parser,
     tokens_input: &mut &TokenStream,
-    hook: fn(&Parser, &mut &TokenStream) -> PDResult<Option<PartialSpanned<T>>>,
-) -> PDResult<Option<PartialSpanned<T>>> {
+    hook: fn(&Parser, &mut &TokenStream) -> PDResult<Option<T>>,
+) -> PDResult<Option<T>> {
     let mut tokens = *tokens_input;
     let res = hook(parser, &mut tokens)?;
     if res.is_some() {

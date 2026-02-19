@@ -17,7 +17,7 @@ pub use util::run_parse_hook;
 
 // Macro helper function used for better error messages
 #[doc(hidden)]
-pub use util::run_left_parse_hook;
+pub use util::run_directional_parse_hook;
 
 pub use bracketed::CurlyBracketed;
 pub use bracketed::Parenthesized;
@@ -35,8 +35,10 @@ pub use separatedlist::SeparatedList;
 pub use separatedlist::SeparatedListIter;
 
 pub use traits::FindLeft;
+pub use traits::FindRight;
 pub use traits::Parse;
 pub use traits::ParseLeft;
+pub use traits::ParseRight;
 
 pub use keyword::Keyword;
 

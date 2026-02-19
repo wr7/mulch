@@ -46,7 +46,13 @@ pub fn u128_string(lit: proc_macro::TokenStream) -> proc_macro::TokenStream {
 
 #[proc_macro_derive(
     Parse,
-    attributes(mulch_parse_error, error_if_not_found, parse_until_next, parse_hook)
+    attributes(
+        mulch_parse_error,
+        error_if_not_found,
+        parse_until_next,
+        parse_hook,
+        parse_direction
+    )
 )]
 pub fn derive_parse(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     parser::parse::derive_parse(parse_macro_input!(item as DeriveInput), ParseTrait::Parse)
@@ -62,6 +68,19 @@ pub fn derive_parse_left(item: proc_macro::TokenStream) -> proc_macro::TokenStre
     parser::parse::derive_parse(
         parse_macro_input!(item as DeriveInput),
         ParseTrait::ParseLeft,
+    )
+    .unwrap_or_else(|err| err.into_compile_error())
+    .into()
+}
+
+#[proc_macro_derive(
+    ParseRight,
+    attributes(mulch_parse_error, error_if_not_found, parse_until_next, parse_hook)
+)]
+pub fn derive_parse_right(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    parser::parse::derive_parse(
+        parse_macro_input!(item as DeriveInput),
+        ParseTrait::ParseRight,
     )
     .unwrap_or_else(|err| err.into_compile_error())
     .into()

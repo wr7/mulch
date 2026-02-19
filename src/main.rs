@@ -24,6 +24,10 @@ pub mod parser_old;
 
 mod util;
 
+// TODO:
+// - Make parse_with_span functions return (Option<Self>, Option<Span>)
+// - Maybe rewrite `NonBracketedIter` to not have any internal state other than the token stream?
+
 pub fn main() {
     let db = SourceDB::new();
 
