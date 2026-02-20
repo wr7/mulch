@@ -211,6 +211,10 @@ impl<T: Parse> Parse for PartialSpanned<T> {
     const EXPECTED_ERROR_FUNCTION: fn(Span) -> ParseDiagnostic = T::EXPECTED_ERROR_FUNCTION;
 
     fn parse(parser: &Parser, tokens: &TokenStream) -> PDResult<Option<Self>> {
+        let Some(val) = T::parse(parser, tokens)? else {
+            return Ok(None);
+        };
+
         let Some(span) = span_of(tokens) else {
             panic!(
                 "The parse trait implementations for `PartialSpanned<{T}>` should not be used because `{T}` can be parsed from an empty tokenstream",
@@ -218,7 +222,7 @@ impl<T: Parse> Parse for PartialSpanned<T> {
             );
         };
 
-        Ok(T::parse(parser, tokens)?.map(|val| PartialSpanned(val, span)))
+        Ok(Some(PartialSpanned(val, span)))
     }
 }
 

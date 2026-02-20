@@ -32,16 +32,10 @@ pub fn main() {
     let db = SourceDB::new();
 
     let source = indoc! {"
-        {
-            x;
-            y = p;
-            z: [
-                a,
-                b,
-                {w} @ c = {w = cat}
-            ]
-        } @ d
-        -> ssdfg
+        map {
+            function = x -> add(x, n_1);
+            list = [a, b, c];
+        }
     "};
 
     let file_id = db.add("main.mulch".into(), source.to_owned());

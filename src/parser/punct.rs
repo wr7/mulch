@@ -6,8 +6,8 @@ use crate::{
     error::{PartialSpanned, parse::ParseDiagnostic},
     lexer::{Symbol, Token},
     parser::{
-        self, FindLeft, Parse, ParseLeft, Parser, traits::impl_using_parse_left,
-        util::NonBracketedIter,
+        self, FindLeft, FindRight, Parse, ParseLeft, ParseRight, Parser,
+        traits::impl_using_parse_left, util::NonBracketedIter,
     },
     util::element_offset,
 };
@@ -60,6 +60,46 @@ impl<const S: u128> FindLeft for Punct<S> {
                 })?
                 .and_then(|tok| element_offset(tokens, tok))
                 .map(|idx| idx..)
+        )
+    }
+}
+
+impl<const S: u128> ParseRight for Punct<S> {
+    const EXPECTED_ERROR_FUNCTION_RIGHT: fn(Span) -> ParseDiagnostic =
+        parser::error::expected_punctuation::<S>;
+
+    fn parse_from_right(
+        _gc: &Parser,
+        tokens: &mut &super::TokenStream,
+    ) -> crate::error::parse::PDResult<Option<Self>> {
+        let [rem @ .., PartialSpanned(Token::Symbol(sym), _)] = tokens else {
+            return Ok(None);
+        };
+
+        if *sym != Self::SYMBOL {
+            return Ok(None);
+        }
+
+        *tokens = rem;
+        Ok(Some(Self()))
+    }
+}
+
+impl<const S: u128> FindRight for Punct<S> {
+    fn find_right<'a, 'src>(
+        _: &Parser,
+        tokens: &'a parser::TokenStream<'src>,
+    ) -> crate::error::parse::PDResult<Option<std::ops::RangeTo<usize>>> {
+        Ok(
+            NonBracketedIter::new(tokens)
+                .rev()
+                .process_results(|mut iter| {
+                    iter.find(|tok|
+                        matches!(**tok, PartialSpanned(Token::Symbol(sym), _) if sym == Self::SYMBOL),
+                    )
+                })?
+                .and_then(|tok| element_offset(tokens, tok))
+                .map(|idx| ..idx + 1)
         )
     }
 }

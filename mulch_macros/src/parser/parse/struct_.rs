@@ -74,6 +74,7 @@ pub fn derive_struct_fn_body(
             },
             ParseTrait::ParseLeft | ParseTrait::ParseRight => quote! {
                 if let Some(res) = ::mulch::parser::run_directional_parse_hook::<Self>(parser, &mut tokens, #hook)? {
+                    *tokens_input = tokens;
                     return Ok(Some(res));
                 }
             },

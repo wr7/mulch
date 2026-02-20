@@ -28,10 +28,16 @@ impl<T: GCPtr + Parse, S: FindLeft + ParseLeft> Parse for SeparatedList<T, S> {
 
         let gc_vec = unsafe { GCVec::new(parser.gc, &items) };
 
-        Ok(Some(Self {
-            values: gc_vec,
+        Ok(Some(Self::from(gc_vec)))
+    }
+}
+
+impl<T: GCPtr, S> From<GCVec<T>> for SeparatedList<T, S> {
+    fn from(value: GCVec<T>) -> Self {
+        Self {
+            values: value,
             _phantomdata: PhantomData,
-        }))
+        }
     }
 }
 

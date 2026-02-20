@@ -1,11 +1,11 @@
-use mulch_macros::{GCDebug, GCPtr, Parse, keyword};
+use mulch_macros::{GCDebug, GCPtr, Parse, ParseRight, keyword};
 
 use crate::{
     error::{PartialSpanned, parse::PDResult},
-    gc::GCBox,
+    gc::{GCBox, GCVec, util::GCDebug},
     parser::{
-        self, CurlyBracketed, Ident, Parenthesized, Parse, Parser, SeparatedList, SquareBracketed,
-        TokenStream, ast::ident_or_string::IdentOrString, punct,
+        self, Bracketed, CurlyBracketed, Ident, Parenthesized, Parse, ParseRight, Parser,
+        SeparatedList, SquareBracketed, TokenStream, ast::ident_or_string::IdentOrString, punct,
     },
 };
 
@@ -30,13 +30,17 @@ pub enum Expression {
 
     #[debug_direct]
     LetIn(LetIn),
-    // FunctionCall(FunctionCall),
+
     #[debug_direct]
     Lambda(Lambda),
+
+    MethodCall(MethodCall),
+    FunctionCall(FunctionCall),
     // BinaryOperation(BinaryOperation),
-    // MemberAccess(MemberAccess),
+    MemberAccess(MemberAccess),
     #[parse_hook(parse_parenthized_expression)]
-    Set(CurlyBracketed<SeparatedList<NamedValue, punct![";"]>>),
+    #[debug_direct]
+    Set(Set),
     List(SquareBracketed<SeparatedList<Expression, punct![","]>>),
 }
 
@@ -45,6 +49,56 @@ fn parse_parenthized_expression(
     tokens: &TokenStream,
 ) -> PDResult<Option<Expression>> {
     Ok(Parenthesized::<Expression>::parse(parser, tokens)?.map(|val| val.0))
+}
+
+#[derive(GCPtr, Parse, Clone, Copy)]
+#[mulch_parse_error(|_| unimplemented!())]
+pub struct Set(pub CurlyBracketed<SeparatedList<NamedValue, punct![";"]>>);
+
+impl GCDebug for Set {
+    unsafe fn gc_debug(
+        self,
+        gc: &crate::gc::GarbageCollector,
+        f: &mut std::fmt::Formatter,
+    ) -> std::fmt::Result {
+        write!(f, "Set ")?;
+        unsafe { self.0.gc_debug(gc, f) }
+    }
+}
+
+#[derive(GCPtr, GCDebug, Parse, Clone, Copy)]
+#[parse_direction(Right)]
+#[mulch_parse_error(|_| unimplemented!())]
+pub struct MemberAccess {
+    #[error_if_not_found]
+    pub lhs: GCBox<Expression>,
+
+    #[debug_hidden]
+    pub dot_: punct!["."],
+
+    pub rhs: IdentOrString,
+}
+
+#[derive(GCPtr, GCDebug, Parse, Clone, Copy)]
+#[parse_direction(Right)]
+#[mulch_parse_error(|_| unimplemented!())]
+pub struct FunctionCall {
+    function: GCBox<Expression>,
+
+    args: FunctionCallArgs,
+}
+
+#[derive(GCPtr, GCDebug, Parse, Clone, Copy)]
+#[parse_direction(Right)]
+#[mulch_parse_error(|_| unimplemented!())]
+pub struct MethodCall {
+    lhs: GCBox<Expression>,
+
+    dot_: punct!["."],
+
+    method: PartialSpanned<IdentOrString>,
+
+    args: FunctionCallArgs,
 }
 
 #[derive(GCPtr, GCDebug, Parse, Clone, Copy)]
@@ -93,4 +147,30 @@ pub struct NamedValue {
 
     #[error_if_not_found]
     pub value: Expression,
+}
+
+#[derive(GCPtr, GCDebug, ParseRight, Clone, Copy)]
+#[mulch_parse_error(|_| unimplemented!())]
+#[parse_hook(function_call_args_set_hook)]
+pub struct FunctionCallArgs(Parenthesized<SeparatedList<PartialSpanned<Expression>, punct![","]>>);
+
+fn function_call_args_set_hook(
+    parser: &Parser,
+    tokens: &mut &TokenStream,
+) -> PDResult<Option<FunctionCallArgs>> {
+    let Some(PartialSpanned(set, span)) = PartialSpanned::<
+        CurlyBracketed<SeparatedList<NamedValue, punct![";"]>>,
+    >::parse_from_right(parser, tokens)?
+    else {
+        return Ok(None);
+    };
+
+    let list = unsafe {
+        GCVec::new(
+            parser.gc,
+            &[PartialSpanned(Expression::Set(Set(set)), span)],
+        )
+    };
+
+    Ok(Some(FunctionCallArgs(Bracketed(SeparatedList::from(list)))))
 }
