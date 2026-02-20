@@ -108,10 +108,17 @@ fn gcdebug_fn_body_struct(
         .next()
         .is_none_or(|field| field.ident.is_none());
 
-    let debug_direct = input
+    let debug_direct_with_name = input
         .attrs
         .iter()
-        .find(|attr| attr.path().is_ident("debug_direct"));
+        .find(|attr| attr.path().is_ident("debug_direct_with_name"));
+
+    let debug_direct = debug_direct_with_name.or_else(|| {
+        input
+            .attrs
+            .iter()
+            .find(|attr| attr.path().is_ident("debug_direct"))
+    });
 
     if let Some(debug_direct) = debug_direct {
         let mut iter = DebugFieldIter::new(&data_struct.fields);
@@ -122,7 +129,15 @@ fn gcdebug_fn_body_struct(
             let name = field.name;
             let field_access = quote! { self.#name };
 
+            let with_name = debug_direct_with_name.map(|_| {
+                let mut struct_name = input.ident.to_string();
+                struct_name.push(' ');
+
+                quote! {::std::write!(f, #struct_name)?;}
+            });
+
             return Ok(quote! {
+                #with_name
                 ::mulch::gc::util::GCDebug::gc_debug(#field_access, gc, f)
             });
         } else {

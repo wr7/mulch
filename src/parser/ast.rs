@@ -2,7 +2,7 @@ use mulch_macros::{GCDebug, GCPtr, Parse, ParseRight, keyword};
 
 use crate::{
     error::{PartialSpanned, parse::PDResult},
-    gc::{GCBox, GCVec, util::GCDebug},
+    gc::{GCBox, GCVec},
     parser::{
         self, Bracketed, CurlyBracketed, Ident, Parenthesized, Parse, ParseRight, Parser,
         SeparatedList, SquareBracketed, TokenStream, ast::ident_or_string::IdentOrString, punct,
@@ -19,6 +19,7 @@ pub use lambda::Lambda;
 #[repr(usize)]
 #[msb_reserved]
 #[mulch_parse_error(parser::error::invalid_expression)]
+#[rustfmt::skip]
 pub enum Expression {
     Variable(Ident),
     // StringLiteral(GCString),
@@ -38,10 +39,14 @@ pub enum Expression {
     FunctionCall(FunctionCall),
     // BinaryOperation(BinaryOperation),
     MemberAccess(MemberAccess),
+
     #[parse_hook(parse_parenthized_expression)]
+
     #[debug_direct]
     Set(Set),
-    List(SquareBracketed<SeparatedList<Expression, punct![","]>>),
+
+    #[debug_direct]
+    List(List),
 }
 
 fn parse_parenthized_expression(
@@ -51,20 +56,15 @@ fn parse_parenthized_expression(
     Ok(Parenthesized::<Expression>::parse(parser, tokens)?.map(|val| val.0))
 }
 
-#[derive(GCPtr, Parse, Clone, Copy)]
+#[derive(GCPtr, GCDebug, Parse, Clone, Copy)]
+#[debug_direct_with_name]
 #[mulch_parse_error(|_| unimplemented!())]
 pub struct Set(pub CurlyBracketed<SeparatedList<NamedValue, punct![";"]>>);
 
-impl GCDebug for Set {
-    unsafe fn gc_debug(
-        self,
-        gc: &crate::gc::GarbageCollector,
-        f: &mut std::fmt::Formatter,
-    ) -> std::fmt::Result {
-        write!(f, "Set ")?;
-        unsafe { self.0.gc_debug(gc, f) }
-    }
-}
+#[derive(GCPtr, GCDebug, Parse, Clone, Copy)]
+#[debug_direct_with_name]
+#[mulch_parse_error(|_| unimplemented!())]
+pub struct List(pub SquareBracketed<SeparatedList<Expression, punct![","]>>);
 
 #[derive(GCPtr, GCDebug, Parse, Clone, Copy)]
 #[parse_direction(Right)]
@@ -152,6 +152,7 @@ pub struct NamedValue {
 #[derive(GCPtr, GCDebug, ParseRight, Clone, Copy)]
 #[mulch_parse_error(|_| unimplemented!())]
 #[parse_hook(function_call_args_set_hook)]
+#[debug_direct_with_name]
 pub struct FunctionCallArgs(Parenthesized<SeparatedList<PartialSpanned<Expression>, punct![","]>>);
 
 fn function_call_args_set_hook(

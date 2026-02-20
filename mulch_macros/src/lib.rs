@@ -10,7 +10,10 @@ mod parser;
 
 mod util;
 
-#[proc_macro_derive(GCDebug, attributes(debug_direct, debug_hidden))]
+#[proc_macro_derive(
+    GCDebug,
+    attributes(debug_direct, debug_direct_with_name, debug_hidden)
+)]
 pub fn derive_gc_debug(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     gc_debug::derive_gc_debug(parse_macro_input!(item as DeriveInput))
         .unwrap_or_else(|err| err.into_compile_error())
