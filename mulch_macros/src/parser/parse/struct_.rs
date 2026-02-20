@@ -122,14 +122,20 @@ fn generate_field_parsing_code(
     let else_body = if field.error_if_not_found {
         match params.direction {
             ParseDirection::Left => quote! {
-                let Some(span) = tokens.first().map(|t| t.1.span_at()).or_else(|| prev_span.map(|span| span.span_after())) else {
+                let Some(span) = span
+                    .or_else(|| tokens.first().map(|t| t.1.span_at()))
+                    .or_else(|| prev_span.map(|span| span.span_after()))
+                else {
                     return Ok(None);
                 };
 
                 return Err(<#field_type as ::mulch::parser::Parse>::EXPECTED_ERROR_FUNCTION(span));
             },
             ParseDirection::Right => quote! {
-                let Some(span) = tokens.last().map(|t| t.1.span_after()).or_else(|| prev_span.map(|span| span.span_at())) else {
+                let Some(span) = span
+                    .or_else(|| tokens.last().map(|t| t.1.span_after()))
+                    .or_else(|| prev_span.map(|span| span.span_at()))
+                else {
                     return Ok(None);
                 };
 
@@ -142,38 +148,43 @@ fn generate_field_parsing_code(
         }
     };
 
-    Ok(if next_field.is_some() || trait_ != ParseTrait::Parse {
-        let parse = if field.parse_until_next {
-            let Some(&next_field) = next_field else {
-                return Err(syn::Error::new(
-                    Span::call_site(),
-                    "#[parse_until_next] cannot be applied to the last field of a struct",
-                ));
-            };
+    if next_field.is_none() && trait_ == ParseTrait::Parse {
+        return Ok(quote! {
+            let span = ::mulch::error::span_of(tokens);
 
-            parse_until_next_expr(field, next_field, params)
-        } else {
-            let dir_trait = params.direction.parse_trait_name();
-            let fn_name = params.direction.parse_with_span_fn_name();
-
-            quote! {
-                <#field_type as ::mulch::parser::#dir_trait>::#fn_name(parser, &mut tokens)?
-            }
-        };
-
-        quote! {
-            let Some((#field_var_name, span)) = #parse else {
-                #else_body
-            };
-
-            let prev_span = span.or(prev_span);
-        }
-    } else {
-        quote! {
             let Some(#field_var_name) = <#field_type as ::mulch::parser::Parse>::parse(parser, tokens)? else {
                 #else_body
             };
+        });
+    }
+
+    let parse = if field.parse_until_next {
+        let Some(&next_field) = next_field else {
+            return Err(syn::Error::new(
+                Span::call_site(),
+                "#[parse_until_next] cannot be applied to the last field of a struct",
+            ));
+        };
+
+        parse_until_next_expr(field, next_field, params)
+    } else {
+        let dir_trait = params.direction.parse_trait_name();
+        let fn_name = params.direction.parse_with_span_fn_name();
+
+        quote! {
+            <#field_type as ::mulch::parser::#dir_trait>::#fn_name(parser, &mut tokens)?
+                .map_or((None, None), |(val, span)| (Some(val), span))
         }
+    };
+
+    Ok(quote! {
+        let (#field_var_name, span) = #parse;
+
+        let Some(#field_var_name) = #field_var_name else {
+            #else_body
+        };
+
+        let prev_span = span.or(prev_span);
     })
 }
 
@@ -234,7 +245,7 @@ fn parse_until_next_expr(
                 tokens = remaining;
             }
 
-            val.map(|val| (val, ::mulch::error::span_of(tokens_to_parse)))
+            (val, ::mulch::error::span_of(tokens_to_parse))
         })
     }
 }
