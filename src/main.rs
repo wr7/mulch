@@ -17,21 +17,20 @@ pub mod error;
 pub mod eval;
 pub mod gc;
 pub mod lexer;
-#[doc(hidden)]
-pub mod macro_util;
 pub mod parser;
 pub mod parser_old;
 
 mod util;
 
 // TODO:
+// - Investigate GCBox enum space optimization
 // - Maybe rewrite `NonBracketedIter` to not have any internal state other than the token stream?
 
 pub fn main() {
     let db = SourceDB::new();
 
     let source = indoc! {"
-        let x = 67 in x
+        {x = def_x; y: {z; w}} -> add(x, n_1)
     "};
 
     let file_id = db.add("main.mulch".into(), source.to_owned());

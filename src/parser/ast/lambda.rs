@@ -2,9 +2,10 @@ use mulch_macros::{GCDebug, GCPtr, Parse, ParseLeft, punct};
 
 use crate::{
     error::parse::PDResult,
-    gc::GCBox,
+    gc::{GCBox, GCVec},
     parser::{
-        self, CurlyBracketed, Ident, Parse, Parser, SeparatedList, SquareBracketed, TokenStream,
+        self, Bracketed, CurlyBracketed, Ident, Parenthesized, Parse, Parser, SeparatedList,
+        SquareBracketed, TokenStream,
         ast::{Expression, ident_or_string::IdentOrString},
     },
 };
@@ -14,7 +15,7 @@ use crate::{
 pub struct Lambda {
     #[parse_until_next]
     #[error_if_not_found]
-    args: Args,
+    args: Arguments,
     #[debug_hidden]
     arrow: punct!("->"),
     #[error_if_not_found]
@@ -23,51 +24,69 @@ pub struct Lambda {
 
 #[derive(Clone, Copy, GCPtr, GCDebug, Parse)]
 #[mulch_parse_error(parser::error::expected_lambda_arguments)]
-pub enum Args {
+#[parse_hook(arguments_parse_hook)]
+#[debug_direct]
+pub struct Arguments(pub Parenthesized<SeparatedList<Argument, punct!(",")>>);
+
+fn arguments_parse_hook(parser: &Parser, tokens: &TokenStream) -> PDResult<Option<Arguments>> {
+    let args = if let Some(args) = SingleArgument::parse(parser, tokens)? {
+        Argument::Single(args)
+    } else if let Some(args) = SetArgument::parse(parser, tokens)? {
+        Argument::Set(args)
+    } else {
+        return Ok(None);
+    };
+
+    Ok(Some(Arguments(Bracketed(SeparatedList::from(unsafe {
+        GCVec::new(parser.gc, &[args])
+    })))))
+}
+
+#[derive(Clone, Copy, GCPtr, GCDebug, Parse)]
+#[mulch_parse_error(parser::error::expected_lambda_argument)]
+pub enum Argument {
     #[debug_direct]
-    Single(SingleArg),
+    Single(SingleArgument),
     #[debug_direct]
-    List(ListArgs),
+    List(ListArgument),
     #[debug_direct]
-    Set(SetArgs),
+    Set(SetArgument),
 }
 
 #[derive(Clone, Copy, GCPtr, GCDebug, Parse)]
 #[mulch_parse_error(|_| unimplemented!())]
-pub struct SingleArg {
+pub struct SingleArgument {
     name: Ident,
     default_value: Option<ArgDefaultValue>,
 }
 
 #[derive(Clone, Copy, GCPtr, GCDebug, Parse)]
 #[mulch_parse_error(|_| unimplemented!())]
-pub struct ListArgs {
-    list: SquareBracketed<SeparatedList<Args, punct!(",")>>,
+pub struct ListArgument {
+    list: SquareBracketed<SeparatedList<Argument, punct!(",")>>,
     binding: Option<ArgBinding>,
     default_value: Option<ArgDefaultValue>,
 }
 
 #[derive(Clone, Copy, GCPtr, GCDebug, Parse)]
 #[mulch_parse_error(|_| unimplemented!())]
-pub struct SetArgs {
+pub struct SetArgument {
     set: CurlyBracketed<SeparatedList<ArgAttribute, punct!(";")>>,
     binding: Option<ArgBinding>,
     default_value: Option<ArgDefaultValue>,
 }
 
 #[derive(Clone, Copy, GCPtr, GCDebug, Parse)]
-#[mulch_parse_error(|_| unimplemented!())]
+#[mulch_parse_error(parser::error::expected_lambda_attribute_argument)]
 #[parse_hook(parse_simple_arg_attribute)]
 pub struct ArgAttribute {
     #[error_if_not_found]
     attr: IdentOrString,
 
     #[debug_hidden]
-    #[error_if_not_found]
     colon_: punct!(":"),
 
-    #[error_if_not_found]
-    arg: Args,
+    arg: Argument,
 }
 
 #[derive(Clone, Copy, GCPtr, GCDebug, ParseLeft)]
@@ -84,6 +103,8 @@ pub struct ArgBinding {
 pub struct ArgDefaultValue {
     #[debug_hidden]
     eq_: punct!("="),
+
+    #[error_if_not_found]
     val: GCBox<Expression>,
 }
 
@@ -91,9 +112,11 @@ fn parse_simple_arg_attribute(
     parser: &Parser,
     tokens: &TokenStream,
 ) -> PDResult<Option<ArgAttribute>> {
-    Ok(SingleArg::parse(parser, tokens)?.map(|arg| ArgAttribute {
-        attr: IdentOrString(arg.name.0),
-        colon_: punct!(":")(),
-        arg: Args::Single(arg),
-    }))
+    Ok(
+        SingleArgument::parse(parser, tokens)?.map(|arg| ArgAttribute {
+            attr: IdentOrString(arg.name.0),
+            colon_: punct!(":")(),
+            arg: Argument::Single(arg),
+        }),
+    )
 }

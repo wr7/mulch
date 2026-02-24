@@ -65,24 +65,16 @@ pub fn expected_lambda_arguments(span: Span) -> ParseDiagnostic {
     parse_error!("EP0011", "Expected lambda arguments", [{"here", span, primary}])
 }
 
-pub fn invalid_lambda_arguments(span: Span) -> ParseDiagnostic {
-    parse_error!("EP0012", "Invalid lambda arguments", [{"here", span, primary}])
+pub fn expected_lambda_argument(span: Span) -> ParseDiagnostic {
+    if span.is_empty() {
+        parse_error!("EP0012", "Expected lambda argument", [{"here", span, primary}])
+    } else {
+        parse_error!("EP0012", "Invalid lambda argument", [{"here", span, primary}])
+    }
 }
 
-pub fn invalid_function_call_args(
-    expr_span: Span,
-    open_br: PartialSpanned<&Token>,
-) -> ParseDiagnostic {
-    parse_error!("EP0013",
-        concat!(
-            "Invalid function call arguments.\n\n",
-            "Function calls must be of the form `function[arg1, arg2, ...]` or `function{arg1 = ...; arg2=...; ...}`"
-        ),
-        [
-            {"function call here", expr_span, primary},
-            {format!("expected `{{` or `[`; got `{}`", open_br.0.to_string()), open_br.1, secondary}
-        ]
-    )
+pub fn expected_lambda_attribute_argument(span: Span) -> ParseDiagnostic {
+    parse_error!("EP0013", "Expected lambda attribute argument", [{"here", span, primary}])
 }
 
 pub fn expected_keyword<const K: u128>(span: Span) -> ParseDiagnostic {
