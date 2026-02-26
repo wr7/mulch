@@ -4,9 +4,8 @@ use crate::{
     error::parse::PDResult,
     gc::{GCBox, GCVec},
     parser::{
-        self, Bracketed, CurlyBracketed, Ident, Parenthesized, Parse, Parser, SeparatedList,
-        SquareBracketed, TokenStream,
-        ast::{Expression, ident_or_string::IdentOrString},
+        self, Bracketed, CurlyBracketed, Ident, IdentOrString, Parenthesized, Parse, Parser,
+        SeparatedList, SquareBracketed, TokenStream, ast::Expression,
     },
 };
 

@@ -1,10 +1,15 @@
-use crate::gc::GarbageCollector;
-use crate::{error::PartialSpanned, lexer::Token};
+use mulch_macros::{GCDebug, GCPtr};
+
+use crate::{
+    error::PartialSpanned,
+    gc::{GCString, GarbageCollector},
+    lexer::Token,
+    parser::{self, traits::single_token_parse_type},
+};
 
 pub mod ast;
 mod bracketed;
 pub mod error;
-mod ident;
 mod keyword;
 mod punct;
 mod separatedlist;
@@ -24,7 +29,6 @@ pub use bracketed::Parenthesized;
 pub use bracketed::SquareBracketed;
 
 pub use bracketed::Bracketed;
-pub use ident::Ident;
 pub use punct::Punct;
 
 /// The [`Punct`] type. Takes a string literal as input.
@@ -59,5 +63,30 @@ pub struct Parser<'a> {
 impl<'a> Parser<'a> {
     pub fn new_default(gc: &'a GarbageCollector) -> Self {
         Self { gc }
+    }
+}
+
+single_token_parse_type! {
+    error_function = parser::error::expected_identifier;
+
+    #[derive(Clone, Copy, GCPtr, GCDebug)]
+    #[debug_direct]
+    pub struct Ident(pub GCString);
+
+    |parser| {
+        Token::Identifier(ident) => Self(GCString::new(parser.gc, ident))
+    }
+}
+
+single_token_parse_type! {
+    error_function = parser::error::expected_ident_or_string;
+
+    #[derive(Clone, Copy, GCPtr, GCDebug)]
+    #[debug_direct]
+    pub struct IdentOrString(pub GCString);
+
+    |parser| {
+        Token::Identifier(ident) => Self(GCString::new(parser.gc, ident)),
+        Token::StringLiteral(lit) => Self(GCString::new(parser.gc, lit)),
     }
 }

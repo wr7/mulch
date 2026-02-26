@@ -82,7 +82,7 @@ fn gcptr_fn_body_enum(data_enum: &DataEnum) -> TokenStream {
 
                 quote!{Self::#variant_name(#(#per_field_input),*) => Self::#variant_name(#(#per_field_output),*)}
             },
-            Fields::Unit => quote! { Self::#variant_name() => self},
+            Fields::Unit => quote! { Self::#variant_name => self},
         }
     });
 

@@ -252,14 +252,16 @@ impl<T: FindRight + GCPtr> FindRight for GCBox<T> {
 
 macro_rules! impl_using_parse_left {
     () => {
-        const EXPECTED_ERROR_FUNCTION: fn(copyspan::Span) -> crate::error::parse::ParseDiagnostic =
-            Self::EXPECTED_ERROR_FUNCTION_LEFT;
+        const EXPECTED_ERROR_FUNCTION: fn(copyspan::Span) -> $crate::error::parse::ParseDiagnostic =
+            <Self as $crate::parser::traits::ParseLeft>::EXPECTED_ERROR_FUNCTION_LEFT;
 
         fn parse(
             parser: &$crate::parser::Parser,
             mut tokens: &$crate::parser::TokenStream,
         ) -> $crate::error::parse::PDResult<::core::option::Option<Self>> {
-            let Some(val) = Self::parse_from_left(parser, &mut tokens)? else {
+            let Some(val) =
+                <Self as $crate::parser::traits::ParseLeft>::parse_from_left(parser, &mut tokens)?
+            else {
                 return Ok(None);
             };
 
@@ -273,3 +275,200 @@ macro_rules! impl_using_parse_left {
 }
 
 pub(super) use impl_using_parse_left;
+
+macro_rules! single_token_parse_type {
+    {
+        error_function = $error_function:expr;
+
+        $(
+            #[$attr:meta]
+        )*
+        $vis:vis enum $name:ident {
+            $(
+                $pat:pat => $variant:ident $((
+                    $(
+                        $ty:ty: $expr:expr
+                    ),* $(,)?
+                ))?
+            ),+ $(,)?
+        }
+    } => {
+        $(
+            #[$attr]
+        )*
+        $vis enum $name {
+            $(
+                $variant $((
+                    $(
+                        $ty
+                    ),*
+                ))?
+            ),+
+        }
+
+        $crate::parser::traits::_impl_parsing_for_single_token_type! {
+            name: $name,
+            parser_name: parser_name,
+            error_function: $error_function,
+            patterns: [$(
+                $pat => Self::$variant $((
+                    $($expr),*
+                ))?
+            ),+]
+        }
+    };
+
+    {
+        error_function = $error_function:expr;
+
+        $(
+            #[$attr:meta]
+        )*
+
+        $vis:vis struct $name:ident ($($field_vis:vis $field:ty),+ $(,)?);
+
+        |$parser_name:ident| {$(
+            $pat:pat => $expr:expr
+        ),+ $(,)?}
+    } => {
+        $(
+            #[$attr]
+        )*
+
+        $vis struct $name ($(
+            $field_vis $field
+        ),+);
+
+        $crate::parser::traits::_impl_parsing_for_single_token_type! {
+            name: $name,
+            parser_name: $parser_name,
+            error_function: $error_function,
+            patterns: [$(
+                $pat => $expr
+            ),+]
+        }
+    };
+}
+
+pub(super) use single_token_parse_type;
+
+#[doc(hidden)]
+macro_rules! _impl_parsing_for_single_token_type {
+    {
+        name: $name:ident,
+        parser_name: $parser_name:ident,
+        error_function: $error_function:expr,
+        patterns: [$(
+            $pat:pat => $expr:expr
+        ),+]
+    } => {
+
+        #[automatically_derived]
+        impl $crate::parser::traits::ParseRight for $name {
+            const EXPECTED_ERROR_FUNCTION_RIGHT: fn(::copyspan::Span) -> $crate::error::parse::ParseDiagnostic = $error_function;
+
+            fn parse_from_right(
+                $parser_name: &$crate::parser::Parser,
+                tokens: &mut &$crate::parser::TokenStream,
+            ) -> $crate::error::parse::PDResult<Option<Self>> {
+                let [rem @ .., $crate::error::PartialSpanned(token, _)] = tokens else {
+                    return Ok(None);
+                };
+
+                let val = match token {
+                    $(
+                        $pat => $expr,
+                    )+
+
+                    _ => return Ok(None),
+                };
+
+                *tokens = rem;
+
+                Ok(Some(val))
+            }
+        }
+
+        #[automatically_derived]
+        impl $crate::parser::traits::ParseLeft for $name {
+            const EXPECTED_ERROR_FUNCTION_LEFT: fn(::copyspan::Span) -> $crate::error::parse::ParseDiagnostic = $error_function;
+
+            fn parse_from_left(
+                $parser_name: &$crate::parser::Parser,
+                tokens: &mut &$crate::parser::TokenStream,
+            ) -> $crate::error::parse::PDResult<Option<Self>> {
+                let [$crate::error::PartialSpanned(token, _), rem @ ..] = tokens else {
+                    return Ok(None);
+                };
+
+                let val = match token {
+                    $(
+                        $pat => $expr,
+                    )+
+
+                    _ => return Ok(None),
+                };
+
+                *tokens = rem;
+
+                Ok(Some(val))
+            }
+        }
+
+        #[automatically_derived]
+        impl $crate::parser::traits::Parse for $name {
+            $crate::parser::traits::impl_using_parse_left!();
+        }
+
+        #[automatically_derived]
+        impl $crate::parser::traits::FindLeft for $name {
+            fn find_left(
+                parser: &$crate::parser::Parser,
+                tokens: &$crate::parser::TokenStream,
+            ) -> $crate::error::parse::PDResult<Option<std::ops::RangeFrom<usize>>> {
+                Ok(::itertools::process_results(
+                    $crate::parser::util::NonBracketedIter::new(tokens),
+                    |mut iter| {
+                        iter.find(|$crate::error::PartialSpanned(t, _)| {
+                            match t {
+                                $(
+                                    $pat => true,
+                                )+
+                                _ => false,
+                            }
+                        })
+                    },
+                )?
+                .and_then(|tok| $crate::util::element_offset(tokens, tok))
+                .map(|idx| idx..))
+            }
+        }
+
+        #[automatically_derived]
+        impl $crate::parser::traits::FindRight for $name {
+            fn find_right(
+                parser: &$crate::parser::Parser,
+                tokens: &$crate::parser::TokenStream,
+            ) -> $crate::error::parse::PDResult<Option<std::ops::RangeTo<usize>>> {
+                Ok(::itertools::process_results(
+                    $crate::parser::util::NonBracketedIter::new(tokens),
+                    |mut iter| {
+                        iter.rfind(|$crate::error::PartialSpanned(t, _)| {
+                            match t {
+                                $(
+                                    $pat => true,
+                                )+
+                                _ => false,
+                            }
+                        })
+                    },
+                )?
+                .and_then(|tok| $crate::util::element_offset(tokens, tok))
+                .map(|idx| ..idx + 1))
+            }
+        }
+    };
+}
+
+#[doc(hidden)]
+pub(super) use _impl_parsing_for_single_token_type;

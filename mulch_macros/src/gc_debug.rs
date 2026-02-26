@@ -80,7 +80,7 @@ fn gcdebug_fn_body_enum(data_enum: &syn::DataEnum) -> TokenStream {
                 });
                 quote! {(#(#per_field_in),*) => f.debug_tuple(#variant_name) #(#per_field_out)*.finish()}
             }
-            syn::Fields::Unit => quote! {() => f.debug_tuple(#variant_name).finish()},
+            syn::Fields::Unit => quote! { => f.debug_tuple(#variant_name).finish()},
         }};
 
         quote!(Self::#variant_ident #code)

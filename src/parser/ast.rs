@@ -4,12 +4,11 @@ use crate::{
     error::{PartialSpanned, parse::PDResult},
     gc::{GCBox, GCVec},
     parser::{
-        self, Bracketed, CurlyBracketed, Ident, Parenthesized, Parse, ParseRight, Parser,
-        SeparatedList, SquareBracketed, TokenStream, ast::ident_or_string::IdentOrString, punct,
+        self, Bracketed, CurlyBracketed, Ident, IdentOrString, Parenthesized, Parse, ParseRight,
+        Parser, SeparatedList, SquareBracketed, TokenStream, punct,
     },
 };
 
-mod ident_or_string;
 pub mod lambda;
 
 #[doc(inline)]
