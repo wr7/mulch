@@ -50,17 +50,14 @@ impl<const S: u128> FindLeft for Punct<S> {
     fn find_left<'a, 'src>(
         _: &Parser,
         tokens: &'a parser::TokenStream<'src>,
-    ) -> crate::error::parse::PDResult<Option<std::ops::RangeFrom<usize>>> {
-        Ok(
-            NonBracketedIter::new(tokens)
-                .process_results(|mut iter| {
-                    iter.find(|tok|
-                        matches!(**tok, PartialSpanned(Token::Symbol(sym), _) if sym == Self::SYMBOL),
-                    )
-                })?
-                .and_then(|tok| element_offset(tokens, tok))
-                .map(|idx| idx..)
-        )
+    ) -> crate::error::parse::PDResult<Option<std::ops::Range<usize>>> {
+        NonBracketedIter::new(tokens).process_results(|mut iter| {
+            iter.find(
+                |tok| matches!(**tok, PartialSpanned(Token::Symbol(sym), _) if sym == Self::SYMBOL),
+            )
+            .and_then(|tok| element_offset(tokens, tok))
+            .map(|idx| idx..idx + 1)
+        })
     }
 }
 
@@ -89,7 +86,7 @@ impl<const S: u128> FindRight for Punct<S> {
     fn find_right<'a, 'src>(
         _: &Parser,
         tokens: &'a parser::TokenStream<'src>,
-    ) -> crate::error::parse::PDResult<Option<std::ops::RangeTo<usize>>> {
+    ) -> crate::error::parse::PDResult<Option<std::ops::Range<usize>>> {
         Ok(
             NonBracketedIter::new(tokens)
                 .rev()
@@ -97,9 +94,9 @@ impl<const S: u128> FindRight for Punct<S> {
                     iter.find(|tok|
                         matches!(**tok, PartialSpanned(Token::Symbol(sym), _) if sym == Self::SYMBOL),
                     )
+                    .and_then(|tok| element_offset(tokens, tok))
+                    .map(|idx| idx..idx + 1)
                 })?
-                .and_then(|tok| element_offset(tokens, tok))
-                .map(|idx| ..idx + 1)
         )
     }
 }

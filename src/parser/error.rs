@@ -3,10 +3,7 @@ use std::borrow::Cow;
 use copyspan::Span;
 
 use crate::{
-    error::{
-        PartialSpanned,
-        parse::{ParseDiagnostic, parse_error},
-    },
+    error::parse::{ParseDiagnostic, parse_error},
     lexer::Token,
     parser::{Keyword, Punct, bracketed::Bracketed},
 };

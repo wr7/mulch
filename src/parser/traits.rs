@@ -1,7 +1,4 @@
-use std::{
-    marker::PhantomData,
-    ops::{RangeFrom, RangeTo},
-};
+use std::{marker::PhantomData, ops::Range};
 
 use copyspan::Span;
 
@@ -75,22 +72,20 @@ pub trait ParseRight: Sized {
     }
 }
 
-/// Types where you can search through a `TokenStream` and find the index of the leftmost occurance.
+/// Types where you can search through a `TokenStream` and find the range of the leftmost occurance.
 pub trait FindLeft: Sized {
-    /// Returns a range containing the leftmost instance of `Self` and everything to the right of
-    /// it.
+    /// Returns a range containing the leftmost instance of `Self`.
     ///
     /// NOTE: if `Some(_)` is returned, `parse_left` must return `Ok(Some(_))`
-    fn find_left(parser: &Parser, tokens: &TokenStream) -> PDResult<Option<RangeFrom<usize>>>;
+    fn find_left(parser: &Parser, tokens: &TokenStream) -> PDResult<Option<Range<usize>>>;
 }
 
-/// Types where you can search through a `TokenStream` and find the index of the rightmost occurance.
+/// Types where you can search through a `TokenStream` and find the range of the rightmost occurance.
 pub trait FindRight: Sized {
-    /// Returns a range containing the rightmost instance of `Self` and everything to the left of
-    /// it.
+    /// Returns a range containing the rightmost instance of `Self`.
     ///
     /// NOTE: if `Some(_)` is returned, `parse_right` must return `Ok(Some(_))`
-    fn find_right(parser: &Parser, tokens: &TokenStream) -> PDResult<Option<RangeTo<usize>>>;
+    fn find_right(parser: &Parser, tokens: &TokenStream) -> PDResult<Option<Range<usize>>>;
 }
 
 /// Types that can be parsed from a whole `TokenStream` with no remainder.
@@ -227,25 +222,25 @@ impl<T: Parse> Parse for PartialSpanned<T> {
 }
 
 impl<T: FindLeft> FindLeft for PhantomData<T> {
-    fn find_left(parser: &Parser, tokens: &TokenStream) -> PDResult<Option<RangeFrom<usize>>> {
+    fn find_left(parser: &Parser, tokens: &TokenStream) -> PDResult<Option<Range<usize>>> {
         T::find_left(parser, tokens)
     }
 }
 
 impl<T: FindLeft + GCPtr> FindLeft for GCBox<T> {
-    fn find_left(parser: &Parser, tokens: &TokenStream) -> PDResult<Option<RangeFrom<usize>>> {
+    fn find_left(parser: &Parser, tokens: &TokenStream) -> PDResult<Option<Range<usize>>> {
         T::find_left(parser, tokens)
     }
 }
 
 impl<T: FindRight> FindRight for PhantomData<T> {
-    fn find_right(parser: &Parser, tokens: &TokenStream) -> PDResult<Option<RangeTo<usize>>> {
+    fn find_right(parser: &Parser, tokens: &TokenStream) -> PDResult<Option<Range<usize>>> {
         T::find_right(parser, tokens)
     }
 }
 
 impl<T: FindRight + GCPtr> FindRight for GCBox<T> {
-    fn find_right(parser: &Parser, tokens: &TokenStream) -> PDResult<Option<RangeTo<usize>>> {
+    fn find_right(parser: &Parser, tokens: &TokenStream) -> PDResult<Option<Range<usize>>> {
         T::find_right(parser, tokens)
     }
 }
@@ -425,7 +420,7 @@ macro_rules! _impl_parsing_for_single_token_type {
             fn find_left(
                 parser: &$crate::parser::Parser,
                 tokens: &$crate::parser::TokenStream,
-            ) -> $crate::error::parse::PDResult<Option<std::ops::RangeFrom<usize>>> {
+            ) -> $crate::error::parse::PDResult<Option<std::ops::Range<usize>>> {
                 Ok(::itertools::process_results(
                     $crate::parser::util::NonBracketedIter::new(tokens),
                     |mut iter| {
@@ -440,7 +435,7 @@ macro_rules! _impl_parsing_for_single_token_type {
                     },
                 )?
                 .and_then(|tok| $crate::util::element_offset(tokens, tok))
-                .map(|idx| idx..))
+                .map(|idx| idx..idx + 1))
             }
         }
 
@@ -449,7 +444,7 @@ macro_rules! _impl_parsing_for_single_token_type {
             fn find_right(
                 parser: &$crate::parser::Parser,
                 tokens: &$crate::parser::TokenStream,
-            ) -> $crate::error::parse::PDResult<Option<std::ops::RangeTo<usize>>> {
+            ) -> $crate::error::parse::PDResult<Option<std::ops::Range<usize>>> {
                 Ok(::itertools::process_results(
                     $crate::parser::util::NonBracketedIter::new(tokens),
                     |mut iter| {
@@ -464,7 +459,7 @@ macro_rules! _impl_parsing_for_single_token_type {
                     },
                 )?
                 .and_then(|tok| $crate::util::element_offset(tokens, tok))
-                .map(|idx| ..idx + 1))
+                .map(|idx| idx..idx + 1))
             }
         }
     };

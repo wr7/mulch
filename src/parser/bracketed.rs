@@ -1,4 +1,4 @@
-use std::ops::{Deref, DerefMut};
+use std::ops::{Deref, DerefMut, Range};
 
 use copyspan::Span;
 use itertools::Itertools;
@@ -83,17 +83,23 @@ impl<const B: u8, T: GCPtr + GCDebug> FindLeft for Bracketed<B, T> {
     fn find_left(
         _parser: &parser::Parser,
         tokens: &parser::TokenStream,
-    ) -> crate::error::parse::PDResult<Option<std::ops::RangeFrom<usize>>> {
-        Ok(
-            NonBracketedIter::new(tokens)
-                .process_results(|mut iter|
-                    iter.find(|tok|
+    ) -> crate::error::parse::PDResult<Option<Range<usize>>> {
+        NonBracketedIter::new(tokens)
+                .process_results(|mut iter| {
+                    let left_idx = iter.find(|tok|
                         matches!(tok, PartialSpanned(Token::OpeningBracket(bt), _) if *bt == Self::BRACKET_TYPE)
                     )
-                )?
-                .and_then(|tok| element_offset(tokens, tok))
-                .map(|idx| idx..)
-        )
+                        .and_then(|tok| element_offset(tokens, tok))
+                        .unwrap();
+
+                    let right_idx = if let Some(right_tok @ PartialSpanned(Token::ClosingBracket(bt), _)) = iter.next() && *bt == Self::BRACKET_TYPE {
+                        element_offset(tokens, right_tok).unwrap()
+                    } else {
+                        unreachable!()
+                    };
+
+                    Some(left_idx..right_idx + 1)
+                })
     }
 }
 
@@ -145,18 +151,24 @@ impl<const B: u8, T: GCPtr + GCDebug> FindRight for Bracketed<B, T> {
     fn find_right(
         _parser: &parser::Parser,
         tokens: &parser::TokenStream,
-    ) -> crate::error::parse::PDResult<Option<std::ops::RangeTo<usize>>> {
-        Ok(
-            NonBracketedIter::new(tokens)
+    ) -> crate::error::parse::PDResult<Option<Range<usize>>> {
+        NonBracketedIter::new(tokens)
                 .rev()
-                .process_results(|mut iter|
-                    iter.find(|tok|
+                .process_results(|mut iter| {
+                    let right_idx = iter.find(|tok|
                         matches!(tok, PartialSpanned(Token::ClosingBracket(bt), _) if *bt == Self::BRACKET_TYPE)
                     )
-                )?
-                .and_then(|tok| element_offset(tokens, tok))
-                .map(|idx| ..(idx + 1))
-        )
+                        .and_then(|tok| element_offset(tokens, tok))
+                        .unwrap();
+
+                    let left_idx = if let Some(right_tok @ PartialSpanned(Token::OpeningBracket(bt), _)) = iter.next() && *bt == Self::BRACKET_TYPE {
+                        element_offset(tokens, right_tok).unwrap()
+                    } else {
+                        unreachable!()
+                    };
+
+                    Some(left_idx..right_idx + 1)
+                })
     }
 }
 
