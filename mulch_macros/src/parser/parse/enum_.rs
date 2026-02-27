@@ -5,7 +5,12 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{DataEnum, spanned::Spanned as _};
 
-pub fn derive_enum_fn_body(data: &DataEnum) -> syn::Result<TokenStream> {
+use crate::parser::parse::DeriveParseParameters;
+
+pub fn derive_enum_fn_body(
+    data: &DataEnum,
+    params: &DeriveParseParameters,
+) -> syn::Result<TokenStream> {
     let per_rule = EnumParseRuleIterator::new(&data.variants).map(|rule| {
         let rule = rule?;
 
@@ -30,9 +35,17 @@ pub fn derive_enum_fn_body(data: &DataEnum) -> syn::Result<TokenStream> {
         )
     });
 
+    let error_if_not_found_clause = params.error_if_not_found.then(|| quote! {
+        if let Some(span) = ::mulch::error::span_of(tokens) {
+            return Err((<Self as ::mulch::parser::traits::Parse>::EXPECTED_ERROR_FUNCTION)(span));
+        }
+    });
+
     per_rule.process_results(|per_variant| {
         quote! {
             #(#per_variant)*
+
+            #error_if_not_found_clause
 
             Ok(None)
         }
@@ -85,6 +98,14 @@ impl<'a> Iterator for EnumParseRuleIterator<'a> {
 
             let _ = self.variants.next();
             self.attr_idx = 0;
+
+            if variant
+                .attrs
+                .iter()
+                .any(|attr| attr.path().is_ident("parse_skip"))
+            {
+                continue;
+            }
 
             return if let syn::Fields::Unnamed(fields) = &variant.fields
                 && let Some(field) = fields.unnamed.first()

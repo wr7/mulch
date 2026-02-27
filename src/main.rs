@@ -30,7 +30,7 @@ pub fn main() {
     let db = SourceDB::new();
 
     let source = indoc! {"
-        {x = def_x; y: {z; w}} -> add(x, n_1)
+        - a * - b
     "};
 
     let file_id = db.add("main.mulch".into(), source.to_owned());

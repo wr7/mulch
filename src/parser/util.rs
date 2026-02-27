@@ -6,6 +6,8 @@ use crate::{
 mod non_bracketed_iter;
 pub use non_bracketed_iter::NonBracketedIter;
 
+mod not_preceded_by;
+pub use not_preceded_by::NotPrecededBy;
 
 pub fn run_parse_hook<T>(
     parser: &Parser,

@@ -54,7 +54,8 @@ pub fn u128_string(lit: proc_macro::TokenStream) -> proc_macro::TokenStream {
         error_if_not_found,
         parse_until_next,
         parse_hook,
-        parse_direction
+        parse_direction,
+        parse_skip,
     )
 )]
 pub fn derive_parse(item: proc_macro::TokenStream) -> proc_macro::TokenStream {

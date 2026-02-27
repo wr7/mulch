@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{ToTokens, TokenStreamExt, quote};
-use syn::DeriveInput;
+use syn::{DeriveInput, spanned::Spanned};
 
 mod enum_;
 mod struct_;
@@ -24,6 +24,7 @@ struct DeriveParseParameters {
     trait_: ParseTrait,
     direction: ParseDirection,
     error_fn: syn::Expr,
+    error_if_not_found: bool,
 }
 
 pub fn derive_parse(input: DeriveInput, trait_: ParseTrait) -> syn::Result<TokenStream> {
@@ -43,7 +44,7 @@ pub fn derive_parse(input: DeriveInput, trait_: ParseTrait) -> syn::Result<Token
                 ));
             }
 
-            enum_::derive_enum_fn_body(data_enum)
+            enum_::derive_enum_fn_body(data_enum, &params)
         }
         syn::Data::Union(_) => Err(syn::Error::new(
             Span::call_site(),
@@ -148,10 +149,25 @@ impl DeriveParseParameters {
                 )
             })??;
 
+        let error_if_not_found = input
+            .attrs
+            .iter()
+            .find(|a| a.path().is_ident("error_if_not_found"));
+
+        if let Some(attr) = error_if_not_found
+            && !matches!(input.data, syn::Data::Enum(_))
+        {
+            return Err(syn::Error::new(
+                attr.path().span(),
+                "`#[error_if_not_found]` can only be applied to struct fields or enums",
+            ));
+        }
+
         Ok(Self {
             trait_,
             direction,
             error_fn,
+            error_if_not_found: error_if_not_found.is_some(),
         })
     }
 }

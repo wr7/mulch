@@ -10,6 +10,13 @@ use crate::{
 };
 
 pub mod lambda;
+pub mod operation;
+
+#[doc(inline)]
+pub use operation::BinaryOperation;
+
+#[doc(inline)]
+pub use operation::UnaryOperation;
 
 #[doc(inline)]
 pub use lambda::Lambda;
@@ -35,13 +42,19 @@ pub enum Expression {
     #[debug_direct]
     Lambda(Lambda),
 
+    #[parse_hook(operation::operation_parse_hook)]
+
+    #[parse_skip]
+    #[debug_direct]
+    BinaryOperation(BinaryOperation),
+    #[parse_skip]
+    #[debug_direct]
+    UnaryOperation(UnaryOperation),
+
     #[debug_direct]
     MethodCall(MethodCall),
     #[debug_direct]
     FunctionCall(FunctionCall),
-
-    // BinaryOperation(BinaryOperation),
-
     #[debug_direct]
     MemberAccess(MemberAccess),
 
