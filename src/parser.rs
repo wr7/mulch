@@ -14,7 +14,7 @@ mod keyword;
 mod punct;
 mod separatedlist;
 mod traits;
-mod util;
+pub mod util;
 
 // Macro helper function used for better error messages
 #[doc(hidden)]

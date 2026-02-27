@@ -18,6 +18,7 @@ pub use lambda::Lambda;
 #[repr(usize)]
 #[msb_reserved]
 #[mulch_parse_error(parser::error::invalid_expression)]
+#[error_if_not_found]
 #[rustfmt::skip]
 pub enum Expression {
     Variable(Ident),
@@ -34,9 +35,14 @@ pub enum Expression {
     #[debug_direct]
     Lambda(Lambda),
 
+    #[debug_direct]
     MethodCall(MethodCall),
+    #[debug_direct]
     FunctionCall(FunctionCall),
+
     // BinaryOperation(BinaryOperation),
+
+    #[debug_direct]
     MemberAccess(MemberAccess),
 
     #[parse_hook(parse_parenthized_expression)]
