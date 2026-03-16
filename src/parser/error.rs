@@ -91,3 +91,11 @@ pub fn expected_opening_bracket<const B: u8>(span: Span) -> ParseDiagnostic {
 pub fn expected_identifier(span: Span) -> ParseDiagnostic {
     parse_error!("EP0016", "Expected identifier", [{"here", span, primary}])
 }
+
+pub fn unexpected_character_in_number(char: char, span: Span) -> ParseDiagnostic {
+    parse_error!("EP0017", format!("Unexpected character `{char}` in number literal"), [{"here", span, primary}])
+}
+
+pub fn multiple_decimals_in_number(span: Span) -> ParseDiagnostic {
+    parse_error!("EP0018", format!("Multiple decimal points in number literal"), [{"here", span, primary}])
+}

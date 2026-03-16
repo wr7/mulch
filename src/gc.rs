@@ -9,6 +9,7 @@ pub use collection::{GCRoot, GCValue, GCValueEnum};
 pub use gcspace::GCPtr;
 pub use gcspace::GCSpace;
 use gmp_mpfr_sys::gmp;
+pub use primitives::math;
 pub use primitives::*;
 
 use crate::error::PartialSpanned;
