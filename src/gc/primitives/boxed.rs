@@ -128,7 +128,7 @@ unsafe impl<T: GCPtr> GCPtr for GCBox<T> {
     }
 }
 
-impl<T: GCDebug> GCDebug for GCBox<T> {
+impl<T: GCDebug + GCPtr> GCDebug for GCBox<T> {
     unsafe fn gc_debug(
         self,
         gc: &GarbageCollector,

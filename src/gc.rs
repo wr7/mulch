@@ -12,6 +12,7 @@ pub use primitives::*;
 
 use crate::error::PartialSpanned;
 use crate::gc::util::GCDebug;
+use crate::gc::util::GCWrap;
 
 #[cfg(test)]
 mod test;
@@ -32,7 +33,7 @@ impl Default for GarbageCollector {
 }
 
 impl GarbageCollector {
-    const BLOCK_SIZE: usize = crate::util::ceil_power_two(crate::util::max!(
+    pub const BLOCK_SIZE: usize = crate::util::ceil_power_two(crate::util::max!(
         std::mem::align_of::<crate::parser_old::Expression>(),
         std::mem::align_of::<crate::eval::MValue>(),
         std::mem::align_of::<usize>(),
@@ -131,7 +132,7 @@ impl<T: GCDebug> GCDebug for PartialSpanned<T> {
         f: &mut std::fmt::Formatter,
     ) -> std::fmt::Result {
         f.debug_tuple("PartialSpanned")
-            .field(&unsafe { self.0.wrap(gc) })
+            .field(&unsafe { GCWrap::new(self.0, gc) })
             .field(&self.1)
             .finish()
     }
@@ -152,7 +153,7 @@ impl<T: GCDebug> GCDebug for Option<T> {
         f: &mut std::fmt::Formatter,
     ) -> std::fmt::Result {
         match self {
-            Some(val) => unsafe { f.debug_tuple("Some").field(&val.wrap(gc)).finish() },
+            Some(val) => unsafe { f.debug_tuple("Some").field(&GCWrap::new(val, gc)).finish() },
             None => write!(f, "None"),
         }
     }

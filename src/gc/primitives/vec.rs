@@ -2,6 +2,7 @@ use std::{marker::PhantomData, num::NonZeroUsize};
 
 use crate::gc::{
     GCPtr, GCSpace, GarbageCollector,
+    primitives::buffer::GCBuffer,
     util::{GCDebug, GCEq, GCGet, GCWrap},
 };
 
@@ -41,6 +42,10 @@ impl<T: GCPtr> GCVec<T> {
         self.ptr.get()
     }
 
+    pub unsafe fn len(self, gc: &GarbageCollector) -> usize {
+        unsafe { gc.from_space.block_ptr(self.ptr).cast::<usize>().read() }
+    }
+
     /// Gets the data as a slice.
     ///
     /// # Safety
@@ -49,34 +54,30 @@ impl<T: GCPtr> GCVec<T> {
     /// The user must uphold the following conditions while the returned slice is alive:
     /// - No new objects are allocated to the GC heap
     /// - No garbage collection cycles are performed
-    pub unsafe fn as_slice<'b>(self, gc: &GarbageCollector) -> &'b [T] {
-        let base_ptr = gc.from_space.block_ptr(self.ptr);
+    pub unsafe fn as_slice(self, gc: &GarbageCollector) -> &[T] {
+        unsafe { self.as_buffer(gc).as_slice(gc) }
+    }
 
-        let len = unsafe { base_ptr.cast::<usize>().read() };
-        let ptr = base_ptr
-            .wrapping_byte_add(GarbageCollector::BLOCK_SIZE)
-            .cast::<T>();
-
-        unsafe { std::slice::from_raw_parts(ptr, len) }
+    pub unsafe fn as_buffer(self, gc: &GarbageCollector) -> GCBuffer<T> {
+        GCBuffer::from_raw_parts(
+            unsafe { NonZeroUsize::new_unchecked(self.ptr.get() + 1) },
+            unsafe { self.len(gc) },
+        )
     }
 
     /// Allocates an unitialized garbage-collected dynamically-sized array
     /// # Safety
     /// The `GCVec` must be fully initialized be fully initialized before it is moved to from-space
     unsafe fn new_uninit_in_space(space: &GCSpace, len: usize) -> Self {
-        let allocation_size =
-            1 + (len * std::mem::size_of::<T>()).div_ceil(GarbageCollector::BLOCK_SIZE);
-
         let ptr = space.len();
 
-        space.set_len(space.len() + allocation_size);
+        space.set_len(space.len() + 1);
 
-        unsafe {
-            // write element length to first block
-            space.block_ptr(ptr).cast::<usize>().write(len);
-        }
+        let _ = GCBuffer::<T>::new_uninit_in_space(space, len);
 
-        GCVec {
+        unsafe { space.block_ptr(ptr).cast::<usize>().write(len) };
+
+        Self {
             ptr: unsafe { NonZeroUsize::new_unchecked(ptr) },
             _phantomdata: PhantomData,
         }
@@ -142,20 +143,13 @@ where
     }
 }
 
-impl<T: GCDebug> GCDebug for GCVec<T> {
+impl<T: GCDebug + GCPtr> GCDebug for GCVec<T> {
     unsafe fn gc_debug(
         self,
         gc: &GarbageCollector,
         f: &mut std::fmt::Formatter,
     ) -> std::fmt::Result {
-        let mut debug_list = f.debug_list();
-
-        for el in unsafe { self.as_slice(gc) } {
-            let el = unsafe { el.wrap(gc) };
-            debug_list.entry(&el);
-        }
-
-        debug_list.finish()
+        unsafe { self.as_buffer(gc).gc_debug(gc, f) }
     }
 }
 

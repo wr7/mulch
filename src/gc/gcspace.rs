@@ -108,17 +108,17 @@ impl GCSpace {
     /// Grows the allocation to be at least `new_size_blocks` blocks. NOTE: this will not increase
     /// its length.
     pub fn expand_to(&self, new_size_blocks: usize) {
-        let mut new_size = self.capacity();
+        let mut new_exact_size_blocks = self.capacity();
 
-        while new_size < new_size_blocks {
-            new_size *= 2;
+        while new_exact_size_blocks < new_size_blocks {
+            new_exact_size_blocks *= 2;
         }
 
-        if new_size == self.capacity() {
+        if new_exact_size_blocks == self.capacity() {
             return;
         }
 
-        self.expand_exact(new_size);
+        self.expand_exact(new_exact_size_blocks);
     }
 
     /// Clears the GCSpace. All objects in the space are "forgotten".

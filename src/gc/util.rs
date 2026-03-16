@@ -25,7 +25,7 @@ impl<'gc, T> GCWrap<'gc, T> {
     }
 }
 
-pub trait GCDebug: GCPtr {
+pub trait GCDebug: Copy {
     /// `Debug::fmt` method for garbage-collected objects.
     ///
     /// # Safety
