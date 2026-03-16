@@ -8,6 +8,7 @@ use std::marker::PhantomData;
 pub use collection::{GCRoot, GCValue, GCValueEnum};
 pub use gcspace::GCPtr;
 pub use gcspace::GCSpace;
+use gmp_mpfr_sys::gmp;
 pub use primitives::*;
 
 use crate::error::PartialSpanned;
@@ -37,8 +38,10 @@ impl GarbageCollector {
         std::mem::align_of::<crate::parser_old::Expression>(),
         std::mem::align_of::<crate::eval::MValue>(),
         std::mem::align_of::<usize>(),
+        std::mem::align_of::<u64>(),
         std::mem::align_of::<copyspan::Span>(),
-        std::mem::size_of::<usize>()
+        std::mem::align_of::<gmp::limb_t>(),
+        std::mem::size_of::<usize>(),
     ));
 
     pub fn new() -> Self {

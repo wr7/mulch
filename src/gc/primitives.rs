@@ -1,5 +1,6 @@
 mod boxed;
 mod buffer;
+mod math;
 mod string;
 mod vec;
 
