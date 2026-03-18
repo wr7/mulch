@@ -6,6 +6,6 @@ mod vec;
 
 pub use boxed::GCBox;
 pub(super) use buffer::GCBuffer;
-pub use math::GCRational;
+pub use math::GCNumber;
 pub use string::GCString;
 pub use vec::GCVec;

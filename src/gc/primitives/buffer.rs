@@ -64,6 +64,10 @@ impl<T> GCBuffer<T> {
         self.len
     }
 
+    pub fn size_blocks(self) -> usize {
+        Self::allocation_size_blocks(self.len)
+    }
+
     pub unsafe fn as_slice(self, gc: &GarbageCollector) -> &[T] {
         unsafe { std::slice::from_raw_parts(self.as_mut_ptr(gc), self.len()) }
     }
