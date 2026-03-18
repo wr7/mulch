@@ -16,11 +16,11 @@ single_token_parse_type! {
 
     #[derive(Clone, Copy, GCPtr, GCDebug)]
     pub enum BinaryOperator {
-        Token::Symbol(Sym!(+)) => Add,
-        Token::Symbol(Sym!(-)) => Subtract,
-        Token::Symbol(Sym!(*)) => Multiply,
-        Token::Symbol(Sym!(/)) => Divide,
-        Token::Symbol(Sym!(^)) => Exponentiate,
+        PartialSpanned(Token::Symbol(Sym!(+)), _) => Add,
+        PartialSpanned(Token::Symbol(Sym!(-)), _) => Subtract,
+        PartialSpanned(Token::Symbol(Sym!(*)), _) => Multiply,
+        PartialSpanned(Token::Symbol(Sym!(/)), _) => Divide,
+        PartialSpanned(Token::Symbol(Sym!(^)), _) => Exponentiate,
     }
 }
 
@@ -103,7 +103,7 @@ single_token_parse_type! {
 
     #[derive(Clone, Copy, GCPtr, GCDebug)]
     pub enum UnaryOperator {
-        Token::Symbol(Sym!(-)) => Negative,
+        PartialSpanned(Token::Symbol(Sym!(-)), _) => Negative,
     }
 }
 
@@ -112,8 +112,8 @@ single_token_parse_type! {
 
     #[derive(Clone, Copy, GCPtr, GCDebug)]
     enum SlashOrAsterisk {
-        Token::Symbol(Sym!(/)) => Slash,
-        Token::Symbol(Sym!(*)) => Asterisk,
+        PartialSpanned(Token::Symbol(Sym!(/)), _) => Slash,
+        PartialSpanned(Token::Symbol(Sym!(*)), _) => Asterisk,
     }
 }
 
@@ -122,8 +122,8 @@ single_token_parse_type! {
 
     #[derive(Clone, Copy, GCPtr, GCDebug)]
     enum PlusOrMinus {
-        Token::Symbol(Sym!(+)) => Plus,
-        Token::Symbol(Sym!(-)) => Minus,
+        PartialSpanned(Token::Symbol(Sym!(+)), _) => Plus,
+        PartialSpanned(Token::Symbol(Sym!(-)), _) => Minus,
     }
 }
 

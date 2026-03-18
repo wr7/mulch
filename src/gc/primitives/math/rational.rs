@@ -172,11 +172,11 @@ impl GCRational {
 
         let mut retval: usize = 0;
         for limb in numerator.iter().rev().copied() {
-            retval <<= limb_t::BITS;
+            retval = retval.unbounded_shl(limb_t::BITS);
             retval |= limb as usize;
         }
 
-        Some(retval)
+        Some(retval | 1usize.rotate_right(1))
     }
 
     pub(in crate::gc::primitives) unsafe fn deallocate_from_end(self, gc: &GarbageCollector) {

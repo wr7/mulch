@@ -30,7 +30,7 @@ pub fn main() {
     let db = SourceDB::new();
 
     let source = indoc! {"
-        - a * - b
+        let pi = 3.14159 in \"hi!!! :3333\"
     "};
 
     let file_id = db.add("main.mulch".into(), source.to_owned());

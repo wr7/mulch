@@ -10,6 +10,7 @@ use crate::{
 };
 
 pub mod lambda;
+mod literal;
 pub mod operation;
 
 #[doc(inline)]
@@ -21,6 +22,8 @@ pub use operation::UnaryOperation;
 #[doc(inline)]
 pub use lambda::Lambda;
 
+pub use literal::*;
+
 #[derive(GCPtr, GCDebug, Parse, Clone, Copy)]
 #[repr(usize)]
 #[msb_reserved]
@@ -29,9 +32,9 @@ pub use lambda::Lambda;
 #[rustfmt::skip]
 pub enum Expression {
     Variable(Ident),
-    // StringLiteral(GCString),
-    // NumericLiteral(GCString),
-    // Unit(),
+    StringLiteral(StringLiteral),
+    NumericLiteral(NumberLiteral),
+
     // Attribute set (note: ordered by index)
     #[debug_direct]
     WithIn(WithIn),

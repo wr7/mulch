@@ -366,7 +366,7 @@ macro_rules! _impl_parsing_for_single_token_type {
                 $parser_name: &$crate::parser::Parser,
                 tokens: &mut &$crate::parser::TokenStream,
             ) -> $crate::error::parse::PDResult<Option<Self>> {
-                let [rem @ .., $crate::error::PartialSpanned(token, _)] = tokens else {
+                let [rem @ .., token] = tokens else {
                     return Ok(None);
                 };
 
@@ -392,7 +392,7 @@ macro_rules! _impl_parsing_for_single_token_type {
                 $parser_name: &$crate::parser::Parser,
                 tokens: &mut &$crate::parser::TokenStream,
             ) -> $crate::error::parse::PDResult<Option<Self>> {
-                let [$crate::error::PartialSpanned(token, _), rem @ ..] = tokens else {
+                let [token, rem @ ..] = tokens else {
                     return Ok(None);
                 };
 
@@ -424,7 +424,7 @@ macro_rules! _impl_parsing_for_single_token_type {
                 Ok(::itertools::process_results(
                     $crate::parser::util::NonBracketedIter::new(tokens),
                     |mut iter| {
-                        iter.find(|$crate::error::PartialSpanned(t, _)| {
+                        iter.find(|t| {
                             match t {
                                 $(
                                     $pat => true,
@@ -448,7 +448,7 @@ macro_rules! _impl_parsing_for_single_token_type {
                 Ok(::itertools::process_results(
                     $crate::parser::util::NonBracketedIter::new(tokens),
                     |mut iter| {
-                        iter.rfind(|$crate::error::PartialSpanned(t, _)| {
+                        iter.rfind(|t| {
                             match t {
                                 $(
                                     $pat => true,
