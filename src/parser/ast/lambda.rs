@@ -1,7 +1,7 @@
 use mulch_macros::{GCDebug, GCPtr, Parse, ParseLeft, punct};
 
 use crate::{
-    error::parse::PDResult,
+    error::{PartialSpanned, parse::PDResult},
     gc::{GCBox, GCVec},
     parser::{
         self, Bracketed, CurlyBracketed, Ident, IdentOrString, Parenthesized, Parse, Parser,
@@ -18,7 +18,7 @@ pub struct Lambda {
     #[debug_hidden]
     arrow: punct!("->"),
     #[error_if_not_found]
-    expr: GCBox<Expression>,
+    expr: GCBox<PartialSpanned<Expression>>,
 }
 
 #[derive(Clone, Copy, GCPtr, GCDebug, Parse)]
@@ -104,7 +104,7 @@ pub struct ArgDefaultValue {
     eq_: punct!("="),
 
     #[error_if_not_found]
-    val: GCBox<Expression>,
+    val: GCBox<PartialSpanned<Expression>>,
 }
 
 fn parse_simple_arg_attribute(

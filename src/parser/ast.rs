@@ -85,14 +85,14 @@ pub struct Set(pub CurlyBracketed<SeparatedList<NamedValue, punct![";"]>>);
 #[derive(GCPtr, GCDebug, Parse, Clone, Copy)]
 #[debug_direct_with_name]
 #[mulch_parse_error(|_| unimplemented!())]
-pub struct List(pub SquareBracketed<SeparatedList<Expression, punct![","]>>);
+pub struct List(pub SquareBracketed<SeparatedList<PartialSpanned<Expression>, punct![","]>>);
 
 #[derive(GCPtr, GCDebug, Parse, Clone, Copy)]
 #[parse_direction(Right)]
 #[mulch_parse_error(|_| unimplemented!())]
 pub struct MemberAccess {
     #[error_if_not_found]
-    pub lhs: GCBox<Expression>,
+    pub lhs: GCBox<PartialSpanned<Expression>>,
 
     #[debug_hidden]
     pub dot_: punct!["."],
@@ -104,7 +104,7 @@ pub struct MemberAccess {
 #[parse_direction(Right)]
 #[mulch_parse_error(|_| unimplemented!())]
 pub struct FunctionCall {
-    function: GCBox<Expression>,
+    function: GCBox<PartialSpanned<Expression>>,
 
     args: FunctionCallArgs,
 }
@@ -113,7 +113,7 @@ pub struct FunctionCall {
 #[parse_direction(Right)]
 #[mulch_parse_error(|_| unimplemented!())]
 pub struct MethodCall {
-    lhs: GCBox<Expression>,
+    lhs: GCBox<PartialSpanned<Expression>>,
 
     dot_: punct!["."],
 
@@ -136,7 +136,7 @@ pub struct LetIn {
     pub in_: keyword!["in"],
 
     #[error_if_not_found]
-    pub val: GCBox<Expression>,
+    pub val: GCBox<PartialSpanned<Expression>>,
 }
 
 #[derive(GCPtr, GCDebug, Parse, Clone, Copy)]
@@ -147,13 +147,13 @@ pub struct WithIn {
 
     #[parse_until_next]
     #[error_if_not_found]
-    pub variables: GCBox<Expression>,
+    pub variables: GCBox<PartialSpanned<Expression>>,
 
     #[debug_hidden]
     pub in_: keyword!["in"],
 
     #[error_if_not_found]
-    pub val: GCBox<Expression>,
+    pub val: GCBox<PartialSpanned<Expression>>,
 }
 
 #[derive(GCPtr, GCDebug, Parse, Clone, Copy)]
@@ -167,7 +167,7 @@ pub struct NamedValue {
     pub eq_: punct!["="],
 
     #[error_if_not_found]
-    pub value: Expression,
+    pub value: PartialSpanned<Expression>,
 }
 
 #[derive(GCPtr, GCDebug, ParseRight, Clone, Copy)]

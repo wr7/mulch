@@ -6,7 +6,7 @@ use crate::{
     gc::GCBox,
     lexer::Token,
     parser::{
-        Parse, Parser, TokenStream, ast, punct, traits::single_token_parse_type,
+        Parse, Parser, TokenStream, ast::Expression, punct, traits::single_token_parse_type,
         util::NotPrecededBy,
     },
 };
@@ -26,31 +26,31 @@ single_token_parse_type! {
 
 #[derive(Clone, Copy, GCPtr, GCDebug)]
 pub struct BinaryOperation {
-    lhs: GCBox<PartialSpanned<ast::Expression>>,
+    lhs: GCBox<PartialSpanned<Expression>>,
     operator: BinaryOperator,
-    rhs: GCBox<PartialSpanned<ast::Expression>>,
+    rhs: GCBox<PartialSpanned<Expression>>,
 }
 
 #[derive(Clone, Copy, GCPtr, GCDebug, Parse)]
 #[mulch_parse_error(|_| unimplemented!())]
 pub struct UnaryOperation {
     operator: UnaryOperator,
-    arg: GCBox<PartialSpanned<ast::Expression>>,
+    arg: GCBox<PartialSpanned<Expression>>,
 }
 
 pub(super) fn operation_parse_hook(
     parser: &Parser,
     tokens: &TokenStream,
-) -> PDResult<Option<ast::Expression>> {
+) -> PDResult<Option<Expression>> {
     let Some(val) = OperationImpl::parse(parser, tokens)? else {
         return Ok(None);
     };
 
     Ok(Some(match val {
-        OperationImpl::AddOrSubtract(val) => ast::Expression::BinaryOperation(val.into()),
-        OperationImpl::Unary(val) => ast::Expression::UnaryOperation(val),
-        OperationImpl::MultiplyOrDivide(val) => ast::Expression::BinaryOperation(val.into()),
-        OperationImpl::Exponentiate(val) => ast::Expression::BinaryOperation(val.into()),
+        OperationImpl::AddOrSubtract(val) => Expression::BinaryOperation(val.into()),
+        OperationImpl::Unary(val) => Expression::UnaryOperation(val),
+        OperationImpl::MultiplyOrDivide(val) => Expression::BinaryOperation(val.into()),
+        OperationImpl::Exponentiate(val) => Expression::BinaryOperation(val.into()),
     }))
 }
 
@@ -67,35 +67,35 @@ enum OperationImpl {
 #[mulch_parse_error(|_| unimplemented!())]
 #[parse_direction(right)]
 struct AddOrSubtract {
-    lhs: GCBox<PartialSpanned<ast::Expression>>,
+    lhs: GCBox<PartialSpanned<Expression>>,
 
     operator: NotPrecededBy<PlusOrMinus, BinaryOperator>,
 
     #[parse_until_next]
-    rhs: GCBox<PartialSpanned<ast::Expression>>,
+    rhs: GCBox<PartialSpanned<Expression>>,
 }
 
 #[derive(Clone, Copy, GCPtr, GCDebug, Parse)]
 #[mulch_parse_error(|_| unimplemented!())]
 #[parse_direction(right)]
 struct MultiplyOrDivide {
-    lhs: GCBox<PartialSpanned<ast::Expression>>,
+    lhs: GCBox<PartialSpanned<Expression>>,
 
     operator: NotPrecededBy<SlashOrAsterisk, BinaryOperator>,
 
     #[parse_until_next]
-    rhs: GCBox<PartialSpanned<ast::Expression>>,
+    rhs: GCBox<PartialSpanned<Expression>>,
 }
 
 #[derive(Clone, Copy, GCPtr, GCDebug, Parse)]
 #[mulch_parse_error(|_| unimplemented!())]
 struct Exponentiate {
     #[parse_until_next]
-    lhs: GCBox<PartialSpanned<ast::Expression>>,
+    lhs: GCBox<PartialSpanned<Expression>>,
 
     operator: punct!["^"],
 
-    rhs: GCBox<PartialSpanned<ast::Expression>>,
+    rhs: GCBox<PartialSpanned<Expression>>,
 }
 
 single_token_parse_type! {
