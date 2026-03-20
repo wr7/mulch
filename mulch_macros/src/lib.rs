@@ -5,6 +5,7 @@ use crate::parser::parse::ParseTrait;
 
 mod from_to_u8;
 mod gc_debug;
+mod gc_eq;
 mod gc_ptr;
 mod parser;
 
@@ -23,6 +24,13 @@ pub fn derive_gc_debug(item: proc_macro::TokenStream) -> proc_macro::TokenStream
 #[proc_macro_derive(GCPtr, attributes(msb_reserved))]
 pub fn derive_gc_ptr(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     gc_ptr::derive_gc_ptr(parse_macro_input!(item as DeriveInput)).into()
+}
+
+#[proc_macro_derive(GCEq, attributes(msb_reserved))]
+pub fn derive_gc_eq(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    gc_eq::derive_gc_eq(parse_macro_input!(item as DeriveInput))
+        .unwrap_or_else(|err| err.into_compile_error())
+        .into()
 }
 
 #[proc_macro]
