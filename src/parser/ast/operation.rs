@@ -1,4 +1,4 @@
-use mulch_macros::{GCDebug, GCPtr, Parse};
+use mulch_macros::{GCDebug, GCEq, GCPtr, Parse};
 
 use crate::{
     Sym,
@@ -14,7 +14,7 @@ use crate::{
 single_token_parse_type! {
     error_function = |_| unimplemented!();
 
-    #[derive(Clone, Copy, GCPtr, GCDebug)]
+    #[derive(Clone, Copy, GCPtr, GCDebug, GCEq)]
     pub enum BinaryOperator {
         PartialSpanned(Token::Symbol(Sym!(+)), _) => Add,
         PartialSpanned(Token::Symbol(Sym!(-)), _) => Subtract,
@@ -24,14 +24,14 @@ single_token_parse_type! {
     }
 }
 
-#[derive(Clone, Copy, GCPtr, GCDebug)]
+#[derive(Clone, Copy, GCPtr, GCDebug, GCEq)]
 pub struct BinaryOperation {
     lhs: GCBox<PartialSpanned<Expression>>,
     operator: BinaryOperator,
     rhs: GCBox<PartialSpanned<Expression>>,
 }
 
-#[derive(Clone, Copy, GCPtr, GCDebug, Parse)]
+#[derive(Clone, Copy, GCPtr, GCDebug, GCEq, Parse)]
 #[mulch_parse_error(|_| unimplemented!())]
 pub struct UnaryOperation {
     operator: UnaryOperator,
@@ -101,7 +101,7 @@ struct Exponentiate {
 single_token_parse_type! {
     error_function = |_| unimplemented!();
 
-    #[derive(Clone, Copy, GCPtr, GCDebug)]
+    #[derive(Clone, Copy, GCPtr, GCDebug, GCEq)]
     pub enum UnaryOperator {
         PartialSpanned(Token::Symbol(Sym!(-)), _) => Negative,
     }

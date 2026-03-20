@@ -1,4 +1,4 @@
-use mulch_macros::{GCDebug, GCPtr, Parse, ParseLeft, punct};
+use mulch_macros::{GCDebug, GCEq, GCPtr, Parse, ParseLeft, punct};
 
 use crate::{
     error::{PartialSpanned, parse::PDResult},
@@ -9,7 +9,7 @@ use crate::{
     },
 };
 
-#[derive(Clone, Copy, GCPtr, GCDebug, Parse)]
+#[derive(Clone, Copy, GCPtr, GCDebug, GCEq, Parse)]
 #[mulch_parse_error(|_| unimplemented!())]
 pub struct Lambda {
     #[parse_until_next]
@@ -21,7 +21,7 @@ pub struct Lambda {
     expr: GCBox<PartialSpanned<Expression>>,
 }
 
-#[derive(Clone, Copy, GCPtr, GCDebug, Parse)]
+#[derive(Clone, Copy, GCPtr, GCDebug, GCEq, Parse)]
 #[mulch_parse_error(parser::error::expected_lambda_arguments)]
 #[parse_hook(arguments_parse_hook)]
 #[debug_direct]
@@ -41,7 +41,7 @@ fn arguments_parse_hook(parser: &Parser, tokens: &TokenStream) -> PDResult<Optio
     })))))
 }
 
-#[derive(Clone, Copy, GCPtr, GCDebug, Parse)]
+#[derive(Clone, Copy, GCPtr, GCDebug, GCEq, Parse)]
 #[mulch_parse_error(parser::error::expected_lambda_argument)]
 pub enum Argument {
     #[debug_direct]
@@ -52,14 +52,14 @@ pub enum Argument {
     Set(SetArgument),
 }
 
-#[derive(Clone, Copy, GCPtr, GCDebug, Parse)]
+#[derive(Clone, Copy, GCPtr, GCDebug, GCEq, Parse)]
 #[mulch_parse_error(|_| unimplemented!())]
 pub struct SingleArgument {
     name: Ident,
     default_value: Option<ArgDefaultValue>,
 }
 
-#[derive(Clone, Copy, GCPtr, GCDebug, Parse)]
+#[derive(Clone, Copy, GCPtr, GCDebug, GCEq, Parse)]
 #[mulch_parse_error(|_| unimplemented!())]
 pub struct ListArgument {
     list: SquareBracketed<SeparatedList<Argument, punct!(",")>>,
@@ -67,7 +67,7 @@ pub struct ListArgument {
     default_value: Option<ArgDefaultValue>,
 }
 
-#[derive(Clone, Copy, GCPtr, GCDebug, Parse)]
+#[derive(Clone, Copy, GCPtr, GCDebug, GCEq, Parse)]
 #[mulch_parse_error(|_| unimplemented!())]
 pub struct SetArgument {
     set: CurlyBracketed<SeparatedList<ArgAttribute, punct!(";")>>,
@@ -75,7 +75,7 @@ pub struct SetArgument {
     default_value: Option<ArgDefaultValue>,
 }
 
-#[derive(Clone, Copy, GCPtr, GCDebug, Parse)]
+#[derive(Clone, Copy, GCPtr, GCDebug, GCEq, Parse)]
 #[mulch_parse_error(parser::error::expected_lambda_attribute_argument)]
 #[parse_hook(parse_simple_arg_attribute)]
 pub struct ArgAttribute {
@@ -88,7 +88,7 @@ pub struct ArgAttribute {
     arg: Argument,
 }
 
-#[derive(Clone, Copy, GCPtr, GCDebug, ParseLeft)]
+#[derive(Clone, Copy, GCPtr, GCDebug, GCEq, ParseLeft)]
 #[mulch_parse_error(|_| unimplemented!())]
 pub struct ArgBinding {
     #[debug_hidden]
@@ -96,7 +96,7 @@ pub struct ArgBinding {
     name: Ident,
 }
 
-#[derive(Clone, Copy, GCPtr, GCDebug, Parse)]
+#[derive(Clone, Copy, GCPtr, GCDebug, GCEq, Parse)]
 #[mulch_parse_error(|_| unimplemented!())]
 #[debug_direct]
 pub struct ArgDefaultValue {

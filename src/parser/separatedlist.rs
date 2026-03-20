@@ -4,7 +4,10 @@ use mulch_macros::GCPtr;
 
 use crate::{
     error::{parse::PDResult, span_of},
-    gc::{GCPtr, GCVec, util::GCDebug},
+    gc::{
+        GCPtr, GCVec,
+        util::{GCDebug, GCEq},
+    },
     parser::{FindLeft, Parse, ParseLeft, Parser, TokenStream},
 };
 
@@ -48,6 +51,12 @@ impl<T: GCPtr + GCDebug, S> GCDebug for SeparatedList<T, S> {
         f: &mut std::fmt::Formatter,
     ) -> std::fmt::Result {
         unsafe { self.values.gc_debug(gc, f) }
+    }
+}
+
+impl<T: GCPtr + GCEq, S> GCEq for SeparatedList<T, S> {
+    unsafe fn gc_eq(&self, gc: &crate::gc::GarbageCollector, rhs: &Self) -> bool {
+        unsafe { self.values.wrap(gc) == rhs.values.wrap(gc) }
     }
 }
 

@@ -44,7 +44,7 @@ pub trait GCDebug: Copy {
     unsafe fn gc_debug(self, gc: &GarbageCollector, f: &mut Formatter) -> std::fmt::Result;
 }
 
-pub trait GCEq<Rhs: ?Sized> {
+pub trait GCEq<Rhs: ?Sized = Self> {
     /// Compares a garbage-collected value with a non-garbage collected value or a wrapped value.
     ///
     /// # Safety

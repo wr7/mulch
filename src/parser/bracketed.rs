@@ -6,7 +6,10 @@ use mulch_macros::{GCDebug, GCPtr};
 
 use crate::{
     error::PartialSpanned,
-    gc::{GCPtr, util::GCDebug},
+    gc::{
+        GCPtr,
+        util::{GCDebug, GCEq},
+    },
     lexer::{BracketType, Token},
     parser::{
         self, FindLeft, Parse, ParseLeft,
@@ -32,6 +35,12 @@ impl<const B: u8, T: GCPtr + GCDebug> Bracketed<B, T> {
     } else {
         panic!("Invalid bracket type supplied as generic argument")
     };
+}
+
+impl<const B: u8, T: GCPtr + GCDebug + GCEq> GCEq for Bracketed<B, T> {
+    unsafe fn gc_eq(&self, gc: &crate::gc::GarbageCollector, rhs: &Self) -> bool {
+        unsafe { self.0.gc_eq(gc, &rhs.0) }
+    }
 }
 
 impl<const B: u8, T: GCPtr + GCDebug + Parse> Parse for Bracketed<B, T> {

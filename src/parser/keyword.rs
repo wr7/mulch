@@ -1,6 +1,6 @@
 use copyspan::Span;
 use itertools::Itertools;
-use mulch_macros::{GCDebug, GCPtr};
+use mulch_macros::{GCDebug, GCEq, GCPtr};
 
 use crate::{
     error::PartialSpanned,
@@ -22,7 +22,7 @@ use crate::{
 /// NOTE: Rust currently doesn't have a way to use string literals as const generics. To get around
 /// this, we're storing the `0xff`-terminated bytes in a big-endian u128. The actual string can be
 /// accessed through the associated constant `KEYWORD`.
-#[derive(GCDebug, GCPtr, Clone, Copy, Debug)]
+#[derive(GCDebug, GCPtr, GCEq, Clone, Copy, Debug)]
 pub struct Keyword<const K: u128>();
 
 impl<const K: u128> Keyword<K> {
