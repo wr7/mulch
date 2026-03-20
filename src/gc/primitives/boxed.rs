@@ -146,11 +146,11 @@ impl<T: GCPtr> GCGet for GCBox<T> {
     }
 }
 
-impl<T, Rhs> GCEq<Rhs> for GCBox<T>
+impl<T> GCEq<GCBox<T>> for GCBox<T>
 where
-    T: GCEq<Rhs>,
+    T: GCPtr + GCEq<T>,
 {
-    unsafe fn gc_eq(&self, gc: &GarbageCollector, rhs: &Rhs) -> bool {
-        unsafe { self.get(gc).gc_eq(gc, rhs) }
+    unsafe fn gc_eq(&self, gc: &GarbageCollector, rhs: &GCBox<T>) -> bool {
+        unsafe { self.get(gc).gc_eq(gc, &rhs.get(gc)) }
     }
 }

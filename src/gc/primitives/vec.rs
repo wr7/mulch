@@ -3,7 +3,7 @@ use std::{marker::PhantomData, num::NonZeroUsize};
 use crate::gc::{
     GCPtr, GCSpace, GarbageCollector,
     primitives::buffer::GCBuffer,
-    util::{GCDebug, GCEq, GCGet, GCWrap},
+    util::{GCDebug, GCEq, GCGet},
 };
 
 /// A garbage collected dynamically-sized array.
@@ -163,7 +163,7 @@ impl<T: GCPtr> GCGet for GCVec<T> {
 
 impl<T, Rhs> GCEq<[Rhs]> for GCVec<T>
 where
-    T: GCEq<Rhs>,
+    T: GCPtr + GCEq<Rhs>,
 {
     unsafe fn gc_eq(&self, gc: &GarbageCollector, rhs: &[Rhs]) -> bool {
         let slice = unsafe { self.as_slice(gc) };
@@ -179,14 +179,14 @@ where
     }
 }
 
-impl<'gc, T, Rhs> GCEq<GCWrap<'gc, GCVec<Rhs>>> for GCVec<T>
+impl<T, Rhs> GCEq<GCVec<Rhs>> for GCVec<T>
 where
-    T: GCEq<GCWrap<'gc, Rhs>>,
+    T: GCPtr + GCEq<Rhs>,
     Rhs: GCPtr,
 {
-    unsafe fn gc_eq(&self, gc: &GarbageCollector, rhs: &GCWrap<'gc, GCVec<Rhs>>) -> bool {
+    unsafe fn gc_eq(&self, gc: &GarbageCollector, rhs: &GCVec<Rhs>) -> bool {
         let slice_lhs = unsafe { self.get(gc) };
-        let slice_rhs = rhs.get();
+        let slice_rhs = unsafe { rhs.get(gc) };
 
         if slice_lhs.len() != slice_rhs.len() {
             return false;
@@ -195,16 +195,6 @@ where
         slice_lhs
             .iter()
             .zip(slice_rhs.iter())
-            .all(|(a, b)| unsafe { a.gc_eq(gc, &b.wrap(rhs.gc_ref())) })
-    }
-}
-
-impl<T, Rhs> GCEq<GCVec<Rhs>> for GCVec<T>
-where
-    T: GCEq<Rhs>,
-    Rhs: GCPtr,
-{
-    unsafe fn gc_eq(&self, gc: &GarbageCollector, rhs: &GCVec<Rhs>) -> bool {
-        unsafe { self.gc_eq(gc, rhs.get(gc)) }
+            .all(|(a, b)| unsafe { a.gc_eq(gc, b) })
     }
 }

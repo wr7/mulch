@@ -2,7 +2,11 @@ use std::{fmt::Debug, num::NonZeroUsize};
 
 use crate::{
     error::{PartialSpanned, parse::PDResult},
-    gc::{GCPtr, GarbageCollector, math::rational::GCRational, util::GCDebug},
+    gc::{
+        GCPtr, GarbageCollector,
+        math::rational::GCRational,
+        util::{GCDebug, GCEq, GCWrap},
+    },
 };
 
 /// A garbage collected, infinite precision rational number.
@@ -86,6 +90,25 @@ impl GCDebug for GCNumber {
         match self.get() {
             GetGCNumber::Inline(int) => Debug::fmt(&int, f),
             GetGCNumber::Rational(rat) => unsafe { rat.gc_debug(gc, f) },
+        }
+    }
+}
+
+impl GCEq<GCNumber> for GCNumber {
+    unsafe fn gc_eq(&self, gc: &GarbageCollector, rhs: &GCNumber) -> bool {
+        unsafe {
+            match (self.get(), rhs.get()) {
+                (GetGCNumber::Inline(inline1), GetGCNumber::Inline(inline2)) => inline1 == inline2,
+
+                (GetGCNumber::Inline(inline), GetGCNumber::Rational(rational))
+                | (GetGCNumber::Rational(rational), GetGCNumber::Inline(inline)) => {
+                    GCWrap::new(rational, gc) == inline
+                }
+
+                (GetGCNumber::Rational(rational1), GetGCNumber::Rational(rational2)) => {
+                    GCWrap::new(rational1, gc) == GCWrap::new(rational2, gc)
+                }
+            }
         }
     }
 }

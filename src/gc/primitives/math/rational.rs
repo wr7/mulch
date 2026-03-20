@@ -9,7 +9,7 @@ use crate::{
         primitives::math::{
             Digit, PowerOfTenFactorization, num_decimal_digits, strip_unneeded_zeroes, uint::GCUInt,
         },
-        util::GCDebug,
+        util::{GCDebug, GCEq, GCWrap},
     },
 };
 
@@ -151,32 +151,15 @@ impl GCRational {
             return None;
         }
 
-        let [numerator, denominator] = self.numerator_and_denominator_from_metadata(metadata);
+        let [numerator, denominator] = self
+            .numerator_and_denominator_from_metadata(metadata)
+            .map(|b| GCUInt { data: b });
 
-        if !matches!(unsafe { denominator.as_slice(gc) }, [1]) {
+        if unsafe { GCWrap::new(denominator, gc) != (1 as limb_t) } {
             return None;
         }
 
-        // `limb_t` is probably always the same as `usize`, but that could theoretically change in
-        // the future.
-        const NUM_LIMBS_IN_USIZE: usize =
-            std::mem::size_of::<usize>() / std::mem::size_of::<limb_t>();
-
-        let numerator = unsafe { numerator.as_slice(gc) };
-
-        debug_assert_ne!(numerator.len(), 0);
-
-        if numerator.len() > NUM_LIMBS_IN_USIZE || numerator.len() == 0 {
-            return None;
-        }
-
-        let mut retval: usize = 0;
-        for limb in numerator.iter().rev().copied() {
-            retval = retval.unbounded_shl(limb_t::BITS);
-            retval |= limb as usize;
-        }
-
-        Some(retval | 1usize.rotate_right(1))
+        numerator.as_usize(gc)
     }
 
     pub(in crate::gc::primitives) unsafe fn deallocate_from_end(self, gc: &GarbageCollector) {
@@ -299,16 +282,46 @@ impl GCDebug for GCRational {
         }
 
         let numerator = unsafe { numerator.to_naive_string(gc) };
-        let denominator = unsafe { denominator.to_naive_string(gc) };
 
         write!(f, "{}", numerator)?;
 
-        if denominator != "1" {
+        if unsafe { GCWrap::new(denominator, gc) != (1 as limb_t) } {
             write!(f, "/")?;
+
+            let denominator = unsafe { denominator.to_naive_string(gc) };
 
             write!(f, "{}", denominator)?
         }
 
         Ok(())
+    }
+}
+
+impl GCEq<GCRational> for GCRational {
+    unsafe fn gc_eq(&self, gc: &GarbageCollector, rhs: &GCRational) -> bool {
+        let metadata = unsafe { self.metadata(gc) };
+        let [numerator, denominator] = self
+            .numerator_and_denominator_from_metadata(metadata)
+            .map(|b| unsafe { GCWrap::new(GCUInt { data: b }, gc) });
+
+        let rhs_metadata = unsafe { rhs.metadata(gc) };
+        let [rhs_numerator, rhs_denominator] = rhs
+            .numerator_and_denominator_from_metadata(rhs_metadata)
+            .map(|b| unsafe { GCWrap::new(GCUInt { data: b }, gc) });
+
+        metadata.is_negative == rhs_metadata.is_negative
+            && numerator == rhs_numerator
+            && denominator == rhs_denominator
+    }
+}
+
+impl GCEq<usize> for GCRational {
+    unsafe fn gc_eq(&self, gc: &GarbageCollector, rhs: &usize) -> bool {
+        let metadata = unsafe { self.metadata(gc) };
+        let [numerator, denominator] = self
+            .numerator_and_denominator_from_metadata(metadata)
+            .map(|b| unsafe { GCWrap::new(GCUInt { data: b }, gc) });
+
+        !metadata.is_negative && numerator == *rhs && denominator == (1 as limb_t)
     }
 }

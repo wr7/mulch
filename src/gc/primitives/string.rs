@@ -2,7 +2,7 @@ use std::{fmt::Debug, num::NonZeroUsize, ptr::addr_of_mut};
 
 use crate::gc::{
     GCPtr, GCSpace, GarbageCollector,
-    util::{GCDebug, GCEq, GCGet, GCWrap},
+    util::{GCDebug, GCEq, GCGet},
 };
 
 /// A garbage collected string.
@@ -195,8 +195,8 @@ impl GCEq<str> for GCString {
     }
 }
 
-impl<'gc> GCEq<GCWrap<'gc, GCString>> for GCString {
-    unsafe fn gc_eq(&self, gc: &GarbageCollector, rhs: &GCWrap<'gc, GCString>) -> bool {
-        unsafe { self.get(gc) == rhs.get() }
+impl GCEq<GCString> for GCString {
+    unsafe fn gc_eq(&self, gc: &GarbageCollector, rhs: &GCString) -> bool {
+        unsafe { self.get(gc) == rhs.get(gc) }
     }
 }

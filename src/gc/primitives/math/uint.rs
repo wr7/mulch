@@ -10,6 +10,7 @@ use gmp_mpfr_sys::gmp::{
 use crate::gc::{
     GCBuffer, GarbageCollector,
     primitives::math::{Digit, POW_5_MULTIPLIER},
+    util::GCEq,
 };
 
 /// An unsigned bigint stored in GC space. Note: this doesn't implement `GCPtr`. It is meant to be
@@ -210,6 +211,50 @@ impl GCUInt {
         output
     }
 
+    pub fn as_usize(self, gc: &GarbageCollector) -> Option<usize> {
+        const PTR_SIZE: usize = std::mem::size_of::<usize>();
+
+        match std::mem::size_of::<limb_t>() {
+            0 => unreachable!(),
+            1..PTR_SIZE => {
+                const LIMBS_IN_USIZE: usize = PTR_SIZE / std::mem::size_of::<limb_t>();
+
+                if self.data.len() > LIMBS_IN_USIZE {
+                    return None;
+                }
+
+                let mut retval = 0usize;
+
+                for limb in unsafe { self.data.as_slice(gc).iter().rev() } {
+                    retval = retval.unbounded_shl(limb_t::BITS);
+                    retval |= *limb as usize;
+                }
+
+                Some(retval)
+            }
+            PTR_SIZE => {
+                let limbs = unsafe { self.data.as_slice(gc) };
+
+                if limbs.len() > 1 {
+                    return None;
+                }
+
+                Some(limbs.first().map_or(0usize, |l| *l as usize))
+            }
+            _ => {
+                let limbs = unsafe { self.data.as_slice(gc) };
+
+                if limbs.len() > 1 {
+                    return None;
+                }
+
+                let limb = limbs.first().copied().unwrap_or(0);
+
+                usize::try_from(limb).ok()
+            }
+        }
+    }
+
     /// Writes a power of five to `self`. Requires that `self` is big enough and is set to zero.
     unsafe fn write_pow_5(self, gc: &GarbageCollector, pow_5: usize) {
         let limbs_required = (pow_5 * POW_5_MULTIPLIER).div_ceil(256) / (limb_t::BITS as usize) + 1;
@@ -343,5 +388,23 @@ impl GCUInt {
 impl From<GCBuffer<limb_t>> for GCUInt {
     fn from(value: GCBuffer<limb_t>) -> Self {
         Self { data: value }
+    }
+}
+
+impl GCEq<GCUInt> for GCUInt {
+    unsafe fn gc_eq(&self, gc: &GarbageCollector, rhs: &GCUInt) -> bool {
+        unsafe { self.data.as_slice(gc) == rhs.data.as_slice(gc) }
+    }
+}
+
+impl GCEq<usize> for GCUInt {
+    unsafe fn gc_eq(&self, gc: &GarbageCollector, rhs: &usize) -> bool {
+        self.as_usize(gc).is_some_and(|val| val == *rhs)
+    }
+}
+
+impl GCEq<limb_t> for GCUInt {
+    unsafe fn gc_eq(&self, gc: &GarbageCollector, rhs: &limb_t) -> bool {
+        unsafe { self.data.as_slice(gc) == &[*rhs] }
     }
 }

@@ -14,7 +14,9 @@ pub use primitives::*;
 
 use crate::error::PartialSpanned;
 use crate::gc::util::GCDebug;
+use crate::gc::util::GCEq;
 use crate::gc::util::GCWrap;
+use crate::gc::util::NonGC;
 
 #[cfg(test)]
 mod test;
@@ -69,6 +71,8 @@ macro_rules! gc_trivial_impl {
                 }
             }
 
+            unsafe impl ::mulch::gc::util::NonGC for $ty {}
+
             impl ::mulch::gc::util::GCDebug for $ty {
                 unsafe fn gc_debug(
                     self,
@@ -76,6 +80,12 @@ macro_rules! gc_trivial_impl {
                     f: &mut ::std::fmt::Formatter,
                 ) -> ::std::fmt::Result {
                     ::std::fmt::Debug::fmt(&self, f)
+                }
+            }
+
+            impl ::mulch::gc::util::GCEq<$ty> for $ty {
+                unsafe fn gc_eq(&self, _gc: &::mulch::gc::GarbageCollector, rhs: &$ty) -> bool {
+                    self == rhs
                 }
             }
         )*
@@ -119,6 +129,14 @@ impl<T: ?Sized> GCDebug for PhantomData<T> {
     }
 }
 
+impl<T> GCEq<PhantomData<T>> for PhantomData<T> {
+    unsafe fn gc_eq(&self, _: &GarbageCollector, _: &Self) -> bool {
+        true
+    }
+}
+
+unsafe impl<T> NonGC for PhantomData<T> {}
+
 unsafe impl<T: GCPtr> GCPtr for PartialSpanned<T> {
     const MSB_RESERVED: bool = T::MSB_RESERVED;
 
@@ -128,6 +146,8 @@ unsafe impl<T: GCPtr> GCPtr for PartialSpanned<T> {
         PartialSpanned(inner_copy, self.1)
     }
 }
+
+unsafe impl<T: NonGC> NonGC for PartialSpanned<T> {}
 
 impl<T: GCDebug> GCDebug for PartialSpanned<T> {
     unsafe fn gc_debug(
@@ -142,6 +162,12 @@ impl<T: GCDebug> GCDebug for PartialSpanned<T> {
     }
 }
 
+impl<T: GCEq<T>> GCEq<PartialSpanned<T>> for PartialSpanned<T> {
+    unsafe fn gc_eq(&self, gc: &GarbageCollector, rhs: &PartialSpanned<T>) -> bool {
+        unsafe { self.0.gc_eq(gc, &rhs.0) && self.1 == rhs.1 }
+    }
+}
+
 unsafe impl<T: GCPtr> GCPtr for Option<T> {
     const MSB_RESERVED: bool = false;
 
@@ -149,6 +175,8 @@ unsafe impl<T: GCPtr> GCPtr for Option<T> {
         self.map(|val| unsafe { val.gc_copy(gc) })
     }
 }
+
+unsafe impl<T: NonGC> NonGC for Option<T> {}
 
 impl<T: GCDebug> GCDebug for Option<T> {
     unsafe fn gc_debug(
@@ -159,6 +187,16 @@ impl<T: GCDebug> GCDebug for Option<T> {
         match self {
             Some(val) => unsafe { f.debug_tuple("Some").field(&GCWrap::new(val, gc)).finish() },
             None => write!(f, "None"),
+        }
+    }
+}
+
+impl<T: GCEq<T>> GCEq<Option<T>> for Option<T> {
+    unsafe fn gc_eq(&self, gc: &GarbageCollector, rhs: &Option<T>) -> bool {
+        match (self, rhs) {
+            (None, None) => true,
+            (Some(a), Some(b)) => unsafe { a.gc_eq(gc, b) },
+            _ => false,
         }
     }
 }
