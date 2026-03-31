@@ -27,11 +27,11 @@ enum GetGCNumber {
 }
 
 impl GCNumber {
-    pub fn parse_from_decimal(
+    pub fn parse_from_literal(
         gc: &GarbageCollector,
         decimal: PartialSpanned<&str>,
     ) -> PDResult<Self> {
-        let rational = GCRational::parse_from_decimal(gc, decimal)?;
+        let rational = GCRational::parse_from_literal(gc, decimal)?;
 
         if let Some(num) = unsafe { rational.as_usize(gc) }
             && let Some(num) = Self::from_usize(num)

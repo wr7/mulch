@@ -96,6 +96,10 @@ pub fn unexpected_character_in_number(char: char, span: Span) -> ParseDiagnostic
     parse_error!("EP0017", format!("Unexpected character `{char}` in number literal"), [{"here", span, primary}])
 }
 
-pub fn multiple_decimals_in_number(span: Span) -> ParseDiagnostic {
-    parse_error!("EP0018", format!("Multiple decimal points in number literal"), [{"here", span, primary}])
+pub fn multiple_decimals_or_slashes_in_number(span: Span) -> ParseDiagnostic {
+    parse_error!("EP0018", format!("Multiple decimal points or slashes in number literal"), [{"here", span, primary}])
+}
+
+pub fn denominator_of_zero(span: Span) -> ParseDiagnostic {
+    parse_error!("EP0019", format!("Fraction literals cannot have a denominator of zero"), [{"here", span, primary}])
 }

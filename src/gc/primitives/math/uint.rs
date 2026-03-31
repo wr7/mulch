@@ -66,6 +66,7 @@ impl GCUInt {
         num_digits: usize,
     ) -> Self {
         let digits = digits.into_iter();
+
         // We're calculating the maximum number of limbs required to parse our number using:
         //
         // `floor(d / floor(k * log10(2))) + 1`
@@ -140,7 +141,7 @@ impl GCUInt {
 
         let mut string = Vec::<u8>::with_capacity(digits_required + 1);
 
-        let input = unsafe { self.without_leading_zeroes(gc) };
+        let input = unsafe { self.without_leading_zero_limbs(gc) };
 
         let temp = GCBuffer::<limb_t>::new_uninit(gc, input.data.len() + 1);
 
@@ -292,37 +293,40 @@ impl GCUInt {
         unsafe { self.trim_leading_zero_limbs_at_end(gc) };
     }
 
-    unsafe fn trim_leading_zero_limbs_at_end(&mut self, gc: &GarbageCollector) {
-        let new_length = unsafe { self.data.as_slice(gc) }
+    unsafe fn count_required_digits(self, gc: &GarbageCollector) -> usize {
+        unsafe { self.data.as_slice(gc) }
             .iter()
             .rposition(|limb| *limb != 0)
-            .map_or(1, |p| p + 1);
-
-        unsafe { self.data.set_length_at_end(gc, new_length) };
+            .map_or(1, |p| p + 1)
     }
 
-    unsafe fn without_leading_zeroes(self, gc: &GarbageCollector) -> Self {
+    pub unsafe fn trim_leading_zero_limbs_at_end(&mut self, gc: &GarbageCollector) {
+        unsafe {
+            let new_length = self.count_required_digits(gc);
+
+            self.data.set_length_at_end(gc, new_length)
+        };
+    }
+
+    pub unsafe fn without_leading_zero_limbs(self, gc: &GarbageCollector) -> Self {
         debug_assert_ne!(self.data.len(), 0);
 
-        let new_length = unsafe { self.data.as_slice(gc) }
-            .iter()
-            .rposition(|limb| *limb != 0)
-            .map_or(1, |p| p + 1);
+        let new_length = unsafe { self.count_required_digits(gc) };
 
         Self {
             data: GCBuffer::from_raw_parts(self.data.gc_ptr(), new_length),
         }
     }
 
-    unsafe fn trailing_zeroes(self, gc: &GarbageCollector) -> u32 {
+    pub unsafe fn trailing_zeroes(self, gc: &GarbageCollector) -> usize {
         let mut trailing_zeroes = 0;
 
         for limb in unsafe { self.data.as_slice(gc) } {
-            let limb_zeroes = limb.trailing_zeros();
+            let limb_zeroes = limb.trailing_zeros() as usize;
 
             trailing_zeroes += limb_zeroes;
 
-            if limb_zeroes != limb_t::BITS {
+            if limb_zeroes != limb_t::BITS as usize {
                 break;
             }
         }
@@ -330,15 +334,21 @@ impl GCUInt {
         trailing_zeroes
     }
 
-    unsafe fn reduce_pow_2_at_end(&mut self, gc: &GarbageCollector, den_pow_2: &mut usize) {
-        let pow2_reduction = unsafe { self.trailing_zeroes(gc) as usize }.min(*den_pow_2);
-        *den_pow_2 -= pow2_reduction;
-
+    /// Shifts `self` to the right by `amnt` bits. Returns the new length.
+    ///
+    /// NOTE: This function will only write the returned number of limbs to `self`, so the caller
+    /// should manually zero those limbs or set the length of `self` to the return value of this
+    /// function using [`GCBuffer::set_length`] or [`GCBuffer::set_length_at_end`].
+    ///
+    /// # Safety
+    /// - `self` must be valid
+    /// - `amnt <= self.data.len() * limb_t::BITS`
+    pub unsafe fn shr_unchecked(self, gc: &GarbageCollector, amnt: usize) -> usize {
         let limb_count = self.data.len();
         let data_ptr = self.data.as_mut_ptr(gc);
 
-        let shr_limbs = pow2_reduction / limb_t::BITS as usize;
-        let shr_bits = pow2_reduction % limb_t::BITS as usize;
+        let shr_limbs = amnt / limb_t::BITS as usize;
+        let shr_bits = amnt % limb_t::BITS as usize;
 
         let limb_count = limb_count - shr_limbs;
 
@@ -346,8 +356,34 @@ impl GCUInt {
             mpn_copyi(data_ptr, data_ptr.add(shr_limbs), limb_count as size_t);
 
             mpn_rshift(data_ptr, data_ptr, limb_count as size_t, shr_bits as c_uint);
+        }
 
-            self.data.set_length_at_end(gc, limb_count);
+        limb_count
+    }
+
+    /// Compares `self` with `other`.
+    ///
+    /// Requires there to be no leading zeroes on `self` or `other`
+    pub unsafe fn cmp(self, gc: &GarbageCollector, other: Self) -> std::cmp::Ordering {
+        match self.data.len().cmp(&other.data.len()) {
+            std::cmp::Ordering::Equal => unsafe {
+                self.data
+                    .as_slice(gc)
+                    .iter()
+                    .rev()
+                    .cmp(other.data.as_slice(gc).iter().rev())
+            },
+            order => order,
+        }
+    }
+
+    unsafe fn reduce_pow_2_at_end(&mut self, gc: &GarbageCollector, den_pow_2: &mut usize) {
+        let pow2_reduction = unsafe { self.trailing_zeroes(gc) as usize }.min(*den_pow_2);
+        *den_pow_2 -= pow2_reduction;
+
+        unsafe {
+            let len = self.shr_unchecked(gc, pow2_reduction);
+            self.data.set_length_at_end(gc, len);
         }
     }
 

@@ -1,17 +1,22 @@
-use std::num::NonZeroUsize;
+use std::{cmp::Ordering, num::NonZeroUsize};
 
-use gmp_mpfr_sys::gmp::limb_t;
+use gmp_mpfr_sys::gmp::{limb_t, mpn_gcd, mpn_tdiv_qr, size_t};
 
 use crate::{
     error::{PartialSpanned, parse::PDResult},
     gc::{
         GCBuffer, GCPtr, GarbageCollector,
+        math::{literal_type, num_integer_digits, strip_integer_zeroes},
         primitives::math::{
-            Digit, PowerOfTenFactorization, num_decimal_digits, strip_unneeded_zeroes, uint::GCUInt,
+            Digit, PowerOfTenFactorization, decimal_literal_info, strip_decimal_zeroes,
+            uint::GCUInt,
         },
         util::{GCDebug, GCEq, GCWrap},
     },
+    parser,
 };
+
+use super::NumLiteralType;
 
 /// A garbage-collected, infinite precision rational number.
 ///
@@ -93,13 +98,97 @@ impl GCRational {
         self.ptr
     }
 
-    pub fn parse_from_decimal(
+    pub fn parse_from_literal(
+        gc: &GarbageCollector,
+        literal: PartialSpanned<&str>,
+    ) -> PDResult<Self> {
+        match literal_type(literal)? {
+            NumLiteralType::Decimal => Self::parse_from_decimal_literal(gc, literal),
+            NumLiteralType::Fraction => Self::parse_from_fraction_literal(gc, literal),
+        }
+    }
+
+    fn parse_from_fraction_literal(
+        gc: &GarbageCollector,
+        literal: PartialSpanned<&str>,
+    ) -> PDResult<Self> {
+        let slash = literal
+            .0
+            .char_indices()
+            .find(|(_, c)| matches!(c, '/'))
+            .map(|(i, _)| i)
+            .unwrap();
+
+        let numerator = &literal[0..slash];
+        let denominator = &literal[slash + 1..];
+
+        let numerator = strip_integer_zeroes(numerator);
+        let denominator = strip_integer_zeroes(denominator);
+
+        let numerator_len = num_integer_digits(numerator, literal.1)?;
+        let denominator_len = num_integer_digits(denominator, literal.1)?;
+
+        let metadata_ptr = gc.from_space.len();
+        gc.from_space
+            .set_len(metadata_ptr + Self::METADATA_SIZE_BLOCKS);
+
+        let numerator = unsafe {
+            GCUInt::parse_from_digits(
+                gc,
+                numerator
+                    .bytes()
+                    .filter_map(|c| Digit::from_u8(c.checked_sub(b'0')?)),
+                numerator_len,
+            )
+        };
+
+        let denominator = unsafe {
+            GCUInt::parse_from_digits(
+                gc,
+                denominator
+                    .bytes()
+                    .filter_map(|c| Digit::from_u8(c.checked_sub(b'0')?)),
+                denominator_len,
+            )
+        };
+
+        let metadata = RationalMetadata {
+            numerator_len: numerator.data.size_blocks() as u32,
+            is_negative: false,
+            denominator_len: denominator.data.size_blocks() as u32,
+        };
+
+        unsafe {
+            gc.from_space
+                .block_ptr(metadata_ptr)
+                .cast::<u64>()
+                .write(u64::from(metadata))
+        };
+
+        let rational = Self {
+            ptr: unsafe { NonZeroUsize::new_unchecked(metadata_ptr) },
+        };
+
+        unsafe {
+            if denominator.is_zero(gc) {
+                rational.deallocate_from_end(gc);
+
+                return Err(parser::error::denominator_of_zero(literal.1));
+            }
+        }
+
+        unsafe { rational.reduce_from_end(gc) };
+
+        Ok(rational)
+    }
+
+    fn parse_from_decimal_literal(
         gc: &GarbageCollector,
         decimal: PartialSpanned<&str>,
     ) -> PDResult<Self> {
-        let decimal = decimal.map(|decimal| strip_unneeded_zeroes(&decimal));
+        let decimal = decimal.map(|decimal| strip_decimal_zeroes(&decimal));
 
-        let (num_digits_after_decimal_point, num_digits) = num_decimal_digits(decimal)?;
+        let (num_digits_after_decimal_point, num_digits) = decimal_literal_info(decimal)?;
 
         let metadata_ptr = gc.from_space.len();
         gc.from_space
@@ -211,6 +300,164 @@ impl GCRational {
                     metadata.denominator_len as usize,
                 ),
             ]
+        }
+    }
+
+    /// Reduces the fraction. Requires that the `self` is the last object in the `GCSpace`.
+    /// Additionally, the denominator must not be zero.
+    unsafe fn reduce_from_end(self, gc: &GarbageCollector) {
+        let old_metadata = unsafe { self.metadata(gc) };
+
+        let [mut numerator, mut denominator] = self
+            .numerator_and_denominator_from_metadata(old_metadata)
+            .map(|b| GCUInt::from(b));
+
+        unsafe {
+            debug_assert!(!denominator.is_zero(gc));
+        }
+
+        // Our `gcd` function requires that at-least one input is odd. This means that we will have
+        // to remove as many trailing zeroes as we can before-hand.
+
+        let trailing_zeroes = unsafe {
+            numerator
+                .trailing_zeroes(gc)
+                .min(denominator.trailing_zeroes(gc))
+        };
+
+        unsafe {
+            let numerator_len = numerator.shr_unchecked(gc, trailing_zeroes);
+            let denominator_len = denominator.shr_unchecked(gc, trailing_zeroes);
+
+            numerator.data.set_length(numerator_len);
+            denominator.data.set_length_at_end(gc, denominator_len);
+        };
+
+        // GCD will also destroy our inputs, so we need to make copies
+
+        let mut tmp1 = GCUInt::from(GCBuffer::<limb_t>::new_uninit(gc, numerator.data.len()));
+        unsafe {
+            std::ptr::copy_nonoverlapping(
+                numerator.data.as_ptr(gc),
+                tmp1.data.as_mut_ptr(gc),
+                tmp1.data.len(),
+            );
+
+            tmp1.trim_leading_zero_limbs_at_end(gc);
+        };
+
+        let mut tmp2 = GCUInt::from(GCBuffer::<limb_t>::new_uninit(gc, denominator.data.len()));
+        unsafe {
+            std::ptr::copy_nonoverlapping(
+                denominator.data.as_ptr(gc),
+                tmp2.data.as_mut_ptr(gc),
+                tmp2.data.len(),
+            );
+
+            tmp2.trim_leading_zero_limbs_at_end(gc);
+        };
+
+        let mut tmp_greater = tmp1;
+        let mut tmp_less = tmp2;
+
+        if unsafe { tmp_greater.cmp(gc, tmp_less) } == Ordering::Less {
+            std::mem::swap(&mut tmp_greater, &mut tmp_less);
+        }
+
+        let mut gcd_buf = GCBuffer::<limb_t>::new_uninit(gc, tmp_less.data.len());
+
+        unsafe {
+            let gcd_len = mpn_gcd(
+                gcd_buf.as_mut_ptr(gc),
+                tmp_greater.data.as_mut_ptr(gc),
+                tmp_greater.data.len() as size_t,
+                tmp_less.data.as_mut_ptr(gc),
+                tmp_less.data.len() as size_t,
+            ) as usize;
+
+            gcd_buf.set_length_at_end(gc, gcd_len);
+
+            GCUInt::from(gcd_buf).trim_leading_zero_limbs_at_end(gc);
+        }
+
+        // Now we need to divide, but the buffers cannot overlap (aside from the remainder and the
+        // dividend), so we need to copy our numerator and denominator into tmp1 and tmp2 again.
+
+        unsafe {
+            std::ptr::copy_nonoverlapping(
+                numerator.data.as_ptr(gc),
+                tmp1.data.as_mut_ptr(gc),
+                tmp1.data.len(),
+            );
+            std::ptr::copy_nonoverlapping(
+                denominator.data.as_ptr(gc),
+                tmp2.data.as_mut_ptr(gc),
+                tmp2.data.len(),
+            );
+
+            mpn_tdiv_qr(
+                numerator.data.as_mut_ptr(gc),
+                tmp1.data.as_mut_ptr(gc),
+                0,
+                tmp1.data.as_ptr(gc),
+                tmp1.data.len() as size_t,
+                gcd_buf.as_ptr(gc),
+                gcd_buf.len() as size_t,
+            );
+
+            numerator
+                .data
+                .set_length(tmp1.data.len() - gcd_buf.len() + 1);
+
+            mpn_tdiv_qr(
+                denominator.data.as_mut_ptr(gc),
+                tmp2.data.as_mut_ptr(gc),
+                0,
+                tmp2.data.as_ptr(gc),
+                tmp2.data.len() as size_t,
+                gcd_buf.as_ptr(gc),
+                gcd_buf.len() as size_t,
+            );
+
+            denominator
+                .data
+                .set_length(tmp2.data.len() - gcd_buf.len() + 1);
+        }
+
+        // Fix the memory layout since our numerator and denominator may have shrunk
+
+        unsafe {
+            let numerator = numerator.without_leading_zero_limbs(gc);
+            let denominator = denominator.without_leading_zero_limbs(gc);
+
+            let new_denominator_ptr = numerator.data.gc_ptr().get() + numerator.data.size_blocks();
+
+            std::ptr::copy(
+                denominator.data.as_ptr(gc),
+                gc.from_space
+                    .block_ptr(new_denominator_ptr)
+                    .cast::<limb_t>(),
+                denominator.data.len(),
+            );
+
+            let denominator = GCBuffer::<limb_t>::from_raw_parts(
+                NonZeroUsize::new_unchecked(new_denominator_ptr),
+                denominator.data.len(),
+            );
+
+            gc.from_space
+                .set_len(new_denominator_ptr + denominator.size_blocks());
+
+            // Adjust metadata to use new sizes
+
+            gc.from_space
+                .block_ptr(self.ptr)
+                .cast::<u64>()
+                .write(u64::from(RationalMetadata {
+                    numerator_len: numerator.data.len() as u32,
+                    is_negative: old_metadata.is_negative,
+                    denominator_len: denominator.len() as u32,
+                }));
         }
     }
 }

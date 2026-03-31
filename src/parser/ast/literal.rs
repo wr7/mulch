@@ -27,6 +27,6 @@ single_token_parse_type! {
     pub struct NumberLiteral(pub GCNumber);
 
     |parser| {
-        PartialSpanned(Token::Number(lit), span) => Self(GCNumber::parse_from_decimal(parser.gc, PartialSpanned(lit, *span))?)
+        PartialSpanned(Token::Number(lit), span) => Self(GCNumber::parse_from_literal(parser.gc, PartialSpanned(lit, *span))?)
     }
 }

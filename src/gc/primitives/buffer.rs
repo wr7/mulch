@@ -78,7 +78,8 @@ impl<T> GCBuffer<T> {
         self.as_mut_ptr(gc).wrapping_add(index)
     }
 
-    /// Sets the length of the `GCVec` given that it was the last object allocated in the garbage collector.
+    /// Sets the length of the `GCVec` given that it was the last object allocated in the garbage
+    /// collector. This will decrease the length of the `GCSpace`.
     pub(crate) unsafe fn set_length_at_end(&mut self, gc: &GarbageCollector, new_length: usize) {
         let cur_length = self.len();
 
@@ -99,6 +100,11 @@ impl<T> GCBuffer<T> {
         gc.from_space
             .set_len(gc.from_space.len() - cur_allocation_size + new_allocation_size);
 
+        self.len = new_length;
+    }
+
+    /// Sets the length of the `GCVec`. This will not decrease the size of the GC heap
+    pub(crate) unsafe fn set_length(&mut self, new_length: usize) {
         self.len = new_length;
     }
 

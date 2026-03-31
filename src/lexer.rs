@@ -239,7 +239,7 @@ impl<'a> Lexer<'a> {
         let end = loop {
             match self.remaining.peek_all() {
                 [(_, '0'..='9' | '_'), ..] => {}
-                [(_, '.'), (_, '0'..='9')] if !hit_decimal => {
+                [(_, '.' | '/'), (_, '0'..='9')] if !hit_decimal => {
                     hit_decimal = true;
                 }
                 [(idx, c @ ('a'..='z' | 'A'..='Z')), ..] => {

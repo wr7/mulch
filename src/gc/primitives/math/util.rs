@@ -1,3 +1,4 @@
+use copyspan::Span;
 use mulch_macros::FromToU8;
 
 use crate::{
@@ -30,6 +31,22 @@ pub enum Digit {
     Eight,
     Nine,
 }
+
+#[derive(Clone, Copy, FromToU8, Debug)]
+pub(super) enum NumLiteralType {
+    Decimal,
+    Fraction,
+}
+
+pub(super) fn strip_integer_zeroes(str: &str) -> &str {
+    let start = str
+        .char_indices()
+        .find(|(_, c)| !matches!(c, '_' | '0'))
+        .map_or(str.len(), |(i, _)| i);
+
+    &str[start..]
+}
+
 /// Strips unneeded trailing and leading zeroes/underscores.
 ///
 /// `0_014_.2_00_` -> `14_.2`
@@ -37,7 +54,7 @@ pub enum Digit {
 /// `_3.0` -> `3`
 ///
 /// Requires that the input is not empty
-pub(super) fn strip_unneeded_zeroes(str: &str) -> &str {
+pub(super) fn strip_decimal_zeroes(str: &str) -> &str {
     assert!(!str.is_empty());
 
     let decimal_point = str
@@ -60,7 +77,24 @@ pub(super) fn strip_unneeded_zeroes(str: &str) -> &str {
     &str[start..end]
 }
 
-pub(super) fn num_decimal_digits(decimal: PartialSpanned<&str>) -> PDResult<(usize, usize)> {
+pub(super) fn literal_type(literal: PartialSpanned<&str>) -> PDResult<NumLiteralType> {
+    let mut iter = literal.chars().filter(|c| matches!(c, '.' | '/'));
+
+    let num_type = iter
+        .next()
+        .and_then(|c| (c == '/').then_some(NumLiteralType::Fraction))
+        .unwrap_or(NumLiteralType::Decimal);
+
+    if iter.next().is_some() {
+        return Err(parser::error::multiple_decimals_or_slashes_in_number(
+            literal.1,
+        ));
+    }
+
+    Ok(num_type)
+}
+
+pub(super) fn decimal_literal_info(decimal: PartialSpanned<&str>) -> PDResult<(usize, usize)> {
     let mut digits_after_decimal_point = 0;
     let mut num_digits = 0;
     let mut hit_decimal = false;
@@ -77,7 +111,7 @@ pub(super) fn num_decimal_digits(decimal: PartialSpanned<&str>) -> PDResult<(usi
             '_' => continue,
             '.' => {
                 if hit_decimal {
-                    return Err(parser::error::multiple_decimals_in_number(decimal.1));
+                    debug_assert!(false);
                 } else {
                     hit_decimal = true;
                 }
@@ -91,4 +125,18 @@ pub(super) fn num_decimal_digits(decimal: PartialSpanned<&str>) -> PDResult<(usi
     }
 
     Ok((digits_after_decimal_point, num_digits))
+}
+
+pub(super) fn num_integer_digits(integer: &str, span: Span) -> PDResult<usize> {
+    let mut ret = 0;
+
+    for c in integer.chars() {
+        match c {
+            '0'..='9' => ret += 1,
+            '_' => {}
+            _ => return Err(parser::error::unexpected_character_in_number(c, span)),
+        }
+    }
+
+    Ok(ret)
 }
