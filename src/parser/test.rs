@@ -5,6 +5,9 @@ use indoc::indoc;
 
 mod util;
 
+#[cfg(any(not(miri), rust_analyzer))]
+mod numeric;
+
 parse_test! {nested_set, "{ x = a; b={x=cat; y=dog}; hi=foo;}",
     Set [
         NamedValue {
@@ -402,56 +405,6 @@ parse_test! {lambda_2, r#"with {add = (a, b) -> a + b} in add("9", "10")"#,
                 ],
             },
             32..46,
-        ),
-    }
-}
-
-#[cfg(any(not(miri), rust_analyzer))]
-parse_test! {let_in1, "let pi = 3.14159 in e^(i * pi)",
-    LetIn {
-        variables: [
-            NamedValue {
-                name: PartialSpanned(
-                    "pi",
-                    4..6,
-                ),
-                value: PartialSpanned(
-                    NumericLiteral(
-                        314159/100000,
-                    ),
-                    9..16,
-                ),
-            },
-        ],
-        val: PartialSpanned(
-            BinaryOperation {
-                lhs: PartialSpanned(
-                    Variable(
-                        "e",
-                    ),
-                    20..21,
-                ),
-                operator: Exponentiate,
-                rhs: PartialSpanned(
-                    BinaryOperation {
-                        lhs: PartialSpanned(
-                            Variable(
-                                "i",
-                            ),
-                            23..24,
-                        ),
-                        operator: Multiply,
-                        rhs: PartialSpanned(
-                            Variable(
-                                "pi",
-                            ),
-                            27..29,
-                        ),
-                    },
-                    22..30,
-                ),
-            },
-            20..30,
         ),
     }
 }
