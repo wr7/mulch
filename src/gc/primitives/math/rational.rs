@@ -375,6 +375,30 @@ impl GCRational {
             debug_assert!(!denominator.is_zero(gc));
         }
 
+        unsafe {
+            if numerator.is_zero(gc) {
+                denominator.data.deallocate_from_end(gc);
+                numerator.data.set_length_at_end(gc, 1);
+
+                let denominator = GCBuffer::<limb_t>::new_uninit(gc, 1);
+                denominator.as_mut_ptr(gc).write(1);
+
+                gc.from_space
+                    .block_ptr(self.ptr)
+                    .cast::<[usize; 2]>()
+                    .write(
+                        RationalMetadata {
+                            numerator_len: 1,
+                            is_negative: false,
+                            denominator_len: 1,
+                        }
+                        .to_raw_unchecked(),
+                    );
+
+                return;
+            }
+        }
+
         // Our `gcd` function requires that at-least one input is odd. This means that we will have
         // to remove as many trailing zeroes as we can before-hand.
 
