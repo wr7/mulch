@@ -16,6 +16,9 @@ mod separatedlist;
 mod traits;
 pub mod util;
 
+#[cfg(test)]
+mod test;
+
 // Macro helper function used for better error messages
 #[doc(hidden)]
 pub use util::run_parse_hook;

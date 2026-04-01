@@ -116,8 +116,10 @@ impl GarbageCollector {
             return;
         }
 
-        self.to_space.expand_exact(self.from_space.capacity() * 2);
-        self.from_space.expand_exact(self.from_space.capacity() * 2);
+        self.to_space
+            .expand_capacity_to_exact(self.from_space.capacity() * 2);
+        self.from_space
+            .expand_capacity_to_exact(self.from_space.capacity() * 2);
     }
 
     /// Forcefully does a garbage collection cycle.

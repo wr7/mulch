@@ -235,6 +235,62 @@ impl GCRational {
         })
     }
 
+    /// Parses a `GCRational` from a numerator and denominator. This will not reduce the fraction.
+    /// Panics on failiure. This is solely intended for writing tests.
+    pub(crate) fn parse_from_numerator_and_denominator_panicking(
+        gc: &GarbageCollector,
+        numerator: &str,
+        denominator: Option<&str>,
+    ) -> Self {
+        let ptr = gc.from_space.len();
+        gc.from_space.set_len(ptr + Self::METADATA_SIZE_BLOCKS);
+
+        let numerator = unsafe {
+            GCUInt::parse_from_digits(
+                gc,
+                numerator
+                    .bytes()
+                    .map(|b| b.checked_sub(b'0').and_then(|d| Digit::from_u8(d)).unwrap()),
+                numerator.len(),
+            )
+        };
+
+        let denominator = denominator.unwrap_or("1");
+        let denominator = unsafe {
+            GCUInt::parse_from_digits(
+                gc,
+                denominator
+                    .bytes()
+                    .map(|b| b.checked_sub(b'0').and_then(|d| Digit::from_u8(d)).unwrap()),
+                denominator.len(),
+            )
+        };
+
+        unsafe {
+            gc.from_space.block_ptr(ptr).cast::<[usize; 2]>().write(
+                RationalMetadata {
+                    numerator_len: numerator.data.len(),
+                    is_negative: false,
+                    denominator_len: denominator.data.len(),
+                }
+                .to_raw_unchecked(),
+            )
+        }
+
+        unsafe {
+            dbg!(
+                Self {
+                    ptr: NonZeroUsize::new_unchecked(ptr),
+                }
+                .wrap(gc)
+            )
+        };
+
+        Self {
+            ptr: unsafe { NonZeroUsize::new_unchecked(ptr) },
+        }
+    }
+
     pub unsafe fn as_usize(self, gc: &GarbageCollector) -> Option<usize> {
         let metadata = unsafe { self.metadata(gc) };
 
@@ -495,7 +551,7 @@ unsafe impl GCPtr for GCRational {
             self.numerator_and_denominator_from_metadata(metadata);
 
         let new_ptr = gc.to_space.len();
-        gc.to_space.expand_to(new_ptr + Self::METADATA_SIZE_BLOCKS);
+        gc.to_space.set_len(new_ptr + Self::METADATA_SIZE_BLOCKS);
 
         let new_numerator_buf =
             GCBuffer::<limb_t>::new_uninit_in_space(&gc.to_space, old_numerator_buf.len());

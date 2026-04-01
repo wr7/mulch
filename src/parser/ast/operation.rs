@@ -26,16 +26,16 @@ single_token_parse_type! {
 
 #[derive(Clone, Copy, GCPtr, GCDebug, GCEq)]
 pub struct BinaryOperation {
-    lhs: GCBox<PartialSpanned<Expression>>,
-    operator: BinaryOperator,
-    rhs: GCBox<PartialSpanned<Expression>>,
+    pub lhs: GCBox<PartialSpanned<Expression>>,
+    pub operator: BinaryOperator,
+    pub rhs: GCBox<PartialSpanned<Expression>>,
 }
 
 #[derive(Clone, Copy, GCPtr, GCDebug, GCEq, Parse)]
 #[mulch_parse_error(|_| unimplemented!())]
 pub struct UnaryOperation {
-    operator: UnaryOperator,
-    arg: GCBox<PartialSpanned<Expression>>,
+    pub operator: UnaryOperator,
+    pub arg: GCBox<PartialSpanned<Expression>>,
 }
 
 pub(super) fn operation_parse_hook(

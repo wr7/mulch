@@ -1,4 +1,7 @@
-use std::{fmt::Debug, num::NonZeroUsize};
+use std::{
+    fmt::Debug,
+    num::{IntErrorKind, NonZeroUsize},
+};
 
 use crate::{
     error::{PartialSpanned, parse::PDResult},
@@ -41,6 +44,31 @@ impl GCNumber {
         }
 
         Ok(rational.into())
+    }
+
+    /// Parses a `GCNumer` from a numerator and denominator. Panics on failiure. This is solely
+    /// intended for writing tests.
+    pub(crate) fn parse_from_numerator_and_denominator_panicking(
+        gc: &GarbageCollector,
+        numerator: &str,
+        denominator: Option<&str>,
+    ) -> Self {
+        if denominator.is_none() {
+            match str::parse::<usize>(numerator).map(|val| Self::from_usize(val)) {
+                Ok(Some(val)) => return val,
+                Ok(None) => {}
+                Err(err) => {
+                    if *err.kind() != IntErrorKind::PosOverflow {
+                        panic!("{err:?}")
+                    }
+                }
+            }
+        }
+
+        let rational =
+            GCRational::parse_from_numerator_and_denominator_panicking(gc, numerator, denominator);
+
+        rational.into()
     }
 
     pub fn from_usize(usize: usize) -> Option<Self> {
