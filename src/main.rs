@@ -2,7 +2,6 @@
 #![allow(clippy::type_complexity)]
 
 use error::{SourceDB, dresult_unwrap};
-use indoc::indoc;
 use parser_old::binary::Op;
 
 use crate::{
@@ -23,8 +22,11 @@ pub mod parser_old;
 mod util;
 
 // TODO:
-// - Investigate GCBox enum space optimization
-// - Maybe rewrite `NonBracketedIter` to not have any internal state other than the token stream?
+// - Add more parser tests for:
+//     - Set and list lambda arguments
+//     - Default lambda arguments and argument bindings
+//     - Method calls
+//     - Member access
 // - Remove dependence on GMP. This will allow MIRI to run and will more easily allow the
 //   implementation of certain algorithms not in `mpn`.
 //     - Div_exact (for `reduce` function)
