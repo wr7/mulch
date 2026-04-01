@@ -4,7 +4,7 @@ use crate::{
     error::{PartialSpanned, parse::PDResult},
     gc::{GCBox, GCVec},
     parser::{
-        self, Bracketed, CurlyBracketed, Ident, IdentOrString, Parenthesized, Parse, Parser,
+        self, Bracketed, CurlyBracketed, IdentOrString, Parenthesized, Parse, Parser,
         SeparatedList, SquareBracketed, TokenStream, ast::Expression,
     },
 };
@@ -14,11 +14,11 @@ use crate::{
 pub struct Lambda {
     #[parse_until_next]
     #[error_if_not_found]
-    args: Arguments,
+    pub args: Arguments,
     #[debug_hidden]
-    arrow: punct!("->"),
+    pub arrow: punct!("->"),
     #[error_if_not_found]
-    expr: GCBox<PartialSpanned<Expression>>,
+    pub expr: GCBox<PartialSpanned<Expression>>,
 }
 
 #[derive(Clone, Copy, GCPtr, GCDebug, GCEq, Parse)]
@@ -55,8 +55,8 @@ pub enum Argument {
 #[derive(Clone, Copy, GCPtr, GCDebug, GCEq, Parse)]
 #[mulch_parse_error(|_| unimplemented!())]
 pub struct SingleArgument {
-    name: Ident,
-    default_value: Option<ArgDefaultValue>,
+    pub name: IdentOrString,
+    pub default_value: Option<ArgDefaultValue>,
 }
 
 #[derive(Clone, Copy, GCPtr, GCDebug, GCEq, Parse)]
@@ -93,7 +93,7 @@ pub struct ArgAttribute {
 pub struct ArgBinding {
     #[debug_hidden]
     at_: punct!("@"),
-    name: Ident,
+    name: IdentOrString,
 }
 
 #[derive(Clone, Copy, GCPtr, GCDebug, GCEq, Parse)]

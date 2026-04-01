@@ -48,6 +48,7 @@ impl GCNumber {
 
     /// Parses a `GCNumer` from a numerator and denominator. Panics on failiure. This is solely
     /// intended for writing tests.
+    #[allow(unused)]
     pub(crate) fn parse_from_numerator_and_denominator_panicking(
         gc: &GarbageCollector,
         numerator: &str,

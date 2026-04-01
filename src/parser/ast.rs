@@ -104,22 +104,22 @@ pub struct MemberAccess {
 #[parse_direction(Right)]
 #[mulch_parse_error(|_| unimplemented!())]
 pub struct FunctionCall {
-    function: GCBox<PartialSpanned<Expression>>,
+    pub function: GCBox<PartialSpanned<Expression>>,
 
-    args: FunctionCallArgs,
+    pub args: FunctionCallArgs,
 }
 
 #[derive(GCPtr, GCDebug, GCEq, Parse, Clone, Copy)]
 #[parse_direction(Right)]
 #[mulch_parse_error(|_| unimplemented!())]
 pub struct MethodCall {
-    lhs: GCBox<PartialSpanned<Expression>>,
+    pub lhs: GCBox<PartialSpanned<Expression>>,
 
-    dot_: punct!["."],
+    pub dot_: punct!["."],
 
-    method: PartialSpanned<IdentOrString>,
+    pub method: PartialSpanned<IdentOrString>,
 
-    args: FunctionCallArgs,
+    pub args: FunctionCallArgs,
 }
 
 #[derive(GCPtr, GCDebug, GCEq, Parse, Clone, Copy)]
@@ -174,7 +174,9 @@ pub struct NamedValue {
 #[mulch_parse_error(|_| unimplemented!())]
 #[parse_hook(function_call_args_set_hook)]
 #[debug_direct_with_name]
-pub struct FunctionCallArgs(Parenthesized<SeparatedList<PartialSpanned<Expression>, punct![","]>>);
+pub struct FunctionCallArgs(
+    pub Parenthesized<SeparatedList<PartialSpanned<Expression>, punct![","]>>,
+);
 
 fn function_call_args_set_hook(
     parser: &Parser,
