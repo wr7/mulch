@@ -2,7 +2,6 @@
 #![allow(clippy::type_complexity)]
 
 use error::{SourceDB, dresult_unwrap};
-use parser_old::binary::Op;
 
 use crate::{
     error::pdresult_unwrap,
@@ -17,7 +16,6 @@ pub mod eval;
 pub mod gc;
 pub mod lexer;
 pub mod parser;
-pub mod parser_old;
 
 mod util;
 

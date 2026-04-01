@@ -38,7 +38,7 @@ impl Default for GarbageCollector {
 
 impl GarbageCollector {
     pub const BLOCK_SIZE: usize = crate::util::ceil_power_two(crate::util::max!(
-        std::mem::align_of::<crate::parser_old::Expression>(),
+        std::mem::align_of::<crate::parser::ast::Expression>(),
         std::mem::align_of::<crate::eval::MValue>(),
         std::mem::align_of::<usize>(),
         std::mem::align_of::<u64>(),
