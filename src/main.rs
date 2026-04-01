@@ -25,7 +25,6 @@ mod util;
 // TODO:
 // - Investigate GCBox enum space optimization
 // - Maybe rewrite `NonBracketedIter` to not have any internal state other than the token stream?
-// - Fix UB on little-endian platforms with non-64-bit pointers for `GCRational`
 // - Remove dependence on GMP. This will allow MIRI to run and will more easily allow the
 //   implementation of certain algorithms not in `mpn`.
 //     - Div_exact (for `reduce` function)

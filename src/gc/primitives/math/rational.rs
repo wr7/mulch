@@ -28,11 +28,13 @@ use super::NumLiteralType;
 /// ```
 /// union {
 ///     struct has_value {
-///         u64 {
+///         usize {
 ///             SET_TO_ZERO : u1
-///             numerator_len: u31
-///             positive_if_set: u1
-///             denominator_len: u31
+///             numerator_len: u[size - 1]
+///         }
+///         usize {
+///             is_negative : u1
+///             denoninator_len: u[size - 1]
 ///         }
 ///         PADDING_TIL_NEXT_BLOCK
 ///         numerator: [limb_t; numerator_len]
@@ -40,9 +42,9 @@ use super::NumLiteralType;
 ///     }
 ///
 ///     struct forward {
-///         u64 {
+///         usize {
 ///             SET_TO_ONE : u1
-///             forward: u63
+///             forward: u[size - 1]
 ///         }
 ///     }
 /// }
@@ -54,28 +56,22 @@ pub struct GCRational {
 
 #[derive(Clone, Copy, Debug)]
 struct RationalMetadata {
-    numerator_len: u32,
+    numerator_len: usize,
     is_negative: bool,
-    denominator_len: u32,
+    denominator_len: usize,
 }
 
-impl From<RationalMetadata> for u64 {
-    fn from(value: RationalMetadata) -> Self {
-        const _31_BIT_MASK: u64 = !(u64::MAX << 31);
+impl RationalMetadata {
+    fn from_raw_unchecked(raw: [usize; 2]) -> Self {
+        // This bit is reserved, and should always be zero
+        debug_assert_eq!(raw[0] & 1usize.rotate_right(1), 0);
 
-        ((u64::from(value.numerator_len) & _31_BIT_MASK) << 32)
-            | (u64::from(value.is_negative) << 31)
-            | (u64::from(value.denominator_len) & _31_BIT_MASK)
-    }
-}
+        let numerator_len = raw[0];
+        let denominator_len = raw[1] & (usize::MAX >> 1);
+        let is_negative = raw[1] & 1usize.rotate_right(1) != 0;
 
-impl From<u64> for RationalMetadata {
-    fn from(value: u64) -> Self {
-        const _31_BIT_MASK: u64 = !(u64::MAX << 31);
-
-        let numerator_len = (value >> 32 & _31_BIT_MASK) as u32;
-        let is_negative = value >> 31 & 1 != 0;
-        let denominator_len = (value & _31_BIT_MASK) as u32;
+        debug_assert_ne!(numerator_len, 0);
+        debug_assert_ne!(denominator_len, 0);
 
         RationalMetadata {
             numerator_len,
@@ -83,12 +79,20 @@ impl From<u64> for RationalMetadata {
             denominator_len,
         }
     }
+
+    fn to_raw_unchecked(self) -> [usize; 2] {
+        debug_assert_eq!(self.numerator_len & 1usize.rotate_right(1), 0);
+        debug_assert_eq!(self.denominator_len & 1usize.rotate_right(1), 0);
+
+        let sign_mask = usize::from(self.is_negative) << usize::BITS - 1;
+
+        [self.numerator_len, self.denominator_len | sign_mask]
+    }
 }
 
 impl GCRational {
-    const METADATA_SIZE_BLOCKS: usize = 8usize.div_ceil(GarbageCollector::BLOCK_SIZE);
-
-    const FORWARD_BIT: u64 = 1u64 << 63;
+    const METADATA_SIZE_BLOCKS: usize =
+        std::mem::size_of::<[usize; 2]>().div_ceil(GarbageCollector::BLOCK_SIZE);
 
     pub unsafe fn from_raw(ptr: NonZeroUsize) -> Self {
         Self { ptr }
@@ -153,16 +157,16 @@ impl GCRational {
         };
 
         let metadata = RationalMetadata {
-            numerator_len: numerator.data.size_blocks() as u32,
+            numerator_len: numerator.data.size_blocks(),
             is_negative: false,
-            denominator_len: denominator.data.size_blocks() as u32,
+            denominator_len: denominator.data.size_blocks(),
         };
 
         unsafe {
             gc.from_space
                 .block_ptr(metadata_ptr)
-                .cast::<u64>()
-                .write(u64::from(metadata))
+                .cast::<[usize; 2]>()
+                .write(metadata.to_raw_unchecked())
         };
 
         let rational = Self {
@@ -214,18 +218,16 @@ impl GCRational {
         let denominator = GCUInt::from_pow10_factorization(gc, denominator);
 
         let metadata = RationalMetadata {
-            numerator_len: numerator.data.len() as u32,
+            numerator_len: numerator.data.len(),
             is_negative: false,
-            denominator_len: denominator.data.len() as u32,
+            denominator_len: denominator.data.len(),
         };
-
-        let metadata = u64::from(metadata);
 
         unsafe {
             gc.from_space
                 .block_ptr(metadata_ptr)
-                .cast::<u64>()
-                .write(metadata);
+                .cast::<[usize; 2]>()
+                .write(metadata.to_raw_unchecked());
         }
 
         Ok(Self {
@@ -272,11 +274,12 @@ impl GCRational {
 
     unsafe fn metadata(self, gc: &GarbageCollector) -> RationalMetadata {
         unsafe {
-            gc.from_space
-                .block_ptr(self.ptr)
-                .cast::<u64>()
-                .read()
-                .into()
+            RationalMetadata::from_raw_unchecked(
+                gc.from_space
+                    .block_ptr(self.ptr)
+                    .cast::<[usize; 2]>()
+                    .read(),
+            )
         }
     }
 
@@ -293,11 +296,11 @@ impl GCRational {
             [
                 GCBuffer::from_raw_parts(
                     NonZeroUsize::new_unchecked(numerator_ptr),
-                    metadata.numerator_len as usize,
+                    metadata.numerator_len,
                 ),
                 GCBuffer::from_raw_parts(
                     NonZeroUsize::new_unchecked(denominator_ptr),
-                    metadata.denominator_len as usize,
+                    metadata.denominator_len,
                 ),
             ]
         }
@@ -452,12 +455,15 @@ impl GCRational {
 
             gc.from_space
                 .block_ptr(self.ptr)
-                .cast::<u64>()
-                .write(u64::from(RationalMetadata {
-                    numerator_len: numerator.data.len() as u32,
-                    is_negative: old_metadata.is_negative,
-                    denominator_len: denominator.len() as u32,
-                }));
+                .cast::<[usize; 2]>()
+                .write(
+                    RationalMetadata {
+                        numerator_len: numerator.data.len(),
+                        is_negative: old_metadata.is_negative,
+                        denominator_len: denominator.len(),
+                    }
+                    .to_raw_unchecked(),
+                );
         }
     }
 }
@@ -466,17 +472,24 @@ unsafe impl GCPtr for GCRational {
     const MSB_RESERVED: bool = true;
 
     unsafe fn gc_copy(self, gc: &mut crate::gc::GarbageCollector) -> Self {
-        let raw_metadata = unsafe { gc.from_space.block_ptr(self.ptr).cast::<u64>().read() };
+        const FORWARD_BIT: usize = 1usize.rotate_right(1);
 
-        if raw_metadata & Self::FORWARD_BIT != 0 {
-            let forward = raw_metadata & !Self::FORWARD_BIT;
+        let raw_metadata = unsafe {
+            gc.from_space
+                .block_ptr(self.ptr)
+                .cast::<[usize; 2]>()
+                .read()
+        };
+
+        if raw_metadata[0] & FORWARD_BIT != 0 {
+            let forward = raw_metadata[0] & !FORWARD_BIT;
 
             return Self {
                 ptr: unsafe { NonZeroUsize::new_unchecked(forward as usize) },
             };
         }
 
-        let metadata = RationalMetadata::from(raw_metadata);
+        let metadata = RationalMetadata::from_raw_unchecked(raw_metadata);
 
         let [old_numerator_buf, old_denominator_buf] =
             self.numerator_and_denominator_from_metadata(metadata);
@@ -489,7 +502,7 @@ unsafe impl GCPtr for GCRational {
         let new_denominator_buf =
             GCBuffer::<limb_t>::new_uninit_in_space(&gc.to_space, old_denominator_buf.len());
 
-        let new_metadata_ptr = gc.to_space.block_ptr(new_ptr).cast::<u64>();
+        let new_metadata_ptr = gc.to_space.block_ptr(new_ptr).cast::<[usize; 2]>();
 
         unsafe { new_metadata_ptr.write(raw_metadata) };
 
