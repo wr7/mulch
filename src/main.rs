@@ -30,7 +30,6 @@ mod util;
 //     - Div_exact (for `reduce` function)
 //     - `div_by_constant` for radix conversion
 //     - This will allow use to remove `#[cfg(any(not(miri), rust_analyzer))]` from several tests
-// - Use high multiplication for computing required number of digits/limbs
 
 pub fn main() {
     let db = SourceDB::new();

@@ -9,6 +9,7 @@ use gmp_mpfr_sys::gmp::{
 
 use crate::gc::{
     GCBuffer, GarbageCollector,
+    math::{self, maximum_limbs_from_num_digits, num_limbs_from_pow10_factorization},
     primitives::math::{Digit, POW_5_MULTIPLIER},
     util::GCEq,
 };
@@ -67,41 +68,7 @@ impl GCUInt {
     ) -> Self {
         let digits = digits.into_iter();
 
-        // We're calculating the maximum number of limbs required to parse our number using:
-        //
-        // `floor(d / floor(k * log10(2))) + 1`
-        //
-        // where `d` is the number of digits, and `k` is `limb_t::BITS`. This is an estimate for the
-        // number of limbs required that is mathematically guarenteed to be greater-than or equal-to
-        // the actual amount of limbs required.
-        //
-        //    floor(log_(2^k)(10^d - 1)                  ) + 1 # this is the real, 100% accurate maximum
-        //  = floor(log10(10^d - 1) /       log10(2^k)   ) + 1
-        // <= floor(log10(10^d    ) /       log10(2^k)   ) + 1
-        //  = floor(d               /       log10(2^k)   ) + 1
-        //  = floor(d               /      (k * log10(2))) + 1
-        //  = floor(d               /      (k / log2(10))) + 1
-        // <= floor(d               / floor(k / log2(10))) + 1 # more conservative estimate that we're using
-        //
-        // With 64-bit limbs, this becomes:
-        // `floor(d / 19) + 1`
-        //
-        // This is suprisingly accurate despite using only integer operations. For 1_000 digits with k=64, here are the numbers:
-        // estimate: 53
-        // actual required limbs: 52
-        //
-        // on 32-bit platforms, it's a little bit worse:
-        // estimate: 112
-        // actual: 104
-
-        // The fact that we're using floating-point numbers is really janky, but it actually
-        // shouldn't be a problem here.
-        const ESTIMATE_DENOMINATOR: usize =
-            (limb_t::BITS as f64 / std::f64::consts::LOG2_10) as usize;
-
-        let maximum_limbs_required = num_digits / ESTIMATE_DENOMINATOR + 1;
-
-        let len = maximum_limbs_required;
+        let len = maximum_limbs_from_num_digits(num_digits);
 
         let mut output = Self {
             data: GCBuffer::new_uninit(gc, len),
@@ -134,10 +101,7 @@ impl GCUInt {
     }
 
     pub unsafe fn to_naive_string(self, gc: &GarbageCollector) -> String {
-        const MULTIPLIER: usize =
-            (limb_t::BITS as f64 * 256f64 / std::f64::consts::LOG2_10).ceil() as usize;
-
-        let digits_required = self.data.len() * MULTIPLIER / 256 + 1;
+        let digits_required = math::util::maximum_digits_from_num_limbs(self.data.len());
 
         let mut string = Vec::<u8>::with_capacity(digits_required + 1);
 
@@ -189,14 +153,7 @@ impl GCUInt {
         gc: &GarbageCollector,
         factorization: PowerOfTenFactorization,
     ) -> Self {
-        // A conservative estimate of the number of limbs required to hold the number. This has been
-        // mathematically proven to always be larger than the actual number of limbs required.
-        //
-        // This was determined using algabraic methods similar to the ones used in [`parse_from_digits`]
-        let limbs_required = (factorization.pow_2
-            + (factorization.pow_5 * POW_5_MULTIPLIER).div_ceil(256))
-            / (limb_t::BITS as usize)
-            + 1;
+        let limbs_required = num_limbs_from_pow10_factorization(factorization);
 
         let mut output = Self {
             data: GCBuffer::<limb_t>::new_uninit(gc, limbs_required),
