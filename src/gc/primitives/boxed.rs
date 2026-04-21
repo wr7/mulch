@@ -99,7 +99,7 @@ impl<T: GCPtr> GCBox<T> {
 unsafe impl<T: GCPtr> GCPtr for GCBox<T> {
     const MSB_RESERVED: bool = true;
 
-    unsafe fn gc_copy(self, gc: &mut GarbageCollector) -> Self {
+    unsafe fn gc_copy(self, gc: &GarbageCollector) -> Self {
         if let Some(fwd) = unsafe { self.get_forwarded_value(&gc.from_space) } {
             return fwd;
         }

@@ -102,7 +102,7 @@ impl From<GCRational> for GCNumber {
 unsafe impl GCPtr for GCNumber {
     const MSB_RESERVED: bool = false;
 
-    unsafe fn gc_copy(self, gc: &mut crate::gc::GarbageCollector) -> Self {
+    unsafe fn gc_copy(self, gc: &crate::gc::GarbageCollector) -> Self {
         match self.get() {
             GetGCNumber::Inline(_) => self,
             GetGCNumber::Rational(rat) => unsafe { rat.gc_copy(gc) }.into(),

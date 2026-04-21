@@ -151,7 +151,7 @@ unsafe impl GCPtr for GCString {
     // `GCBox<GCString>` is a fairly useless type, so it's not worth the effort.
     const MSB_RESERVED: bool = false;
 
-    unsafe fn gc_copy(self, gc: &mut GarbageCollector) -> Self {
+    unsafe fn gc_copy(self, gc: &GarbageCollector) -> Self {
         if let Some(forward) = unsafe { self.get_forwarded_value(gc) } {
             return forward;
         }

@@ -551,7 +551,7 @@ impl GCRational {
 unsafe impl GCPtr for GCRational {
     const MSB_RESERVED: bool = true;
 
-    unsafe fn gc_copy(self, gc: &mut crate::gc::GarbageCollector) -> Self {
+    unsafe fn gc_copy(self, gc: &crate::gc::GarbageCollector) -> Self {
         const FORWARD_BIT: usize = 1usize.rotate_right(1);
 
         let raw_metadata = unsafe {

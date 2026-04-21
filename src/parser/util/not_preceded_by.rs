@@ -65,7 +65,7 @@ impl<T: Copy, P> Copy for NotPrecededBy<T, P> {}
 unsafe impl<T: GCPtr, P> GCPtr for NotPrecededBy<T, P> {
     const MSB_RESERVED: bool = T::MSB_RESERVED;
 
-    unsafe fn gc_copy(self, gc: &mut GarbageCollector) -> Self {
+    unsafe fn gc_copy(self, gc: &GarbageCollector) -> Self {
         Self {
             value: unsafe { self.value.gc_copy(gc) },
             _phantomdata: PhantomData,

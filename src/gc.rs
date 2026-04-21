@@ -66,7 +66,7 @@ macro_rules! gc_trivial_impl {
             unsafe impl ::mulch::gc::GCPtr for $ty {
                 const MSB_RESERVED: bool = false;
 
-                unsafe fn gc_copy(self, _gc: &mut ::mulch::gc::GarbageCollector) -> Self {
+                unsafe fn gc_copy(self, _gc: &::mulch::gc::GarbageCollector) -> Self {
                     self
                 }
             }
@@ -114,7 +114,7 @@ gc_trivial_impl! {
 unsafe impl<T: ?Sized> GCPtr for PhantomData<T> {
     const MSB_RESERVED: bool = false;
 
-    unsafe fn gc_copy(self, _gc: &mut GarbageCollector) -> Self {
+    unsafe fn gc_copy(self, _gc: &GarbageCollector) -> Self {
         self
     }
 }
@@ -140,7 +140,7 @@ unsafe impl<T> NonGC for PhantomData<T> {}
 unsafe impl<T: GCPtr> GCPtr for PartialSpanned<T> {
     const MSB_RESERVED: bool = T::MSB_RESERVED;
 
-    unsafe fn gc_copy(self, gc: &mut GarbageCollector) -> Self {
+    unsafe fn gc_copy(self, gc: &GarbageCollector) -> Self {
         let inner_copy = unsafe { self.0.gc_copy(gc) };
 
         PartialSpanned(inner_copy, self.1)
@@ -171,7 +171,7 @@ impl<T: GCEq<T>> GCEq<PartialSpanned<T>> for PartialSpanned<T> {
 unsafe impl<T: GCPtr> GCPtr for Option<T> {
     const MSB_RESERVED: bool = false;
 
-    unsafe fn gc_copy(self, gc: &mut GarbageCollector) -> Self {
+    unsafe fn gc_copy(self, gc: &GarbageCollector) -> Self {
         self.map(|val| unsafe { val.gc_copy(gc) })
     }
 }

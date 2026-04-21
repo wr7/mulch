@@ -42,7 +42,7 @@ pub enum OtherGCValue {
 unsafe impl GCPtr for GCValue {
     const MSB_RESERVED: bool = false;
 
-    unsafe fn gc_copy(self, gc: &mut crate::gc::GarbageCollector) -> Self {
+    unsafe fn gc_copy(self, gc: &crate::gc::GarbageCollector) -> Self {
         unsafe {
             match self.get() {
                 GCValueEnum::MValue(mvalue) => mvalue.gc_copy(gc).into(),

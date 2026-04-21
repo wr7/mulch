@@ -27,7 +27,7 @@ pub fn derive_gc_ptr(item: DeriveInput) -> TokenStream {
         unsafe impl #impl_generics ::mulch::gc::GCPtr for #type_name #ty_generics #where_clause {
             const MSB_RESERVED: bool = #msb_reserved;
 
-            unsafe fn gc_copy(self, gc: &mut ::mulch::gc::GarbageCollector) -> Self {
+            unsafe fn gc_copy(self, gc: &::mulch::gc::GarbageCollector) -> Self {
                 #body
             }
         }
