@@ -8,6 +8,7 @@ use crate::{
     gc::{
         GCPtr, GarbageCollector,
         math::rational::GCRational,
+        roots::GCRootEntry,
         util::{GCDebug, GCEq, GCWrap},
     },
 };
@@ -106,6 +107,29 @@ unsafe impl GCPtr for GCNumber {
         match self.get() {
             GetGCNumber::Inline(_) => self,
             GetGCNumber::Rational(rat) => unsafe { rat.gc_copy(gc) }.into(),
+        }
+    }
+
+    #[allow(private_interfaces)]
+    unsafe fn to_gc_root_entry(self, _gc: &GarbageCollector) -> GCRootEntry {
+        unsafe fn copy_fn(data: NonZeroUsize, gc: &GarbageCollector) -> NonZeroUsize {
+            let old = GCNumber { value: data };
+            let new = unsafe { GCPtr::gc_copy(old, gc) };
+
+            new.value
+        }
+
+        GCRootEntry {
+            copy_fn,
+            data_ptr: self.value,
+            type_name: core::any::type_name::<Self>(),
+        }
+    }
+
+    #[allow(private_interfaces)]
+    unsafe fn from_gc_root_entry(_gc: &GarbageCollector, entry: GCRootEntry) -> Self {
+        Self {
+            value: entry.data_ptr,
         }
     }
 }

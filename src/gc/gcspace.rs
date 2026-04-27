@@ -2,13 +2,14 @@
 
 use std::{
     alloc::Layout,
+    any::TypeId,
     cell::Cell,
     marker::PhantomData,
     num::NonZeroUsize,
     ptr::{NonNull, addr_of_mut},
 };
 
-use crate::gc::{GarbageCollector, util::GCWrap};
+use crate::gc::{GCBox, GarbageCollector, roots::GCRootEntry, util::GCWrap};
 
 pub struct GCSpace {
     data: Cell<*mut u8>,
@@ -50,6 +51,41 @@ pub unsafe trait GCPtr: Sized + Clone + Copy {
     /// - This object must not be used if (or when) `self` is frozen or invalid.
     unsafe fn wrap<'gc>(self, gc: &'gc GarbageCollector) -> GCWrap<'gc, Self> {
         unsafe { GCWrap::new(self, gc) }
+    }
+
+    /// Creates a [`GCRootEntry`] object. This method is only overwritten for certain gc primitives.
+    ///
+    /// This method should not be called directly. [`GarbageCollector::push_root`] should be used
+    /// instead.
+    #[allow(private_interfaces)]
+    unsafe fn to_gc_root_entry(self, gc: &GarbageCollector) -> GCRootEntry {
+        unsafe fn copy_fn<Self_: GCPtr>(data: NonZeroUsize, gc: &GarbageCollector) -> NonZeroUsize {
+            let old_box = GCBox::<Self_>::from_ptr(data);
+            let new_box = unsafe { GCPtr::gc_copy(old_box, gc) };
+
+            new_box.ptr()
+        }
+
+        let data = unsafe { GCBox::<Self>::new(gc, self) };
+
+        GCRootEntry {
+            copy_fn: copy_fn::<Self>,
+            data_ptr: data.ptr(),
+            #[cfg(debug_assertions)]
+            type_name: std::any::type_name::<Self>(),
+        }
+    }
+
+    /// Retrieves an instance of `Self` from a [`GCRootEntry`]. This method is only overwritten for certain gc primitives.
+    ///
+    /// This method should not be called directly. [`GCRootRef::get`](crate::gc::GCRootRef::get) should be used instead.
+    #[allow(private_interfaces)]
+    unsafe fn from_gc_root_entry(gc: &GarbageCollector, entry: GCRootEntry) -> Self {
+        #[cfg(debug_assertions)]
+        assert_eq!(entry.type_name, std::any::type_name::<Self>());
+
+        let box_ = GCBox::<Self>::from_ptr(entry.data_ptr);
+        unsafe { box_.get(gc) }
     }
 }
 

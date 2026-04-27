@@ -1,18 +1,14 @@
 use crate::{
     eval,
-    gc::{
-        GCString, GCVec, GarbageCollector,
-        collection::{GCRoot, RootsRef},
-    },
+    gc::{GCRootRef, GCString, GCVec, GarbageCollector},
 };
 
 #[test]
 fn string_list_test() {
     let mut gc = GarbageCollector::new();
-    let root = GCRoot::new_empty();
 
     let expected = ["alpha", "beta", "c", "abcdefghijklmnopqrstuvwxyz"];
-    let list = create_string_list(&expected, &mut gc, &root);
+    let list = create_string_list(&expected, &mut gc);
 
     let eval::MValue::List(list) = list else {
         panic!()
@@ -31,48 +27,48 @@ fn string_list_test() {
     }
 }
 
-fn create_string_list<'r>(
-    strings: &[&'static str],
-    gc: &mut GarbageCollector,
-    parent_root: RootsRef<'r>,
-) -> eval::MValue {
-    let mut root = parent_root.new();
+fn create_string_list<'r>(strings: &[&'static str], gc: &mut GarbageCollector) -> eval::MValue {
+    let string_roots: Vec<GCRootRef<eval::MValue>> = strings
+        .iter()
+        .map(|s| unsafe {
+            let string = create_string_val(s, gc);
+            gc.push_root(string)
+        })
+        .collect();
 
-    for s in strings {
-        root.push(create_string_val(s, gc, &root));
-    }
-
-    create_string_val("fffffffffffffffffffffffffffffffffffffffff", gc, &root);
+    create_string_val("fffffffffffffffffffffffffffffffffffffffff", gc);
     // We don't use this value, so it should be freed next cycle
 
-    let vec = unsafe { GCVec::new(gc, root.as_mut_mvalue_slice()) };
+    let vec_root = {
+        let vec = unsafe {
+            GCVec::from_iter_and_len(gc, string_roots.iter().map(|r| r.get(gc)), strings.len())
+        };
 
-    let mut root = parent_root.new();
-    root.push(vec);
+        for r in string_roots.into_iter().rev() {
+            unsafe {
+                r.pop(gc);
+            }
+        }
 
-    let old_ptr = vec.ptr();
-
-    unsafe { gc.force_collect(&mut root) };
-
-    let vec = root.get_value(0).unwrap();
-
-    let eval::MValue::List(inner) = vec else {
-        panic!()
+        unsafe { gc.push_root(vec) }
     };
 
-    // Test that the `GCVec` was moved. This indicates that the unused string was not copied during the GC cycle.
-    assert_ne!(old_ptr, inner.ptr());
+    let old_ptr = unsafe { vec_root.get(gc).ptr() };
 
-    vec
+    unsafe { gc.force_collect() };
+
+    // Test that the `GCVec` was moved. This indicates that the unused string was not copied during the GC cycle.
+    assert_ne!(old_ptr, unsafe { vec_root.get(gc).ptr() });
+
+    eval::MValue::List(unsafe { vec_root.pop(gc) })
 }
 
-fn create_string_val<'r>(val: &str, gc: &mut GarbageCollector, root: RootsRef<'r>) -> eval::MValue {
+fn create_string_val<'r>(val: &str, gc: &mut GarbageCollector) -> eval::MValue {
     let string = GCString::new(gc, val);
 
-    let mut root = root.new();
-    root.push(string);
+    let string_root = unsafe { gc.push_root(string) };
 
-    unsafe { gc.force_collect(&mut root) };
+    unsafe { gc.force_collect() };
 
-    root.get_value(0).unwrap()
+    eval::MValue::String(unsafe { string_root.pop(gc) })
 }

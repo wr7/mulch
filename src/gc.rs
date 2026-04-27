@@ -1,18 +1,20 @@
 mod collection;
 mod gcspace;
 mod primitives;
+mod roots;
 
 pub mod util;
 use std::marker::PhantomData;
 
-pub use collection::{GCRoot, GCValue, GCValueEnum};
 pub use gcspace::GCPtr;
 pub use gcspace::GCSpace;
 use gmp_mpfr_sys::gmp;
 pub use primitives::math;
 pub use primitives::*;
+pub use roots::GCRootRef;
 
 use crate::error::PartialSpanned;
+use crate::gc::roots::GCRootList;
 use crate::gc::util::GCDebug;
 use crate::gc::util::GCEq;
 use crate::gc::util::GCWrap;
@@ -28,6 +30,7 @@ mod test;
 pub struct GarbageCollector {
     from_space: GCSpace,
     to_space: GCSpace,
+    roots: GCRootList,
 }
 
 impl Default for GarbageCollector {
@@ -51,6 +54,7 @@ impl GarbageCollector {
         GarbageCollector {
             from_space: GCSpace::new(),
             to_space: GCSpace::new(),
+            roots: GCRootList::new(),
         }
     }
 }

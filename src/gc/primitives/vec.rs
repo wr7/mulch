@@ -3,6 +3,7 @@ use std::{marker::PhantomData, num::NonZeroUsize};
 use crate::gc::{
     GCPtr, GCSpace, GarbageCollector,
     primitives::buffer::GCBuffer,
+    roots::GCRootEntry,
     util::{GCDebug, GCEq, GCGet},
 };
 
@@ -38,8 +39,45 @@ impl<T: GCPtr> GCVec<T> {
         vec
     }
 
-    pub fn ptr(self) -> usize {
-        self.ptr.get()
+    /// # Safety
+    /// - All `elements` must be valid and alive
+    /// - The iterator must be exactly `len`
+    #[allow(unused)]
+    pub(crate) unsafe fn from_iter_and_len<I>(
+        gc: &GarbageCollector,
+        elements: I,
+        len: usize,
+    ) -> Self
+    where
+        I: Iterator<Item = T>,
+    {
+        let vec = unsafe { Self::new_uninit_in_space(&gc.from_space, len) };
+        let mut ptr = unsafe { vec.element_ptr_in_space(&gc.from_space, 0) };
+
+        #[cfg(debug_assertions)]
+        let mut count = 0;
+
+        for element in elements {
+            unsafe { ptr.write(element) };
+            ptr = ptr.wrapping_add(1);
+            count += 1;
+        }
+
+        #[cfg(debug_assertions)]
+        assert_eq!(count, len);
+
+        vec
+    }
+
+    pub fn from_ptr(ptr: NonZeroUsize) -> Self {
+        Self {
+            ptr,
+            _phantomdata: PhantomData,
+        }
+    }
+
+    pub fn ptr(self) -> NonZeroUsize {
+        self.ptr
     }
 
     pub unsafe fn len(self, gc: &GarbageCollector) -> usize {
@@ -140,6 +178,27 @@ where
         }
 
         new_vec
+    }
+
+    #[allow(private_interfaces)]
+    unsafe fn to_gc_root_entry(self, _gc: &GarbageCollector) -> GCRootEntry {
+        unsafe fn copy_fn<T: GCPtr>(data: NonZeroUsize, gc: &GarbageCollector) -> NonZeroUsize {
+            let old = GCVec::<T>::from_ptr(data);
+            let new = unsafe { GCPtr::gc_copy(old, gc) };
+            new.ptr()
+        }
+
+        GCRootEntry {
+            copy_fn: copy_fn::<T>,
+            data_ptr: self.ptr(),
+            #[cfg(debug_assertions)]
+            type_name: core::any::type_name::<Self>(),
+        }
+    }
+
+    #[allow(private_interfaces)]
+    unsafe fn from_gc_root_entry(_gc: &GarbageCollector, entry: GCRootEntry) -> Self {
+        Self::from_ptr(entry.data_ptr)
     }
 }
 

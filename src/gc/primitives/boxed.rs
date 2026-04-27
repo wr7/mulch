@@ -2,6 +2,7 @@ use std::{marker::PhantomData, mem, num::NonZeroUsize};
 
 use crate::gc::{
     GCPtr, GCSpace, GarbageCollector,
+    roots::GCRootEntry,
     util::{GCDebug, GCEq, GCGet},
 };
 
@@ -31,6 +32,17 @@ impl<T: GCPtr> GCBox<T> {
         unsafe { ptr.ptr_in_space(&gc.from_space).write(value) };
 
         ptr
+    }
+
+    pub(crate) fn from_ptr(value: NonZeroUsize) -> Self {
+        Self {
+            ptr: value,
+            _phantomdata: PhantomData,
+        }
+    }
+
+    pub(crate) fn ptr(self) -> NonZeroUsize {
+        self.ptr
     }
 
     /// Reads the value stored in the `GCBox`
@@ -125,6 +137,27 @@ unsafe impl<T: GCPtr> GCPtr for GCBox<T> {
         unsafe { new_box.ptr_in_space(&gc.to_space).write(new_value) };
 
         new_box
+    }
+
+    #[allow(private_interfaces)]
+    unsafe fn to_gc_root_entry(self, _gc: &GarbageCollector) -> GCRootEntry {
+        unsafe fn copy_fn<T: GCPtr>(data: NonZeroUsize, gc: &GarbageCollector) -> NonZeroUsize {
+            let old = GCBox::<T>::from_ptr(data);
+            let new = unsafe { GCPtr::gc_copy(old, gc) };
+            new.ptr()
+        }
+
+        GCRootEntry {
+            copy_fn: copy_fn::<T>,
+            data_ptr: self.ptr(),
+            #[cfg(debug_assertions)]
+            type_name: core::any::type_name::<Self>(),
+        }
+    }
+
+    #[allow(private_interfaces)]
+    unsafe fn from_gc_root_entry(_gc: &GarbageCollector, entry: GCRootEntry) -> Self {
+        Self::from_ptr(entry.data_ptr)
     }
 }
 
