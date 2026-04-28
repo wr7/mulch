@@ -3,8 +3,6 @@ use crate::gc::GarbageCollector;
 #[cfg(test)]
 mod test;
 
-mod gcvalue;
-
 impl GarbageCollector {
     unsafe fn copy_roots(&mut self) {
         let num_roots = self.roots.len();
