@@ -9,7 +9,6 @@ use crate::{
         self, FindLeft, FindRight, Parse, ParseLeft, ParseRight, Parser,
         traits::impl_using_parse_left, util::NonBracketedIter,
     },
-    util::element_offset,
 };
 
 /// Parses a specific symbol token. This type should only be referred to using the [`punct`](super::punct!) macro.
@@ -55,7 +54,7 @@ impl<const S: u128> FindLeft for Punct<S> {
             iter.find(
                 |tok| matches!(**tok, PartialSpanned(Token::Symbol(sym), _) if sym == Self::SYMBOL),
             )
-            .and_then(|tok| element_offset(tokens, tok))
+            .and_then(|tok| tokens.element_offset(tok))
             .map(|idx| idx..idx + 1)
         })
     }
@@ -94,7 +93,7 @@ impl<const S: u128> FindRight for Punct<S> {
                     iter.find(|tok|
                         matches!(**tok, PartialSpanned(Token::Symbol(sym), _) if sym == Self::SYMBOL),
                     )
-                    .and_then(|tok| element_offset(tokens, tok))
+                    .and_then(|tok| tokens.element_offset(tok))
                     .map(|idx| idx..idx + 1)
                 })?
         )

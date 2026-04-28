@@ -9,7 +9,6 @@ use crate::{
         FindLeft, Parse, ParseLeft, Parser, error, traits::impl_using_parse_left,
         util::NonBracketedIter,
     },
-    util::element_offset,
 };
 
 /// Parses a literal that matches a specific keyword. This type should only be referred to using the
@@ -64,7 +63,7 @@ impl<const K: u128> FindLeft for Keyword<K> {
                     .find(|tok|
                         matches!(tok, PartialSpanned(Token::Identifier(ident), _) if ident == Self::KEYWORD)
                     )
-                    .and_then(|tok| element_offset(tokens, tok))
+                    .and_then(|tok| tokens.element_offset(tok))
                     .map(|idx| idx..idx + 1)
             })
     }

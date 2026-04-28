@@ -434,7 +434,7 @@ macro_rules! _impl_parsing_for_single_token_type {
                         })
                     },
                 )?
-                .and_then(|tok| $crate::util::element_offset(tokens, tok))
+                .and_then(|tok| tokens.element_offset(tok))
                 .map(|idx| idx..idx + 1))
             }
         }
@@ -458,7 +458,7 @@ macro_rules! _impl_parsing_for_single_token_type {
                         })
                     },
                 )?
-                .and_then(|tok| $crate::util::element_offset(tokens, tok))
+                .and_then(|tok| tokens.element_offset(tok))
                 .map(|idx| idx..idx + 1))
             }
         }

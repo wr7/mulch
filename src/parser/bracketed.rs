@@ -16,7 +16,6 @@ use crate::{
         traits::{FindRight, ParseRight, impl_using_parse_left},
         util::NonBracketedIter,
     },
-    util::element_offset,
 };
 
 pub type Parenthesized<T> = Bracketed<{ BracketType::Round.to_u8() }, T>;
@@ -74,7 +73,7 @@ impl<const B: u8, T: GCPtr + GCDebug + Parse> ParseLeft for Bracketed<B, T> {
 
         assert!(bt == Self::BRACKET_TYPE);
 
-        let closing_idx = element_offset(&tokens, closing).unwrap();
+        let closing_idx = tokens.element_offset(closing).unwrap();
 
         let inner = &tokens[1..closing_idx];
         let inner = T::parse(parser, inner)?.ok_or_else(|| {
@@ -98,11 +97,11 @@ impl<const B: u8, T: GCPtr + GCDebug> FindLeft for Bracketed<B, T> {
                     let left_idx = iter.find(|tok|
                         matches!(tok, PartialSpanned(Token::OpeningBracket(bt), _) if *bt == Self::BRACKET_TYPE)
                     )
-                        .and_then(|tok| element_offset(tokens, tok))
+                        .and_then(|tok| tokens.element_offset(tok))
                         .unwrap();
 
                     let right_idx = if let Some(right_tok @ PartialSpanned(Token::ClosingBracket(bt), _)) = iter.next() && *bt == Self::BRACKET_TYPE {
-                        element_offset(tokens, right_tok).unwrap()
+                        tokens.element_offset(right_tok).unwrap()
                     } else {
                         unreachable!()
                     };
@@ -141,7 +140,7 @@ impl<const B: u8, T: GCPtr + GCDebug + Parse> ParseRight for Bracketed<B, T> {
 
             assert!(bt == Self::BRACKET_TYPE);
 
-            let opening_idx = element_offset(&tokens, opening).unwrap();
+            let opening_idx = tokens.element_offset(opening).unwrap();
 
             let inner = &tokens[opening_idx + 1..tokens.len() - 1];
             let inner = T::parse(parser, inner)?.ok_or_else(|| {
@@ -167,11 +166,11 @@ impl<const B: u8, T: GCPtr + GCDebug> FindRight for Bracketed<B, T> {
                     let right_idx = iter.find(|tok|
                         matches!(tok, PartialSpanned(Token::ClosingBracket(bt), _) if *bt == Self::BRACKET_TYPE)
                     )
-                        .and_then(|tok| element_offset(tokens, tok))
+                        .and_then(|tok| tokens.element_offset(tok))
                         .unwrap();
 
                     let left_idx = if let Some(right_tok @ PartialSpanned(Token::OpeningBracket(bt), _)) = iter.next() && *bt == Self::BRACKET_TYPE {
-                        element_offset(tokens, right_tok).unwrap()
+                        tokens.element_offset(right_tok).unwrap()
                     } else {
                         unreachable!()
                     };
