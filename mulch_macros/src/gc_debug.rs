@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote, quote_spanned};
-use syn::{DeriveInput, spanned::Spanned};
+use syn::{DeriveInput, parse_quote, spanned::Spanned};
 
 use crate::util::FieldName;
 
@@ -17,7 +17,17 @@ pub fn derive_gc_debug(input: DeriveInput) -> syn::Result<TokenStream> {
         }
     };
 
-    let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
+    let mut generics = input.generics.clone();
+    for param in generics.params.iter_mut() {
+        match param {
+            syn::GenericParam::Type(type_param) => type_param
+                .bounds
+                .push(parse_quote!(::mulch::gc::util::GCDebug)),
+            _ => {}
+        }
+    }
+
+    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
     let type_name = &input.ident;
 
     Ok(quote! {

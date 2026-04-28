@@ -113,6 +113,7 @@ gc_trivial_impl! {
     f32,
     f64,
     copyspan::Span,
+    crate::error::FullSpan,
 }
 
 unsafe impl<T: ?Sized> GCPtr for PhantomData<T> {
@@ -141,30 +142,7 @@ impl<T> GCEq<PhantomData<T>> for PhantomData<T> {
 
 unsafe impl<T> NonGC for PhantomData<T> {}
 
-unsafe impl<T: GCPtr> GCPtr for PartialSpanned<T> {
-    const MSB_RESERVED: bool = T::MSB_RESERVED;
-
-    unsafe fn gc_copy(self, gc: &GarbageCollector) -> Self {
-        let inner_copy = unsafe { self.0.gc_copy(gc) };
-
-        PartialSpanned(inner_copy, self.1)
-    }
-}
-
 unsafe impl<T: NonGC> NonGC for PartialSpanned<T> {}
-
-impl<T: GCDebug> GCDebug for PartialSpanned<T> {
-    unsafe fn gc_debug(
-        self,
-        gc: &GarbageCollector,
-        f: &mut std::fmt::Formatter,
-    ) -> std::fmt::Result {
-        f.debug_tuple("PartialSpanned")
-            .field(&unsafe { GCWrap::new(self.0, gc) })
-            .field(&self.1)
-            .finish()
-    }
-}
 
 impl<T: GCEq<T>> GCEq<PartialSpanned<T>> for PartialSpanned<T> {
     unsafe fn gc_eq(&self, gc: &GarbageCollector, rhs: &PartialSpanned<T>) -> bool {

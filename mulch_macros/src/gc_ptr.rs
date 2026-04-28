@@ -1,8 +1,8 @@
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote, quote_spanned};
 use syn::{
-    DataEnum, DataStruct, DeriveInput, Field, Fields, Index, Token, punctuated::Punctuated,
-    spanned::Spanned,
+    DataEnum, DataStruct, DeriveInput, Field, Fields, Index, Token, parse_quote,
+    punctuated::Punctuated, spanned::Spanned,
 };
 
 pub fn derive_gc_ptr(item: DeriveInput) -> TokenStream {
@@ -14,7 +14,17 @@ pub fn derive_gc_ptr(item: DeriveInput) -> TokenStream {
         }
     };
 
-    let (impl_generics, ty_generics, where_clause) = item.generics.split_for_impl();
+    let mut generics = item.generics.clone();
+    for param in generics.params.iter_mut() {
+        match param {
+            syn::GenericParam::Type(type_param) => {
+                type_param.bounds.push(parse_quote!(::mulch::gc::GCPtr))
+            }
+            _ => {}
+        }
+    }
+
+    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
     let type_name = &item.ident;
 
     let msb_reserved = match calculate_msb_reserved(&item) {

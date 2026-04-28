@@ -4,9 +4,10 @@ use std::{
 };
 
 use copyspan::Span;
+use mulch_macros::{GCDebug, GCPtr};
 
 #[repr(C)]
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, GCPtr, GCDebug)]
 pub struct PartialSpanned<T>(pub T, pub Span);
 
 impl<T: Debug> Debug for PartialSpanned<T> {
@@ -69,7 +70,7 @@ impl FullSpan {
 }
 
 #[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, GCPtr, GCDebug)]
 pub struct Spanned<T>(pub T, pub FullSpan);
 
 impl<T> Spanned<T> {
