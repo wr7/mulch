@@ -57,6 +57,10 @@ impl GarbageCollector {
             roots: GCRootList::new(),
         }
     }
+
+    pub fn block_ptr(&self, block: impl Into<usize>) -> *mut u8 {
+        self.from_space.block_ptr(block)
+    }
 }
 
 /// Implements gc traits for copyable, non-garbage-collected types

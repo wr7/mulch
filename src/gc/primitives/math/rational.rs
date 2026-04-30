@@ -163,8 +163,7 @@ impl GCRational {
         };
 
         unsafe {
-            gc.from_space
-                .block_ptr(metadata_ptr)
+            gc.block_ptr(metadata_ptr)
                 .cast::<[usize; 2]>()
                 .write(metadata.to_raw_unchecked())
         };
@@ -224,8 +223,7 @@ impl GCRational {
         };
 
         unsafe {
-            gc.from_space
-                .block_ptr(metadata_ptr)
+            gc.block_ptr(metadata_ptr)
                 .cast::<[usize; 2]>()
                 .write(metadata.to_raw_unchecked());
         }
@@ -267,7 +265,7 @@ impl GCRational {
         };
 
         unsafe {
-            gc.from_space.block_ptr(ptr).cast::<[usize; 2]>().write(
+            gc.block_ptr(ptr).cast::<[usize; 2]>().write(
                 RationalMetadata {
                     numerator_len: numerator.data.len(),
                     is_negative: false,
@@ -330,12 +328,7 @@ impl GCRational {
 
     unsafe fn metadata(self, gc: &GarbageCollector) -> RationalMetadata {
         unsafe {
-            RationalMetadata::from_raw_unchecked(
-                gc.from_space
-                    .block_ptr(self.ptr)
-                    .cast::<[usize; 2]>()
-                    .read(),
-            )
+            RationalMetadata::from_raw_unchecked(gc.block_ptr(self.ptr).cast::<[usize; 2]>().read())
         }
     }
 
@@ -383,17 +376,14 @@ impl GCRational {
                 let denominator = GCBuffer::<limb_t>::new_uninit(gc, 1);
                 denominator.as_mut_ptr(gc).write(1);
 
-                gc.from_space
-                    .block_ptr(self.ptr)
-                    .cast::<[usize; 2]>()
-                    .write(
-                        RationalMetadata {
-                            numerator_len: 1,
-                            is_negative: false,
-                            denominator_len: 1,
-                        }
-                        .to_raw_unchecked(),
-                    );
+                gc.block_ptr(self.ptr).cast::<[usize; 2]>().write(
+                    RationalMetadata {
+                        numerator_len: 1,
+                        is_negative: false,
+                        denominator_len: 1,
+                    }
+                    .to_raw_unchecked(),
+                );
 
                 return;
             }
@@ -517,9 +507,7 @@ impl GCRational {
 
             std::ptr::copy(
                 denominator.data.as_ptr(gc),
-                gc.from_space
-                    .block_ptr(new_denominator_ptr)
-                    .cast::<limb_t>(),
+                gc.block_ptr(new_denominator_ptr).cast::<limb_t>(),
                 denominator.data.len(),
             );
 
@@ -533,17 +521,14 @@ impl GCRational {
 
             // Adjust metadata to use new sizes
 
-            gc.from_space
-                .block_ptr(self.ptr)
-                .cast::<[usize; 2]>()
-                .write(
-                    RationalMetadata {
-                        numerator_len: numerator.data.len(),
-                        is_negative: old_metadata.is_negative,
-                        denominator_len: denominator.len(),
-                    }
-                    .to_raw_unchecked(),
-                );
+            gc.block_ptr(self.ptr).cast::<[usize; 2]>().write(
+                RationalMetadata {
+                    numerator_len: numerator.data.len(),
+                    is_negative: old_metadata.is_negative,
+                    denominator_len: denominator.len(),
+                }
+                .to_raw_unchecked(),
+            );
         }
     }
 }

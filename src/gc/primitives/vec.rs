@@ -28,11 +28,7 @@ impl<T: GCPtr> GCVec<T> {
     /// - All `elements` must be valid and alive
     pub unsafe fn new(gc: &GarbageCollector, elements: &[T]) -> Self {
         let vec = unsafe { Self::new_uninit_in_space(&gc.from_space, elements.len()) };
-        let ptr = gc
-            .from_space
-            .block_ptr(vec.ptr)
-            .wrapping_byte_add(GarbageCollector::BLOCK_SIZE)
-            .cast::<T>();
+        let ptr = vec.element_ptr(gc, 0);
 
         unsafe { std::ptr::copy_nonoverlapping(elements.as_ptr(), ptr, elements.len()) }
 
@@ -52,7 +48,7 @@ impl<T: GCPtr> GCVec<T> {
         I: Iterator<Item = T>,
     {
         let vec = unsafe { Self::new_uninit_in_space(&gc.from_space, len) };
-        let mut ptr = unsafe { vec.element_ptr_in_space(&gc.from_space, 0) };
+        let mut ptr = vec.element_ptr(&gc, 0);
 
         #[cfg(debug_assertions)]
         let mut count = 0;
@@ -81,7 +77,7 @@ impl<T: GCPtr> GCVec<T> {
     }
 
     pub unsafe fn len(self, gc: &GarbageCollector) -> usize {
-        unsafe { gc.from_space.block_ptr(self.ptr).cast::<usize>().read() }
+        unsafe { gc.block_ptr(self.ptr).cast::<usize>().read() }
     }
 
     /// Gets the data as a slice.
@@ -103,6 +99,13 @@ impl<T: GCPtr> GCVec<T> {
         )
     }
 
+    /// Gets a pointer to the element at `index` in a `GCVec`.
+    /// # Safety
+    /// `vec` must be a valid, non-frozen `GCVec` in `Self`
+    fn element_ptr(self, gc: &GarbageCollector, index: usize) -> *mut T {
+        self.element_ptr_in_space(&gc.from_space, index)
+    }
+
     /// Allocates an unitialized garbage-collected dynamically-sized array
     /// # Safety
     /// The `GCVec` must be fully initialized be fully initialized before it is moved to from-space
@@ -122,9 +125,7 @@ impl<T: GCPtr> GCVec<T> {
     }
 
     /// Gets a pointer to the element at `index` in a `GCVec`.
-    /// # Safety
-    /// `vec` must be a valid, non-frozen `GCVec` in `Self`
-    unsafe fn element_ptr_in_space(self, space: &GCSpace, index: usize) -> *mut T {
+    fn element_ptr_in_space(self, space: &GCSpace, index: usize) -> *mut T {
         let base_ptr = space.block_ptr(self.ptr);
 
         base_ptr

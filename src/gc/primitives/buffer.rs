@@ -41,7 +41,7 @@ impl<T> GCBuffer<T> {
     }
 
     pub fn as_mut_ptr(self, gc: &GarbageCollector) -> *mut T {
-        gc.from_space.block_ptr(self.ptr).cast::<T>()
+        gc.block_ptr(self.ptr).cast::<T>()
     }
 
     pub fn as_ptr(self, gc: &GarbageCollector) -> *const T {
@@ -138,7 +138,7 @@ impl<T: GCDebug> GCDebug for GCBuffer<T> {
         gc: &crate::gc::GarbageCollector,
         f: &mut std::fmt::Formatter,
     ) -> std::fmt::Result {
-        let ptr = gc.from_space.block_ptr(self.ptr).cast::<T>();
+        let ptr = self.as_ptr(gc);
         let slice = unsafe { std::slice::from_raw_parts(ptr, self.len) };
 
         let mut debug_list = f.debug_list();
