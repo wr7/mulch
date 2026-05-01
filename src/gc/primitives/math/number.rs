@@ -1,5 +1,6 @@
 use std::{
     fmt::Debug,
+    marker::PhantomData,
     num::{IntErrorKind, NonZeroUsize},
 };
 
@@ -23,6 +24,7 @@ use crate::{
 #[derive(Clone, Copy)]
 pub struct GCNumber {
     value: NonZeroUsize,
+    _phantomdata: PhantomData<*mut u8>,
 }
 
 enum GetGCNumber {
@@ -77,6 +79,7 @@ impl GCNumber {
         if usize & 1usize.rotate_right(1) != 0 {
             Some(Self {
                 value: unsafe { NonZeroUsize::new_unchecked(usize | 1usize.rotate_right(1)) },
+                _phantomdata: PhantomData,
             })
         } else {
             None
@@ -87,7 +90,7 @@ impl GCNumber {
         if self.value.get() & 1usize.rotate_right(1) != 0 {
             GetGCNumber::Inline(self.value.get() & !1usize.rotate_right(1))
         } else {
-            unsafe { GetGCNumber::Rational(GCRational::from_raw(self.value)) }
+            GetGCNumber::Rational(GCRational::from_raw(self.value))
         }
     }
 }
@@ -96,6 +99,7 @@ impl From<GCRational> for GCNumber {
     fn from(value: GCRational) -> Self {
         Self {
             value: value.gc_ptr(),
+            _phantomdata: PhantomData,
         }
     }
 }
@@ -113,7 +117,10 @@ unsafe impl GCPtr for GCNumber {
     #[allow(private_interfaces)]
     unsafe fn to_gc_root_entry(self, _gc: &GarbageCollector) -> GCRootEntry {
         unsafe fn copy_fn(data: NonZeroUsize, gc: &GarbageCollector) -> NonZeroUsize {
-            let old = GCNumber { value: data };
+            let old = GCNumber {
+                value: data,
+                _phantomdata: PhantomData,
+            };
             let new = unsafe { GCPtr::gc_copy(old, gc) };
 
             new.value
@@ -130,6 +137,7 @@ unsafe impl GCPtr for GCNumber {
     unsafe fn from_gc_root_entry(_gc: &GarbageCollector, entry: GCRootEntry) -> Self {
         Self {
             value: entry.data_ptr,
+            _phantomdata: PhantomData,
         }
     }
 }

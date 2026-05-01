@@ -1,4 +1,4 @@
-use std::{fmt::Debug, num::NonZeroUsize, ptr::addr_of_mut};
+use std::{fmt::Debug, marker::PhantomData, num::NonZeroUsize, ptr::addr_of_mut};
 
 use crate::gc::{
     GCPtr, GCSpace, GarbageCollector,
@@ -31,6 +31,8 @@ pub struct GCString {
     /// length (in bytes)
     #[cfg(target_endian = "big")]
     len: usize,
+
+    _phantomdata: PhantomData<*mut u8>,
 }
 
 impl GCString {
@@ -74,6 +76,7 @@ impl GCString {
             let mut retval = GCString {
                 ptr: NonZeroUsize::new(discriminant).unwrap(),
                 len: 0,
+                _phantomdata: PhantomData,
             };
 
             let ptr = addr_of_mut!(retval).cast::<u8>();
@@ -100,6 +103,7 @@ impl GCString {
         GCString {
             ptr: unsafe { NonZeroUsize::new_unchecked(data_ptr) },
             len: string.len(),
+            _phantomdata: PhantomData,
         }
     }
 
@@ -142,6 +146,7 @@ impl GCString {
         Some(Self {
             len: self.len,
             ptr: NonZeroUsize::new(forward).unwrap(),
+            _phantomdata: PhantomData,
         })
     }
 }

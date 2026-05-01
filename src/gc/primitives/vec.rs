@@ -20,7 +20,7 @@ use crate::gc::{
 #[repr(transparent)]
 pub struct GCVec<T: GCPtr> {
     ptr: NonZeroUsize,
-    _phantomdata: PhantomData<Vec<T>>,
+    _phantomdata: PhantomData<*mut T>,
 }
 
 impl<T: GCPtr> GCVec<T> {

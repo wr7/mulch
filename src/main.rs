@@ -21,7 +21,7 @@ mod util;
 
 // TODO:
 // - Switch to a thread-local GC
-//     - Make primitives !Send + !Sync
+//     - Remove all mutable references to the garbage collector
 // - Add more parser tests for:
 //     - Set and list lambda arguments
 //     - Default lambda arguments and argument bindings

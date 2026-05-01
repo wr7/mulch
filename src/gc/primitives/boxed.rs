@@ -19,7 +19,7 @@ use crate::gc::{
 #[derive(Clone, Copy)]
 pub struct GCBox<T: GCPtr> {
     ptr: NonZeroUsize,
-    _phantomdata: PhantomData<Box<T>>,
+    _phantomdata: PhantomData<*mut T>,
 }
 
 impl<T: GCPtr> GCBox<T> {

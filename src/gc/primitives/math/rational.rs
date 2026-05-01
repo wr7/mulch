@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, num::NonZeroUsize};
+use std::{cmp::Ordering, marker::PhantomData, num::NonZeroUsize};
 
 use gmp_mpfr_sys::gmp::{limb_t, mpn_gcd, mpn_tdiv_qr, size_t};
 
@@ -52,6 +52,7 @@ use super::NumLiteralType;
 #[derive(Clone, Copy)]
 pub struct GCRational {
     ptr: NonZeroUsize,
+    _phantomdata: PhantomData<*mut u8>,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -94,8 +95,11 @@ impl GCRational {
     const METADATA_SIZE_BLOCKS: usize =
         std::mem::size_of::<[usize; 2]>().div_ceil(GarbageCollector::BLOCK_SIZE);
 
-    pub unsafe fn from_raw(ptr: NonZeroUsize) -> Self {
-        Self { ptr }
+    pub fn from_raw(ptr: NonZeroUsize) -> Self {
+        Self {
+            ptr,
+            _phantomdata: PhantomData,
+        }
     }
 
     pub fn gc_ptr(self) -> NonZeroUsize {
@@ -168,9 +172,7 @@ impl GCRational {
                 .write(metadata.to_raw_unchecked())
         };
 
-        let rational = Self {
-            ptr: unsafe { NonZeroUsize::new_unchecked(metadata_ptr) },
-        };
+        let rational = Self::from_raw(unsafe { NonZeroUsize::new_unchecked(metadata_ptr) });
 
         unsafe {
             if denominator.is_zero(gc) {
@@ -228,9 +230,9 @@ impl GCRational {
                 .write(metadata.to_raw_unchecked());
         }
 
-        Ok(Self {
-            ptr: unsafe { NonZeroUsize::new_unchecked(metadata_ptr) },
-        })
+        Ok(Self::from_raw(unsafe {
+            NonZeroUsize::new_unchecked(metadata_ptr)
+        }))
     }
 
     /// Parses a `GCRational` from a numerator and denominator. This will not reduce the fraction.
@@ -275,18 +277,7 @@ impl GCRational {
             )
         }
 
-        unsafe {
-            dbg!(
-                Self {
-                    ptr: NonZeroUsize::new_unchecked(ptr),
-                }
-                .wrap(gc)
-            )
-        };
-
-        Self {
-            ptr: unsafe { NonZeroUsize::new_unchecked(ptr) },
-        }
+        Self::from_raw(unsafe { NonZeroUsize::new_unchecked(ptr) })
     }
 
     pub unsafe fn as_usize(self, gc: &GarbageCollector) -> Option<usize> {
@@ -549,9 +540,7 @@ unsafe impl GCPtr for GCRational {
         if raw_metadata[0] & FORWARD_BIT != 0 {
             let forward = raw_metadata[0] & !FORWARD_BIT;
 
-            return Self {
-                ptr: unsafe { NonZeroUsize::new_unchecked(forward as usize) },
-            };
+            return Self::from_raw(unsafe { NonZeroUsize::new_unchecked(forward as usize) });
         }
 
         let metadata = RationalMetadata::from_raw_unchecked(raw_metadata);
@@ -585,9 +574,7 @@ unsafe impl GCPtr for GCRational {
             );
         };
 
-        Self {
-            ptr: unsafe { NonZeroUsize::new_unchecked(new_ptr) },
-        }
+        Self::from_raw(unsafe { NonZeroUsize::new_unchecked(new_ptr) })
     }
 }
 
