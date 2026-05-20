@@ -20,8 +20,10 @@ pub mod parser;
 mod util;
 
 // TODO:
-// - Switch to a thread-local GC
-//     - Remove all mutable references to the garbage collector
+// - Add logic to check for opportunities for use-after-free in debug mode:
+//   - Add a "generation index" to GC primitives
+//   - Add a "generation counter" to the garbage collector that increments each time a garbage-collection cycle can be performed.
+//   - This process would be extremely slow, so we need to figure out a way to make this more performant.
 // - Add more parser tests for:
 //     - Set and list lambda arguments
 //     - Default lambda arguments and argument bindings
