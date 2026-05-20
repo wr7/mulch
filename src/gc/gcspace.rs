@@ -49,7 +49,7 @@ pub unsafe trait GCPtr: Sized + Clone + Copy {
     ///
     /// # Safety
     /// - This object must not be used if (or when) `self` is frozen or invalid.
-    unsafe fn wrap<'gc>(self, gc: &'gc GarbageCollector) -> GCWrap<'gc, Self> {
+    unsafe fn wrap<'a>(&'a self, gc: &'a GarbageCollector) -> GCWrap<'a, Self> {
         unsafe { GCWrap::new(self, gc) }
     }
 

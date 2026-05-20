@@ -171,7 +171,7 @@ impl<T: GCDebug> GCDebug for Option<T> {
         f: &mut std::fmt::Formatter,
     ) -> std::fmt::Result {
         match self {
-            Some(val) => unsafe { f.debug_tuple("Some").field(&GCWrap::new(val, gc)).finish() },
+            Some(val) => unsafe { f.debug_tuple("Some").field(&GCWrap::new(&val, gc)).finish() },
             None => write!(f, "None"),
         }
     }

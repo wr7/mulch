@@ -6,17 +6,30 @@ use std::{
 use crate::gc::GarbageCollector;
 
 #[derive(Clone, Copy)]
-pub struct GCWrap<'gc, T> {
+pub struct GCWrap<'a, T> {
     inner: T,
-    gc: &'gc GarbageCollector,
+    gc: &'a GarbageCollector,
 }
 
-impl<'gc, T> GCWrap<'gc, T> {
+impl<'a, T: Clone> GCWrap<'a, T> {
     /// Wraps a GC object with a reference to the GarbageCollector.
     ///
     /// # Safety
     /// - `inner` must be valid and alive in `gc`
-    pub unsafe fn new(inner: T, gc: &'gc GarbageCollector) -> Self {
+    pub unsafe fn new(inner: &'a T, gc: &'a GarbageCollector) -> Self {
+        Self {
+            inner: inner.clone(),
+            gc,
+        }
+    }
+}
+
+impl<'a, T> GCWrap<'a, T> {
+    /// Wraps a GC object with a reference to the GarbageCollector.
+    ///
+    /// # Safety
+    /// - `inner` must be valid and alive in `gc`
+    pub unsafe fn from_value(inner: T, gc: &'a GarbageCollector) -> Self {
         Self { inner, gc }
     }
 
@@ -24,14 +37,14 @@ impl<'gc, T> GCWrap<'gc, T> {
         &self.inner
     }
 
-    pub unsafe fn map<U>(self, func: impl FnOnce(T) -> U) -> GCWrap<'gc, U> {
+    pub unsafe fn map<U>(self, func: impl FnOnce(T) -> U) -> GCWrap<'a, U> {
         GCWrap {
             inner: func(self.inner),
             gc: self.gc,
         }
     }
 
-    pub fn gc<'a>(&'a self) -> &'gc GarbageCollector {
+    pub fn gc<'b>(&'b self) -> &'a GarbageCollector {
         self.gc
     }
 }

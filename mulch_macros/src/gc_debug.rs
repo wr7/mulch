@@ -76,7 +76,7 @@ fn gcdebug_fn_body_enum(data_enum: &syn::DataEnum) -> TokenStream {
                     let field_ident = field.ident.as_ref().unwrap();
                     let field_string = field_ident.to_string();
 
-                    quote! {.field(#field_string, &::mulch::gc::util::GCWrap::new(#field_ident, gc))}
+                    quote! {.field(#field_string, &::mulch::gc::util::GCWrap::new(&#field_ident, gc))}
                 });
 
                 quote! {{#(#per_field_in),*} => f.debug_struct(#variant_name) #(#per_field_out)*.finish()}
@@ -86,7 +86,7 @@ fn gcdebug_fn_body_enum(data_enum: &syn::DataEnum) -> TokenStream {
                 let per_field_out = (0..fields_unnamed.unnamed.len()).map(|i| {
                     let field_name = format_ident!("v{i}");
 
-                    quote! {.field(&::mulch::gc::util::GCWrap::new(#field_name, gc))}
+                    quote! {.field(&::mulch::gc::util::GCWrap::new(&#field_name, gc))}
                 });
                 quote! {(#(#per_field_in),*) => f.debug_tuple(#variant_name) #(#per_field_out)*.finish()}
             }
@@ -163,7 +163,7 @@ fn gcdebug_fn_body_struct(
 
         if is_tuple_struct {
             Ok(quote! {
-                .field(&::mulch::gc::util::GCWrap::new(self.#name, gc))
+                .field(&::mulch::gc::util::GCWrap::new(&self.#name, gc))
             })
         } else {
             let FieldName::Name(ident) = field.name else {
@@ -176,7 +176,7 @@ fn gcdebug_fn_body_struct(
             let ident_string = ident.to_string();
 
             Ok(quote! {
-                .field(#ident_string, &::mulch::gc::util::GCWrap::new(self.#ident, gc))
+                .field(#ident_string, &::mulch::gc::util::GCWrap::new(&self.#ident, gc))
             })
         }
     });

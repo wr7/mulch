@@ -21,8 +21,8 @@ macro_rules! parse_test {
 
             let ast = $crate::parser::test::util::ast!(&gc, $($expected_ast)+);
 
-            let expr = unsafe { crate::gc::util::GCWrap::new(expr, &gc) };
-            let ast = unsafe { crate::gc::util::GCWrap::new(ast, &gc) };
+            let expr = unsafe { $crate::gc::util::GCWrap::new(&expr, &gc) };
+            let ast = unsafe { $crate::gc::util::GCWrap::new(&ast, &gc) };
 
             if expr != ast {
                 panic!(

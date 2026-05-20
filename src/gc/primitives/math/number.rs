@@ -163,11 +163,11 @@ impl GCEq<GCNumber> for GCNumber {
 
                 (GetGCNumber::Inline(inline), GetGCNumber::Rational(rational))
                 | (GetGCNumber::Rational(rational), GetGCNumber::Inline(inline)) => {
-                    GCWrap::new(rational, gc) == inline
+                    GCWrap::new(&rational, gc) == inline
                 }
 
                 (GetGCNumber::Rational(rational1), GetGCNumber::Rational(rational2)) => {
-                    GCWrap::new(rational1, gc) == GCWrap::new(rational2, gc)
+                    GCWrap::new(&rational1, gc) == GCWrap::new(&rational2, gc)
                 }
             }
         }

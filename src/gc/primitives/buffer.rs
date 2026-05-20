@@ -144,7 +144,7 @@ impl<T: GCDebug> GCDebug for GCBuffer<T> {
         let mut debug_list = f.debug_list();
 
         for item in slice {
-            debug_list.entry(&unsafe { GCWrap::new(*item, gc) });
+            debug_list.entry(&unsafe { GCWrap::new(item, gc) });
         }
 
         debug_list.finish()

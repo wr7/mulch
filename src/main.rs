@@ -20,6 +20,9 @@ pub mod parser;
 mod util;
 
 // TODO:
+// - Remove `Copy` from `GCPtr`s
+//   - Not having `Copy` allows us to more easily keep track of when references are invalidated by
+//     the garbage collector. If a function invalidates a reference, it can simply take it by-value.
 // - Add logic to check for opportunities for use-after-free in debug mode:
 //   - Add a "generation index" to GC primitives
 //   - Add a "generation counter" to the garbage collector that increments each time a garbage-collection cycle can be performed.
@@ -34,6 +37,8 @@ mod util;
 //     - Div_exact (for `reduce` function)
 //     - `div_by_constant` for radix conversion
 //     - This will allow use to remove `#[cfg(any(not(miri), rust_analyzer))]` from several tests
+// - Add more optimized `gc_root_entry` methods to `#[derive(GCPtr)]` for single-field structs.
+// - Add proper documentation for the derive macros.
 
 pub fn main() {
     let db = SourceDB::new();
@@ -48,7 +53,6 @@ pub fn main() {
     let parser = Parser::new_default(&gc);
 
     let ast = pdresult_unwrap(parser::ast::Expression::parse(&parser, &tokens), 0, &db);
-    let ast = unsafe { ast.unwrap().wrap(&gc) };
 
-    dbg!(ast);
+    unsafe { dbg!(ast.unwrap().wrap(&gc)) };
 }

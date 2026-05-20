@@ -291,7 +291,7 @@ impl GCRational {
             .numerator_and_denominator_from_metadata(metadata)
             .map(|b| GCUInt { data: b });
 
-        if unsafe { GCWrap::new(denominator, gc) != (1 as limb_t) } {
+        if unsafe { GCWrap::new(&denominator, gc) != (1 as limb_t) } {
             return None;
         }
 
@@ -597,7 +597,7 @@ impl GCDebug for GCRational {
 
         write!(f, "{}", numerator)?;
 
-        if unsafe { GCWrap::new(denominator, gc) != (1 as limb_t) } {
+        if unsafe { GCWrap::new(&denominator, gc) != (1 as limb_t) } {
             write!(f, "/")?;
 
             let denominator = unsafe { denominator.to_naive_string(gc) };
@@ -614,12 +614,12 @@ impl GCEq<GCRational> for GCRational {
         let metadata = unsafe { self.metadata(gc) };
         let [numerator, denominator] = self
             .numerator_and_denominator_from_metadata(metadata)
-            .map(|b| unsafe { GCWrap::new(GCUInt { data: b }, gc) });
+            .map(|b| unsafe { GCWrap::from_value(GCUInt { data: b }, gc) });
 
         let rhs_metadata = unsafe { rhs.metadata(gc) };
         let [rhs_numerator, rhs_denominator] = rhs
             .numerator_and_denominator_from_metadata(rhs_metadata)
-            .map(|b| unsafe { GCWrap::new(GCUInt { data: b }, gc) });
+            .map(|b| unsafe { GCWrap::from_value(GCUInt { data: b }, gc) });
 
         metadata.is_negative == rhs_metadata.is_negative
             && numerator == rhs_numerator
@@ -632,7 +632,7 @@ impl GCEq<usize> for GCRational {
         let metadata = unsafe { self.metadata(gc) };
         let [numerator, denominator] = self
             .numerator_and_denominator_from_metadata(metadata)
-            .map(|b| unsafe { GCWrap::new(GCUInt { data: b }, gc) });
+            .map(|b| unsafe { GCWrap::from_value(GCUInt { data: b }, gc) });
 
         !metadata.is_negative && numerator == *rhs && denominator == (1 as limb_t)
     }
