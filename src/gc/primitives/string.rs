@@ -186,7 +186,7 @@ impl GCGet for GCString {
 
 impl GCDebug for GCString {
     unsafe fn gc_debug(
-        self,
+        &self,
         gc: &GarbageCollector,
         f: &mut std::fmt::Formatter,
     ) -> std::fmt::Result {

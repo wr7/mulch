@@ -46,7 +46,7 @@ impl<T: GCPtr, S> From<GCVec<T>> for SeparatedList<T, S> {
 
 impl<T: GCPtr + GCDebug, S> GCDebug for SeparatedList<T, S> {
     unsafe fn gc_debug(
-        self,
+        &self,
         gc: &crate::gc::GarbageCollector,
         f: &mut std::fmt::Formatter,
     ) -> std::fmt::Result {

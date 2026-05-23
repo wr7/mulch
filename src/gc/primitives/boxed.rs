@@ -163,7 +163,7 @@ unsafe impl<T: GCPtr> GCPtr for GCBox<T> {
 
 impl<T: GCDebug + GCPtr> GCDebug for GCBox<T> {
     unsafe fn gc_debug(
-        self,
+        &self,
         gc: &GarbageCollector,
         f: &mut std::fmt::Formatter,
     ) -> std::fmt::Result {

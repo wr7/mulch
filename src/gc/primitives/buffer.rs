@@ -134,7 +134,7 @@ impl<T> GCBuffer<T> {
 
 impl<T: GCDebug> GCDebug for GCBuffer<T> {
     unsafe fn gc_debug(
-        self,
+        &self,
         gc: &crate::gc::GarbageCollector,
         f: &mut std::fmt::Formatter,
     ) -> std::fmt::Result {

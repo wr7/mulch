@@ -54,7 +54,7 @@ pub trait GCDebug: Clone {
     ///
     /// # Safety
     /// `self` must be a valid, non-frozen object in `gc`
-    unsafe fn gc_debug(self, gc: &GarbageCollector, f: &mut Formatter) -> std::fmt::Result;
+    unsafe fn gc_debug(&self, gc: &GarbageCollector, f: &mut Formatter) -> std::fmt::Result;
 }
 
 pub trait GCEq<Rhs: ?Sized = Self> {

@@ -580,7 +580,7 @@ unsafe impl GCPtr for GCRational {
 
 impl GCDebug for GCRational {
     unsafe fn gc_debug(
-        self,
+        &self,
         gc: &GarbageCollector,
         f: &mut std::fmt::Formatter,
     ) -> std::fmt::Result {

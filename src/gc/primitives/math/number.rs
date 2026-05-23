@@ -144,7 +144,7 @@ unsafe impl GCPtr for GCNumber {
 
 impl GCDebug for GCNumber {
     unsafe fn gc_debug(
-        self,
+        &self,
         gc: &GarbageCollector,
         f: &mut std::fmt::Formatter,
     ) -> std::fmt::Result {

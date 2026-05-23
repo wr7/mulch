@@ -33,7 +33,7 @@ pub fn derive_gc_debug(input: DeriveInput) -> syn::Result<TokenStream> {
     Ok(quote! {
         #[automatically_derived]
         impl #impl_generics ::mulch::gc::util::GCDebug for #type_name #ty_generics #where_clause {
-            unsafe fn gc_debug(self, gc: &::mulch::gc::GarbageCollector, f: &mut ::core::fmt::Formatter) -> ::std::fmt::Result {#fn_body}
+            unsafe fn gc_debug(&self, gc: &::mulch::gc::GarbageCollector, f: &mut ::core::fmt::Formatter) -> ::std::fmt::Result {#fn_body}
         }
     })
 }
@@ -76,7 +76,7 @@ fn gcdebug_fn_body_enum(data_enum: &syn::DataEnum) -> TokenStream {
                     let field_ident = field.ident.as_ref().unwrap();
                     let field_string = field_ident.to_string();
 
-                    quote! {.field(#field_string, &::mulch::gc::util::GCWrap::new(&#field_ident, gc))}
+                    quote! {.field(#field_string, &::mulch::gc::util::GCWrap::new(#field_ident, gc))}
                 });
 
                 quote! {{#(#per_field_in),*} => f.debug_struct(#variant_name) #(#per_field_out)*.finish()}
@@ -86,7 +86,7 @@ fn gcdebug_fn_body_enum(data_enum: &syn::DataEnum) -> TokenStream {
                 let per_field_out = (0..fields_unnamed.unnamed.len()).map(|i| {
                     let field_name = format_ident!("v{i}");
 
-                    quote! {.field(&::mulch::gc::util::GCWrap::new(&#field_name, gc))}
+                    quote! {.field(&::mulch::gc::util::GCWrap::new(#field_name, gc))}
                 });
                 quote! {(#(#per_field_in),*) => f.debug_tuple(#variant_name) #(#per_field_out)*.finish()}
             }
@@ -148,7 +148,7 @@ fn gcdebug_fn_body_struct(
 
             return Ok(quote! {
                 #with_name
-                ::mulch::gc::util::GCDebug::gc_debug(#field_access, gc, f)
+                ::mulch::gc::util::GCDebug::gc_debug(&#field_access, gc, f)
             });
         } else {
             return Err(syn::Error::new(

@@ -83,7 +83,7 @@ macro_rules! gc_trivial_impl {
 
             impl ::mulch::gc::util::GCDebug for $ty {
                 unsafe fn gc_debug(
-                    self,
+                    &self,
                     _gc: &::mulch::gc::GarbageCollector,
                     f: &mut ::std::fmt::Formatter,
                 ) -> ::std::fmt::Result {
@@ -130,7 +130,7 @@ unsafe impl<T: ?Sized> GCPtr for PhantomData<T> {
 
 impl<T: ?Sized> GCDebug for PhantomData<T> {
     unsafe fn gc_debug(
-        self,
+        &self,
         _gc: &GarbageCollector,
         f: &mut std::fmt::Formatter,
     ) -> std::fmt::Result {
@@ -166,12 +166,12 @@ unsafe impl<T: NonGC> NonGC for Option<T> {}
 
 impl<T: GCDebug> GCDebug for Option<T> {
     unsafe fn gc_debug(
-        self,
+        &self,
         gc: &GarbageCollector,
         f: &mut std::fmt::Formatter,
     ) -> std::fmt::Result {
         match self {
-            Some(val) => unsafe { f.debug_tuple("Some").field(&GCWrap::new(&val, gc)).finish() },
+            Some(val) => unsafe { f.debug_tuple("Some").field(&GCWrap::new(val, gc)).finish() },
             None => write!(f, "None"),
         }
     }

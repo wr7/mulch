@@ -75,7 +75,7 @@ unsafe impl<T: GCPtr, P> GCPtr for NotPrecededBy<T, P> {
 
 impl<T: GCDebug, P> GCDebug for NotPrecededBy<T, P> {
     unsafe fn gc_debug(
-        self,
+        &self,
         gc: &GarbageCollector,
         f: &mut std::fmt::Formatter,
     ) -> std::fmt::Result {

@@ -205,7 +205,7 @@ where
 
 impl<T: GCDebug + GCPtr> GCDebug for GCVec<T> {
     unsafe fn gc_debug(
-        self,
+        &self,
         gc: &GarbageCollector,
         f: &mut std::fmt::Formatter,
     ) -> std::fmt::Result {
