@@ -61,10 +61,12 @@ impl<T: GCPtr + GCEq, S> GCEq for SeparatedList<T, S> {
 }
 
 // These derives don't work for whatever reason
-impl<T: GCPtr, S> Copy for SeparatedList<T, S> {}
 impl<T: GCPtr, S> Clone for SeparatedList<T, S> {
     fn clone(&self) -> Self {
-        *self
+        Self {
+            values: self.values.clone(),
+            _phantomdata: PhantomData,
+        }
     }
 }
 

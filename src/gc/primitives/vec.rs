@@ -76,7 +76,7 @@ impl<T: GCPtr> GCVec<T> {
         self.ptr
     }
 
-    pub unsafe fn len(self, gc: &GarbageCollector) -> usize {
+    pub unsafe fn len(&self, gc: &GarbageCollector) -> usize {
         unsafe { gc.block_ptr(self.ptr).cast::<usize>().read() }
     }
 
@@ -88,11 +88,11 @@ impl<T: GCPtr> GCVec<T> {
     /// The user must uphold the following conditions while the returned slice is alive:
     /// - No new objects are allocated to the GC heap
     /// - No garbage collection cycles are performed
-    pub unsafe fn as_slice(self, gc: &GarbageCollector) -> &[T] {
+    pub unsafe fn as_slice<'gc>(&self, gc: &'gc GarbageCollector) -> &'gc [T] {
         unsafe { self.as_buffer(gc).as_slice(gc) }
     }
 
-    pub unsafe fn as_buffer(self, gc: &GarbageCollector) -> GCBuffer<T> {
+    pub unsafe fn as_buffer(&self, gc: &GarbageCollector) -> GCBuffer<T> {
         GCBuffer::from_raw_parts(
             unsafe { NonZeroUsize::new_unchecked(self.ptr.get() + 1) },
             unsafe { self.len(gc) },
@@ -102,7 +102,7 @@ impl<T: GCPtr> GCVec<T> {
     /// Gets a pointer to the element at `index` in a `GCVec`.
     /// # Safety
     /// `vec` must be a valid, non-frozen `GCVec` in `Self`
-    fn element_ptr(self, gc: &GarbageCollector, index: usize) -> *mut T {
+    fn element_ptr(&self, gc: &GarbageCollector, index: usize) -> *mut T {
         self.element_ptr_in_space(&gc.from_space, index)
     }
 
@@ -125,7 +125,7 @@ impl<T: GCPtr> GCVec<T> {
     }
 
     /// Gets a pointer to the element at `index` in a `GCVec`.
-    fn element_ptr_in_space(self, space: &GCSpace, index: usize) -> *mut T {
+    fn element_ptr_in_space(&self, space: &GCSpace, index: usize) -> *mut T {
         let base_ptr = space.block_ptr(self.ptr);
 
         base_ptr
@@ -133,7 +133,7 @@ impl<T: GCPtr> GCVec<T> {
             .cast::<T>()
     }
 
-    unsafe fn get_forwarded_value(self, gc: &GarbageCollector) -> Option<Self> {
+    unsafe fn get_forwarded_value(&self, gc: &GarbageCollector) -> Option<Self> {
         let discriminant = unsafe { gc.from_space.block_ptr(self.ptr).cast::<usize>().read() };
         if discriminant & 1usize.rotate_right(1) == 0 {
             return None;

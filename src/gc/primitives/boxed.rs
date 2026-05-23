@@ -82,11 +82,11 @@ impl<T: GCPtr> GCBox<T> {
         }
     }
 
-    fn ptr_in_space(self, space: &GCSpace) -> *mut T {
+    fn ptr_in_space(&self, space: &GCSpace) -> *mut T {
         space.block_ptr(self.ptr).cast::<T>()
     }
 
-    unsafe fn get_forwarded_value(self, space: &GCSpace) -> Option<Self> {
+    unsafe fn get_forwarded_value(&self, space: &GCSpace) -> Option<Self> {
         let fwd = if T::MSB_RESERVED {
             self.ptr.get()
         } else {

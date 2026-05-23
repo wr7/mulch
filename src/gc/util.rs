@@ -49,7 +49,7 @@ impl<'a, T> GCWrap<'a, T> {
     }
 }
 
-pub trait GCDebug: Copy {
+pub trait GCDebug: Clone {
     /// `Debug::fmt` method for garbage-collected objects.
     ///
     /// # Safety
@@ -90,7 +90,7 @@ where
     T: GCDebug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        unsafe { self.inner.gc_debug(self.gc, f) }
+        unsafe { self.inner.clone().gc_debug(self.gc, f) }
     }
 }
 

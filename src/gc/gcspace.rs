@@ -23,7 +23,7 @@ pub struct GCSpace {
 ///
 /// # Safety
 /// - The alignment of `Self` must be less than or equal to `GarbageCollector::BLOCK_SIZE`
-pub unsafe trait GCPtr: Sized + Clone + Copy {
+pub unsafe trait GCPtr: Sized + Clone {
     /// Can be set to true if the following conditions are met:
     /// - The most-significant-bit of the first `usize` in `self` is reserved and always `0`.
     /// - `align_of::<Self>() >= align_of::<usize>()`
