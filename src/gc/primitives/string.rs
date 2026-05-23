@@ -21,7 +21,7 @@ use crate::gc::{
 /// systems, the string data starts on the 0th byte, and on big endian platforms, it starts on the
 /// 1th byte.
 #[repr(C)]
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct GCString {
     /// length (in bytes)
     #[cfg(target_endian = "little")]
@@ -127,9 +127,9 @@ impl GCString {
 }
 
 impl GCString {
-    unsafe fn get_forwarded_value(self, gc: &GarbageCollector) -> Option<Self> {
+    unsafe fn get_forwarded_value(&self, gc: &GarbageCollector) -> Option<Self> {
         if self.get_inline().is_some() {
-            return Some(self);
+            return Some(self.clone());
         }
 
         let ptr = gc.from_space.block_ptr(self.ptr);

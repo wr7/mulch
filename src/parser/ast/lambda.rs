@@ -88,7 +88,7 @@ pub struct ArgAttribute {
     arg: Argument,
 }
 
-#[derive(Clone, Copy, GCPtr, GCDebug, GCEq, ParseLeft)]
+#[derive(Clone, GCPtr, GCDebug, GCEq, ParseLeft)]
 #[mulch_parse_error(|_| unimplemented!())]
 pub struct ArgBinding {
     #[debug_hidden]
@@ -113,7 +113,7 @@ fn parse_simple_arg_attribute(
 ) -> PDResult<Option<ArgAttribute>> {
     Ok(
         SingleArgument::parse(parser, tokens)?.map(|arg| ArgAttribute {
-            attr: IdentOrString(arg.name.0),
+            attr: IdentOrString(arg.name.0.clone()),
             colon_: punct!(":")(),
             arg: Argument::Single(arg),
         }),

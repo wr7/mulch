@@ -3,7 +3,7 @@ use mulch_macros::{GCDebug, GCPtr};
 use crate::gc::{GCString, GCVec};
 
 /// A `mulch` value
-#[derive(GCPtr, GCDebug, Clone, Copy)]
+#[derive(GCPtr, GCDebug, Clone)]
 #[repr(usize)]
 pub enum MValue {
     #[debug_direct]

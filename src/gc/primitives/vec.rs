@@ -16,7 +16,7 @@ use crate::gc::{
 /// # Memory layout
 /// `ptr` points to a `usize` which contains the length of the string. An array of `T` elements
 /// starts in the following block.
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 #[repr(transparent)]
 pub struct GCVec<T: GCPtr> {
     ptr: NonZeroUsize,

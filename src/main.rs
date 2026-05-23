@@ -20,9 +20,6 @@ pub mod parser;
 mod util;
 
 // TODO:
-// - Remove `Copy` from `GCPtr`s
-//   - Not having `Copy` allows us to more easily keep track of when references are invalidated by
-//     the garbage collector. If a function invalidates a reference, it can simply take it by-value.
 // - Add logic to check for opportunities for use-after-free in debug mode:
 //   - Add a "generation index" to GC primitives
 //   - Add a "generation counter" to the garbage collector that increments each time a garbage-collection cycle can be performed.

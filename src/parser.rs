@@ -72,7 +72,7 @@ impl<'a> Parser<'a> {
 single_token_parse_type! {
     error_function = parser::error::expected_identifier;
 
-    #[derive(Clone, Copy, GCPtr, GCDebug, GCEq)]
+    #[derive(Clone, GCPtr, GCDebug, GCEq)]
     #[debug_direct]
     pub struct Ident(pub GCString);
 
@@ -84,7 +84,7 @@ single_token_parse_type! {
 single_token_parse_type! {
     error_function = parser::error::expected_ident_or_string;
 
-    #[derive(Clone, Copy, GCPtr, GCDebug, GCEq)]
+    #[derive(Clone, GCPtr, GCDebug, GCEq)]
     #[debug_direct]
     pub struct IdentOrString(pub GCString);
 

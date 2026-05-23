@@ -21,7 +21,7 @@ use crate::{
 /// If the most-significant-bit is set, the remaining bits are the signed value.
 ///
 /// If the MSB is not set, the remaining bits should be interpereted as a `GCRational`
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct GCNumber {
     value: NonZeroUsize,
     _phantomdata: PhantomData<*mut u8>,
@@ -86,7 +86,7 @@ impl GCNumber {
         }
     }
 
-    fn get(self) -> GetGCNumber {
+    fn get(&self) -> GetGCNumber {
         if self.value.get() & 1usize.rotate_right(1) != 0 {
             GetGCNumber::Inline(self.value.get() & !1usize.rotate_right(1))
         } else {

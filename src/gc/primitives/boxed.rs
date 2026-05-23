@@ -16,7 +16,7 @@ use crate::gc::{
 /// Otherwise, the first block after the instance of `T` should be interpereted as a `usize` with
 /// the same properties as the one above.
 #[repr(transparent)]
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct GCBox<T: GCPtr> {
     ptr: NonZeroUsize,
     _phantomdata: PhantomData<*mut T>,

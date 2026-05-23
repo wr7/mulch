@@ -49,7 +49,7 @@ use super::NumLiteralType;
 ///     }
 /// }
 /// ```
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct GCRational {
     ptr: NonZeroUsize,
     _phantomdata: PhantomData<*mut u8>,
@@ -280,7 +280,7 @@ impl GCRational {
         Self::from_raw(unsafe { NonZeroUsize::new_unchecked(ptr) })
     }
 
-    pub unsafe fn as_usize(self, gc: &GarbageCollector) -> Option<usize> {
+    pub unsafe fn as_usize(&self, gc: &GarbageCollector) -> Option<usize> {
         let metadata = unsafe { self.metadata(gc) };
 
         if metadata.is_negative {
@@ -313,18 +313,18 @@ impl GCRational {
         gc.from_space.set_len(self.ptr.get());
     }
 
-    unsafe fn numerator_and_denominator(self, gc: &GarbageCollector) -> [GCBuffer<limb_t>; 2] {
+    unsafe fn numerator_and_denominator(&self, gc: &GarbageCollector) -> [GCBuffer<limb_t>; 2] {
         self.numerator_and_denominator_from_metadata(unsafe { self.metadata(gc) })
     }
 
-    unsafe fn metadata(self, gc: &GarbageCollector) -> RationalMetadata {
+    unsafe fn metadata(&self, gc: &GarbageCollector) -> RationalMetadata {
         unsafe {
             RationalMetadata::from_raw_unchecked(gc.block_ptr(self.ptr).cast::<[usize; 2]>().read())
         }
     }
 
     fn numerator_and_denominator_from_metadata(
-        self,
+        &self,
         metadata: RationalMetadata,
     ) -> [GCBuffer<limb_t>; 2] {
         let numerator_ptr = self.ptr.get() + Self::METADATA_SIZE_BLOCKS;
@@ -348,7 +348,7 @@ impl GCRational {
 
     /// Reduces the fraction. Requires that the `self` is the last object in the `GCSpace`.
     /// Additionally, the denominator must not be zero.
-    unsafe fn reduce_from_end(self, gc: &GarbageCollector) {
+    unsafe fn reduce_from_end(&self, gc: &GarbageCollector) {
         let old_metadata = unsafe { self.metadata(gc) };
 
         let [mut numerator, mut denominator] = self
