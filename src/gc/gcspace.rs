@@ -182,6 +182,24 @@ impl GCSpace {
         self.ptr()
             .wrapping_byte_add(idx.into() * GarbageCollector::BLOCK_SIZE)
     }
+
+    /// Swaps this `GCSpace` with another `GCSpace`. This should only be done as a part of a
+    /// garbage-collection cycle.
+    pub(super) unsafe fn swap(&self, other: &GCSpace) {
+        self.data.swap(&other.data);
+        self.len.swap(&other.len);
+        self.capacity.swap(&other.capacity);
+
+        return;
+
+        // This code is only here to prevent this function from compiling if new fields are added in
+        // the future.
+        let _ = Self {
+            data: unreachable!(),
+            len: unreachable!(),
+            capacity: unreachable!(),
+        };
+    }
 }
 
 impl Drop for GCSpace {

@@ -4,7 +4,7 @@ use crate::gc::GarbageCollector;
 mod test;
 
 impl GarbageCollector {
-    unsafe fn copy_roots(&mut self) {
+    unsafe fn copy_roots(&self) {
         let num_roots = self.roots.len();
 
         for i in 0..num_roots {
@@ -28,7 +28,7 @@ impl GarbageCollector {
     /// # Safety
     /// All `Value`s in `root` must point to valid, currently alive objects in `from-space` of the
     /// current `GarbageCollector`.
-    pub unsafe fn collect<'r>(&mut self) {
+    pub unsafe fn collect<'r>(&self) {
         if self.from_space.len() < self.from_space.capacity() * 15 / 16 {
             return;
         }
@@ -50,11 +50,13 @@ impl GarbageCollector {
     /// See documentation of [`GarbageCollector::collect`] for safety and any other information.
     #[allow(clippy::missing_safety_doc)]
     #[cold]
-    pub unsafe fn force_collect<'r>(&mut self) {
+    pub unsafe fn force_collect<'r>(&self) {
         unsafe {
             self.copy_roots();
         }
 
-        std::mem::swap(&mut self.from_space, &mut self.to_space);
+        unsafe {
+            self.from_space.swap(&self.to_space);
+        }
     }
 }

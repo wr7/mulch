@@ -25,8 +25,7 @@ mod test;
 
 /// The garbage collector.
 ///
-/// New objects may be allocated through an immutable reference. A garbage-collection cycle can only
-/// be triggered by methods that take a mutable reference.
+/// This should typically be interacted with through an immutable reference.
 pub struct GarbageCollector {
     from_space: GCSpace,
     to_space: GCSpace,
