@@ -35,7 +35,9 @@ impl<'gc> Evaluator<'gc> {
             ast::Expression::UnaryOperation(unary_operation) => todo!(),
             ast::Expression::MethodCall(method_call) => todo!(),
             ast::Expression::FunctionCall(function_call) => todo!(),
-            ast::Expression::MemberAccess(member_access) => todo!(),
+            ast::Expression::MemberAccess(member_access) => {
+                self.evaluate_member_access(Spanned(member_access, ast.1))
+            }
             ast::Expression::Set(set) => self.evaluate_set(Spanned(set, ast.1)),
             ast::Expression::List(list) => todo!(),
         }

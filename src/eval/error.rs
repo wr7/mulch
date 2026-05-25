@@ -23,3 +23,15 @@ pub fn attribute_defined_multiple_times(
         {"Then defined here", second_definition, primary},
     ])
 }
+
+pub fn member_access_on_non_set(span: FullSpan) -> Diagnostic {
+    error!("EE0003", "The member access operator can only be used on sets", [
+        {"Here", span, primary},
+    ])
+}
+
+pub fn no_attribute_with_name(span: FullSpan, name: &str) -> Diagnostic {
+    error!("EE0004", format!("No attribute found with name `{name}`"), [
+        {"Here", span, primary},
+    ])
+}

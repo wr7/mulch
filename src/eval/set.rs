@@ -2,9 +2,9 @@ use mulch_macros::{GCDebug, GCPtr};
 
 use crate::{
     error::{DResult, FullSpan, Spanned},
-    eval::{Evaluator, MValue, error::attribute_defined_multiple_times, lazyvalue::LazyValue},
+    eval::{self, Evaluator, MValue, lazyvalue::LazyValue},
     gc::{GCString, GCVec},
-    parser::ast::{self, NamedValue},
+    parser::ast::{self, MemberAccess, NamedValue},
 };
 
 #[derive(Clone, GCDebug, GCPtr)]
@@ -50,7 +50,7 @@ impl<'gc> Evaluator<'gc> {
                     let first_attribute_definition =
                         unsafe { output_slice[idx].value.to_ast(self.gc).unwrap().1 };
 
-                    return Err(attribute_defined_multiple_times(
+                    return Err(eval::error::attribute_defined_multiple_times(
                         first_attribute_definition,
                         FullSpan::new(attr_definition.value.1, ast.1.file_id),
                     ));
@@ -75,5 +75,35 @@ impl<'gc> Evaluator<'gc> {
         }
 
         Ok(MValue::Set(Set { values: output_vec }))
+    }
+
+    pub(super) fn evaluate_member_access(&self, ast: Spanned<MemberAccess>) -> DResult<MValue> {
+        unsafe {
+            let ast_span = ast.1;
+            let ast = self.gc.push_root(ast.0);
+
+            let lhs = ast.get().lhs.get(self.gc).with_file_id(ast_span.file_id);
+            let lhs = self.evaluate(lhs)?;
+
+            let MValue::Set(lhs) = lhs else {
+                return Err(eval::error::member_access_on_non_set(ast_span));
+            };
+
+            let ast_val = ast.get();
+            let rhs = ast_val.rhs.0.get(self.gc);
+
+            let matching_attr = match lhs
+                .values
+                .as_slice(self.gc)
+                .binary_search_by_key(&rhs, |a| a.name.get(self.gc))
+            {
+                Ok(idx) => lhs.values.as_slice(self.gc)[idx].clone(),
+                Err(_) => return Err(eval::error::no_attribute_with_name(ast_span, rhs)),
+            };
+
+            std::mem::drop(ast);
+
+            matching_attr.value.get_or_evaluate(self, ast_span)
+        }
     }
 }
