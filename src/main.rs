@@ -4,7 +4,8 @@
 use error::{SourceDB, dresult_unwrap};
 
 use crate::{
-    error::pdresult_unwrap,
+    error::{PartialSpanned, pdresult_unwrap},
+    eval::Evaluator,
     gc::{GCPtr, GarbageCollector},
     parser::{Parse, Parser},
 };
@@ -36,11 +37,12 @@ mod util;
 //     - This will allow use to remove `#[cfg(any(not(miri), rust_analyzer))]` from several tests
 // - Add more optimized `gc_root_entry` methods to `#[derive(GCPtr)]` for single-field structs.
 // - Add proper documentation for the derive macros.
+// - Add logic for printing recursively-defined values.
 
 pub fn main() {
     let db = SourceDB::new();
 
-    let source = "let pi = x in e^(i * pi)";
+    let source = "{x = \"my_x_value\"; sub_set = {val_a = \"a\";}}";
 
     let file_id = db.add("main.mulch".into(), source.to_owned());
 
@@ -49,7 +51,15 @@ pub fn main() {
     let gc = GarbageCollector::new();
     let parser = Parser::new_default(&gc);
 
-    let ast = pdresult_unwrap(parser::ast::Expression::parse(&parser, &tokens), 0, &db);
+    let ast = pdresult_unwrap(
+        PartialSpanned::<parser::ast::Expression>::parse(&parser, &tokens),
+        0,
+        &db,
+    )
+    .unwrap();
 
-    unsafe { dbg!(ast.unwrap().wrap(&gc)) };
+    let evaluator = Evaluator::new(&gc);
+    let value = dresult_unwrap(evaluator.evaluate(ast.with_file_id(0)), &db);
+
+    unsafe { dbg!(value.wrap(&gc)) };
 }

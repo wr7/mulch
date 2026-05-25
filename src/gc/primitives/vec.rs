@@ -27,12 +27,18 @@ impl<T: GCPtr> GCVec<T> {
     /// # Safety
     /// - All `elements` must be valid and alive
     pub unsafe fn new(gc: &GarbageCollector, elements: &[T]) -> Self {
-        let vec = unsafe { Self::new_uninit_in_space(&gc.from_space, elements.len()) };
+        let vec = unsafe { Self::new_uninit(&gc, elements.len()) };
         let ptr = vec.element_ptr(gc, 0);
 
         unsafe { std::ptr::copy_nonoverlapping(elements.as_ptr(), ptr, elements.len()) }
 
         vec
+    }
+
+    /// # Safety
+    /// A garbage-collection cycle cannot be triggered before this is fully initialized.
+    pub unsafe fn new_uninit(gc: &GarbageCollector, len: usize) -> Self {
+        unsafe { Self::new_uninit_in_space(&gc.from_space, len) }
     }
 
     /// # Safety
@@ -97,6 +103,10 @@ impl<T: GCPtr> GCVec<T> {
             unsafe { NonZeroUsize::new_unchecked(self.ptr.get() + 1) },
             unsafe { self.len(gc) },
         )
+    }
+
+    pub unsafe fn as_mut_ptr(&self, gc: &GarbageCollector) -> *mut T {
+        unsafe { self.as_buffer(gc).as_mut_ptr(gc) }
     }
 
     /// Gets a pointer to the element at `index` in a `GCVec`.

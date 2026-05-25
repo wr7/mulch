@@ -45,12 +45,16 @@ impl<T: GCPtr> GCBox<T> {
         self.ptr
     }
 
+    pub(crate) fn as_mut(&self, gc: &GarbageCollector) -> *mut T {
+        gc.from_space.block_ptr(self.ptr).cast::<T>()
+    }
+
     /// Reads the value stored in the `GCBox`
     ///
     /// # Safety
     /// - `self` must point to a valid, non-frozen `GCBox<T>` in `gc`
     /// - This cannot be used during a GC cycle
-    pub unsafe fn get(self, gc: &GarbageCollector) -> T {
+    pub unsafe fn get(&self, gc: &GarbageCollector) -> T {
         unsafe { self.ptr_in_space(&gc.from_space).read() }
     }
 
