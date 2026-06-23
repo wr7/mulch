@@ -37,10 +37,10 @@ pub fn derive_parse(input: DeriveInput, trait_: ParseTrait) -> syn::Result<Token
             struct_::derive_struct_fn_body(&input, data_struct, &params)
         }
         syn::Data::Enum(data_enum) => {
-            if trait_ == ParseTrait::ParseLeft {
+            if trait_ != ParseTrait::Parse {
                 return Err(syn::Error::new(
                     Span::call_site(),
-                    "#[derive(ParseLeft)] has not been implemented for enums",
+                    format!("#[derive({trait_})] has not been implemented for enums"),
                 ));
             }
 

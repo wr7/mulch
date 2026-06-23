@@ -6,7 +6,7 @@ use error::{SourceDB, dresult_unwrap};
 use crate::{
     error::{PartialSpanned, pdresult_unwrap},
     eval::Evaluator,
-    gc::{GCPtr, GarbageCollector},
+    gc::{GCPtr, GarbageCollector, util::GCWrap},
     parser::{Parse, Parser},
 };
 
@@ -58,6 +58,8 @@ pub fn main() {
         &db,
     )
     .unwrap();
+
+    unsafe { dbg!(ast.wrap(&gc)) };
 
     let evaluator = Evaluator::new(&gc);
     let value = dresult_unwrap(evaluator.evaluate(ast.with_file_id(0)), &db);
