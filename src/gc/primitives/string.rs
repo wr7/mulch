@@ -2,6 +2,7 @@ use std::{fmt::Debug, marker::PhantomData, num::NonZeroUsize, ptr::addr_of_mut};
 
 use crate::gc::{
     GCPtr, GCSpace, GarbageCollector,
+    safety::{GC, GCCtx},
     util::{GCDebug, GCEq, GCGet},
 };
 
@@ -21,7 +22,7 @@ use crate::gc::{
 /// systems, the string data starts on the 0th byte, and on big endian platforms, it starts on the
 /// 1th byte.
 #[repr(C)]
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct GCString {
     /// length (in bytes)
     #[cfg(target_endian = "little")]
@@ -36,8 +37,13 @@ pub struct GCString {
 }
 
 impl GCString {
+    /// Creates a new garbage collected string that can be used with the safe garbage-collection API.
+    pub fn new<'c, 'gc>(ctx: &'c GCCtx<'gc>, string: &'_ str) -> GC<'c, Self> {
+        unsafe { GC::new(ctx, Self::new_raw(ctx, string)) }
+    }
+
     /// Creates a new garbage collected string.
-    pub fn new(gc: &GarbageCollector, string: &str) -> Self {
+    pub fn new_raw(gc: &GarbageCollector, string: &str) -> Self {
         Self::new_in_space(&gc.from_space, string)
     }
 

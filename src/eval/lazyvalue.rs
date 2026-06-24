@@ -3,7 +3,7 @@ use mulch_macros::{GCDebug, GCPtr};
 use crate::{
     error::{DResult, FullSpan, Spanned},
     eval::{self, Evaluator, MValue},
-    gc::{GCBox, GCRootRef, GarbageCollector},
+    gc::{GCBox, GCRootRef, GarbageCollector, UnsafeRootGuard},
     parser::ast,
 };
 
@@ -58,7 +58,7 @@ impl LazyValue {
                         .write(LazyValueData::CurrentlyBeingEvaluated(ast.1))
                 };
 
-                let inner_root = unsafe { evaluator.gc.push_root(self.inner) };
+                let inner_root = unsafe { UnsafeRootGuard::new(&evaluator.gc, self.inner) };
 
                 let value = evaluator.evaluate(ast)?;
 

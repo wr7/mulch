@@ -15,7 +15,7 @@ single_token_parse_type! {
     pub struct StringLiteral(pub GCString);
 
     |parser| {
-        PartialSpanned(Token::StringLiteral(lit), _) => Self(GCString::new(parser.gc, lit))
+        PartialSpanned(Token::StringLiteral(lit), _) => Self(GCString::new_raw(parser.gc, lit))
     }
 }
 

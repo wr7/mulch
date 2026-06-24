@@ -3,6 +3,7 @@ mod gcspace;
 mod primitives;
 mod roots;
 
+pub mod safety;
 pub mod util;
 use std::marker::PhantomData;
 
@@ -12,6 +13,7 @@ use gmp_mpfr_sys::gmp;
 pub use primitives::math;
 pub use primitives::*;
 pub use roots::GCRootRef;
+pub use roots::UnsafeRootGuard;
 
 use crate::error::PartialSpanned;
 use crate::gc::roots::GCRootList;

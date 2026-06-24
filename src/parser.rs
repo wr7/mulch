@@ -77,7 +77,7 @@ single_token_parse_type! {
     pub struct Ident(pub GCString);
 
     |parser| {
-        PartialSpanned(Token::Identifier(ident), _) => Self(GCString::new(parser.gc, ident))
+        PartialSpanned(Token::Identifier(ident), _) => Self(GCString::new_raw(parser.gc, ident))
     }
 }
 
@@ -89,7 +89,7 @@ single_token_parse_type! {
     pub struct IdentOrString(pub GCString);
 
     |parser| {
-        PartialSpanned(Token::Identifier(ident), _) => Self(GCString::new(parser.gc, ident)),
-        PartialSpanned(Token::StringLiteral(lit), _) => Self(GCString::new(parser.gc, lit)),
+        PartialSpanned(Token::Identifier(ident), _) => Self(GCString::new_raw(parser.gc, ident)),
+        PartialSpanned(Token::StringLiteral(lit), _) => Self(GCString::new_raw(parser.gc, lit)),
     }
 }

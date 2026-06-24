@@ -26,8 +26,7 @@ impl GarbageCollector {
     /// survives the garbage-collection cycle**.
     ///
     /// # Safety
-    /// All `Value`s in `root` must point to valid, currently alive objects in `from-space` of the
-    /// current `GarbageCollector`.
+    /// - This function should not be called directly while the safe garbage-collection API is in use.
     pub unsafe fn collect<'r>(&self) {
         if self.from_space.len() < self.from_space.capacity() * 15 / 16 {
             return;

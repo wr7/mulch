@@ -6,7 +6,7 @@ use error::{SourceDB, dresult_unwrap};
 use crate::{
     error::{PartialSpanned, pdresult_unwrap},
     eval::Evaluator,
-    gc::{GCPtr, GarbageCollector, util::GCWrap},
+    gc::{GCPtr, GarbageCollector},
     parser::{Parse, Parser},
 };
 
@@ -21,10 +21,8 @@ pub mod parser;
 mod util;
 
 // TODO:
-// - Add logic to check for opportunities for use-after-free in debug mode:
-//   - Add a "generation index" to GC primitives
-//   - Add a "generation counter" to the garbage collector that increments each time a garbage-collection cycle can be performed.
-//   - This process would be extremely slow, so we need to figure out a way to make this more performant.
+// - Make the safe GC API more powerful (add projection).
+// - Remove UnsafeRootGuard
 // - Add more parser tests for:
 //     - Set and list lambda arguments
 //     - Default lambda arguments and argument bindings

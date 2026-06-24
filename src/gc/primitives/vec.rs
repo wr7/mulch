@@ -1,9 +1,10 @@
-use std::{marker::PhantomData, num::NonZeroUsize};
+use std::{marker::PhantomData, num::NonZeroUsize, ptr};
 
 use crate::gc::{
     GCPtr, GCSpace, GarbageCollector,
     primitives::buffer::GCBuffer,
     roots::GCRootEntry,
+    safety::{GC, GCCtx},
     util::{GCDebug, GCEq, GCGet},
 };
 
@@ -41,34 +42,32 @@ impl<T: GCPtr> GCVec<T> {
         unsafe { Self::new_uninit_in_space(&gc.from_space, len) }
     }
 
-    /// # Safety
-    /// - All `elements` must be valid and alive
-    /// - The iterator must be exactly `len`
-    #[allow(unused)]
-    pub(crate) unsafe fn from_iter_and_len<I>(
-        gc: &GarbageCollector,
+    pub(crate) fn from_iter_and_len<'a, 'b, I>(
+        ctx: &'a GCCtx<'_>,
         elements: I,
         len: usize,
-    ) -> Self
+    ) -> GC<'a, Self>
     where
-        I: Iterator<Item = T>,
+        I: Iterator<Item = GC<'b, T>>,
     {
-        let vec = unsafe { Self::new_uninit_in_space(&gc.from_space, len) };
-        let mut ptr = vec.element_ptr(&gc, 0);
+        let vec = unsafe { Self::new_uninit_in_space(&ctx.from_space, len) };
+        let mut ptr = vec.element_ptr(&ctx, 0);
 
-        #[cfg(debug_assertions)]
         let mut count = 0;
 
         for element in elements {
-            unsafe { ptr.write(element) };
+            assert!(count < len);
+            assert_eq!(ptr::from_ref(element.gc()), ptr::from_ref(**ctx));
+
+            unsafe { ptr.write(element.raw()) };
+
             ptr = ptr.wrapping_add(1);
             count += 1;
         }
 
-        #[cfg(debug_assertions)]
         assert_eq!(count, len);
 
-        vec
+        unsafe { GC::new(ctx, vec) }
     }
 
     pub fn from_ptr(ptr: NonZeroUsize) -> Self {

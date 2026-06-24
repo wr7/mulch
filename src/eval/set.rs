@@ -3,7 +3,7 @@ use mulch_macros::{GCDebug, GCPtr};
 use crate::{
     error::{DResult, FullSpan, Spanned},
     eval::{self, Evaluator, MValue, lazyvalue::LazyValue},
-    gc::{GCString, GCVec},
+    gc::{GCString, GCVec, UnsafeRootGuard},
     parser::ast::{self, MemberAccess, NamedValue},
 };
 
@@ -80,7 +80,7 @@ impl<'gc> Evaluator<'gc> {
     pub(super) fn evaluate_member_access(&self, ast: Spanned<MemberAccess>) -> DResult<MValue> {
         unsafe {
             let ast_span = ast.1;
-            let ast = self.gc.push_root(ast.0);
+            let ast = UnsafeRootGuard::new(self.gc, ast.0);
 
             let lhs = ast.get().lhs.get(self.gc).with_file_id(ast_span.file_id);
             let lhs = self.evaluate(lhs)?;

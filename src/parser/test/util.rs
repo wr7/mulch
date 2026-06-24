@@ -61,7 +61,7 @@ macro_rules! _ast_impl {
     } => {
         $crate::parser::ast::Expression::Variable(
             $crate::parser::Ident(
-                $crate::gc::GCString::new($gc, $lit)
+                $crate::gc::GCString::new_raw($gc, $lit)
             )
         )
     };
@@ -97,7 +97,7 @@ macro_rules! _ast_impl {
     } => {
         $crate::parser::ast::Expression::StringLiteral(
             $crate::parser::ast::StringLiteral(
-                $crate::gc::GCString::new($gc, $str)
+                $crate::gc::GCString::new_raw($gc, $str)
             )
         )
     };
@@ -269,7 +269,7 @@ macro_rules! _ast_impl {
     } => {
         $crate::parser::ast::lambda::Argument::Single(
             $crate::parser::ast::lambda::SingleArgument {
-                name: $crate::parser::IdentOrString($crate::gc::GCString::new($gc, $name)),
+                name: $crate::parser::IdentOrString($crate::gc::GCString::new_raw($gc, $name)),
                 default_value: None
             }
         )
@@ -283,7 +283,7 @@ macro_rules! _ast_impl {
     } => {
         $crate::parser::ast::lambda::Argument::Single(
             $crate::parser::ast::lambda::SingleArgument {
-                name: $crate::parser::IdentOrString($crate::gc::GCString::new($gc, $name)),
+                name: $crate::parser::IdentOrString($crate::gc::GCString::new_raw($gc, $name)),
                 default_value: Some($crate::parser::test::util::_ast_impl!($gc, ArgDefaultValue $default_args))
             }
         )
@@ -300,7 +300,7 @@ macro_rules! _ast_impl {
     } => {
         $crate::parser::ast::NamedValue {
             name: $crate::error::PartialSpanned(
-                $crate::parser::IdentOrString($crate::gc::GCString::new($gc, $name)),
+                $crate::parser::IdentOrString($crate::gc::GCString::new_raw($gc, $name)),
                 ::copyspan::Span::from($name_span)
             ),
             eq_: $crate::parser::punct!("=")(),

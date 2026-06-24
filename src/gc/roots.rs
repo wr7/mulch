@@ -9,12 +9,16 @@ pub use rootlist::GCRootList;
 /// in the opposite order in which they were created. Otherwise, undefined behavior may occur.
 ///
 /// This is created with [`GarbageCollector::push_root`].
-pub struct GCRootGuard<'gc, T: GCPtr> {
+pub struct UnsafeRootGuard<'gc, T: GCPtr> {
     gc: &'gc GarbageCollector,
     raw_ref: ManuallyDrop<GCRootRef<T>>,
 }
 
-impl<'gc, T: GCPtr> GCRootGuard<'gc, T> {
+impl<'gc, T: GCPtr> UnsafeRootGuard<'gc, T> {
+    pub unsafe fn new(gc: &'gc GarbageCollector, value: T) -> Self {
+        Self::from_raw(gc, unsafe { gc.push_root(value) })
+    }
+
     pub fn from_raw(gc: &'gc GarbageCollector, raw: GCRootRef<T>) -> Self {
         Self {
             gc,
@@ -40,7 +44,7 @@ impl<'gc, T: GCPtr> GCRootGuard<'gc, T> {
     }
 }
 
-impl<'gc, T: GCPtr> Drop for GCRootGuard<'gc, T> {
+impl<'gc, T: GCPtr> Drop for UnsafeRootGuard<'gc, T> {
     fn drop(&mut self) {
         unsafe {
             ManuallyDrop::<GCRootRef<T>>::take(&mut self.raw_ref).pop(self.gc);
@@ -188,19 +192,16 @@ impl GarbageCollector {
     /// All garbage-collector roots must be removed in the opposite order in which they were
     /// created.
     #[must_use = "The GC root should be used and released at some point"]
-    pub unsafe fn push_root<'gc, T: GCPtr>(&'gc self, root: T) -> GCRootGuard<'gc, T> {
+    pub unsafe fn push_root<T: GCPtr>(&self, root: T) -> GCRootRef<T> {
         let entry = unsafe { root.to_gc_root_entry(self) };
         let index = self.roots.len();
 
         self.roots.push(entry);
 
-        GCRootGuard::from_raw(
-            self,
-            GCRootRef {
-                index,
-                _phantomdata: PhantomData,
-            },
-        )
+        GCRootRef {
+            index,
+            _phantomdata: PhantomData,
+        }
     }
 
     /// Removes a GC root along with all roots after it.
