@@ -8,10 +8,9 @@ use gmp_mpfr_sys::gmp::{
 };
 
 use crate::gc::{
-    GCBuffer, GarbageCollector,
+    GCBuffer, GCEq, GarbageCollector,
     math::{self, maximum_limbs_from_num_digits, num_limbs_from_pow10_factorization},
     primitives::math::{Digit, POW_5_MULTIPLIER},
-    util::GCEq,
 };
 
 /// An unsigned bigint stored in GC space. Note: this doesn't implement `GCPtr`. It is meant to be

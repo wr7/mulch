@@ -1,9 +1,8 @@
 use std::{fmt::Debug, marker::PhantomData, num::NonZeroUsize, ptr::addr_of_mut};
 
 use crate::gc::{
-    GCPtr, GCSpace, GarbageCollector,
+    GCDebug, GCEq, GCGet, GCPtr, GCSpace, GarbageCollector,
     safety::{GC, GCCtx},
-    util::{GCDebug, GCEq, GCGet},
 };
 
 /// A garbage collected string.

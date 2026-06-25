@@ -1,10 +1,6 @@
 use std::{marker::PhantomData, mem, num::NonZeroUsize};
 
-use crate::gc::{
-    GCPtr, GCSpace, GarbageCollector,
-    roots::GCRootEntry,
-    util::{GCDebug, GCEq, GCGet},
-};
+use crate::gc::{GCDebug, GCEq, GCGet, GCPtr, GCSpace, GarbageCollector, roots::GCRootEntry};
 
 /// Analogous to `std::boxed::Box`. This can be useful for recursively-defined datastructures.
 /// # Memory layout in GCSpace

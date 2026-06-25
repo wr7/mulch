@@ -22,7 +22,7 @@ pub fn derive_gc_eq(item: DeriveInput) -> syn::Result<TokenStream> {
 
     Ok(quote! {
         #[automatically_derived]
-        impl #impl_generics ::mulch::gc::util::GCEq<#type_name #ty_generics> for #type_name #ty_generics #where_clause {
+        impl #impl_generics ::mulch::gc::GCEq<#type_name #ty_generics> for #type_name #ty_generics #where_clause {
             unsafe fn gc_eq(&self, gc: &::mulch::gc::GarbageCollector, rhs: &Self) -> bool {
                 #body
             }
@@ -38,7 +38,7 @@ fn gc_eq_struct_body(data: &DataStruct) -> syn::Result<TokenStream> {
             .map_or(FieldName::Index(i), |id| FieldName::Name(id));
 
         quote! {
-            if unsafe {::mulch::gc::util::GCEq::gc_ne(&self.#field_name, gc, &rhs.#field_name)} {
+            if unsafe {::mulch::gc::GCEq::gc_ne(&self.#field_name, gc, &rhs.#field_name)} {
                 return false;
             }
         }
@@ -104,7 +104,7 @@ fn gc_eq_enum_body(data: &DataEnum) -> syn::Result<TokenStream> {
             );
 
             quote! {
-                if unsafe {::mulch::gc::util::GCEq::gc_ne(#lhs_name, gc, #rhs_name)} {
+                if unsafe {::mulch::gc::GCEq::gc_ne(#lhs_name, gc, #rhs_name)} {
                     return false;
                 }
             }

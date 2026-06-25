@@ -4,7 +4,7 @@ use copyspan::Span;
 
 use crate::{
     error::parse::{PDResult, ParseDiagnostic},
-    gc::{GCPtr, GarbageCollector, util::GCDebug},
+    gc::{GCDebug, GCPtr, GarbageCollector},
     parser::{FindRight, ParseRight, Parser, TokenStream},
 };
 

@@ -3,7 +3,7 @@ use std::{
     ops::Deref,
 };
 
-use crate::gc::GarbageCollector;
+use crate::gc::{GCDebug, GCEq, GCGet, GarbageCollector, NonGC};
 
 #[derive(Clone, Copy)]
 pub struct GCWrap<'a, T> {
@@ -48,42 +48,6 @@ impl<'a, T> GCWrap<'a, T> {
         self.gc
     }
 }
-
-pub trait GCDebug: Clone {
-    /// `Debug::fmt` method for garbage-collected objects.
-    ///
-    /// # Safety
-    /// `self` must be a valid, non-frozen object in `gc`
-    unsafe fn gc_debug(&self, gc: &GarbageCollector, f: &mut Formatter) -> std::fmt::Result;
-}
-
-pub trait GCEq<Rhs: ?Sized = Self> {
-    /// Compares a garbage-collected value with a non-garbage collected value or a wrapped value.
-    ///
-    /// # Safety
-    /// - `inner` must be valid and alive in `gc`
-    unsafe fn gc_eq(&self, gc: &GarbageCollector, rhs: &Rhs) -> bool;
-
-    /// Compares a garbage-collected value with a non-garbage collected value or a wrapped value.
-    ///
-    /// # Safety
-    /// - `inner` must be valid and alive in `gc`
-    unsafe fn gc_ne(&self, gc: &GarbageCollector, rhs: &Rhs) -> bool {
-        !unsafe { self.gc_eq(gc, rhs) }
-    }
-}
-
-pub trait GCGet {
-    type Borrowed: ?Sized;
-    /// Gets the data pointed to by `self`
-    ///
-    /// # Safety
-    /// - `self` must be valid and alive in `gc`
-    unsafe fn get<'a>(&'a self, gc: &'a GarbageCollector) -> &'a Self::Borrowed;
-}
-
-/// An object that does not contain a garbage-collected object.
-pub unsafe trait NonGC {}
 
 impl<'gc, T> Debug for GCWrap<'gc, T>
 where

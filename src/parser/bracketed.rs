@@ -6,10 +6,7 @@ use mulch_macros::{GCDebug, GCPtr};
 
 use crate::{
     error::PartialSpanned,
-    gc::{
-        GCPtr,
-        util::{GCDebug, GCEq},
-    },
+    gc::{GCDebug, GCEq, GCPtr},
     lexer::{BracketType, Token},
     parser::{
         self, FindLeft, Parse, ParseLeft,

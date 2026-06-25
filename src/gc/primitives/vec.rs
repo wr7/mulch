@@ -1,11 +1,10 @@
 use std::{marker::PhantomData, num::NonZeroUsize, ptr};
 
 use crate::gc::{
-    GCPtr, GCSpace, GarbageCollector,
+    GCDebug, GCEq, GCGet, GCPtr, GCSpace, GarbageCollector,
     primitives::buffer::GCBuffer,
     roots::GCRootEntry,
     safety::{GC, GCCtx},
-    util::{GCDebug, GCEq, GCGet},
 };
 
 /// A garbage collected dynamically-sized array.

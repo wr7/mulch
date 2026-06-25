@@ -4,10 +4,7 @@ use mulch_macros::GCPtr;
 
 use crate::{
     error::{parse::PDResult, span_of},
-    gc::{
-        GCPtr, GCVec,
-        util::{GCDebug, GCEq},
-    },
+    gc::{GCDebug, GCEq, GCPtr, GCVec},
     parser::{FindLeft, Parse, ParseLeft, Parser, TokenStream},
 };
 

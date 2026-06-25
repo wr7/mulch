@@ -20,9 +20,9 @@ pub fn derive_gc_debug(input: DeriveInput) -> syn::Result<TokenStream> {
     let mut generics = input.generics.clone();
     for param in generics.params.iter_mut() {
         match param {
-            syn::GenericParam::Type(type_param) => type_param
-                .bounds
-                .push(parse_quote!(::mulch::gc::util::GCDebug)),
+            syn::GenericParam::Type(type_param) => {
+                type_param.bounds.push(parse_quote!(::mulch::gc::GCDebug))
+            }
             _ => {}
         }
     }
@@ -32,7 +32,7 @@ pub fn derive_gc_debug(input: DeriveInput) -> syn::Result<TokenStream> {
 
     Ok(quote! {
         #[automatically_derived]
-        impl #impl_generics ::mulch::gc::util::GCDebug for #type_name #ty_generics #where_clause {
+        impl #impl_generics ::mulch::gc::GCDebug for #type_name #ty_generics #where_clause {
             unsafe fn gc_debug(&self, gc: &::mulch::gc::GarbageCollector, f: &mut ::core::fmt::Formatter) -> ::std::fmt::Result {#fn_body}
         }
     })
@@ -61,7 +61,7 @@ fn gcdebug_fn_body_enum(data_enum: &syn::DataEnum) -> TokenStream {
                 && let Some(_field) = fields.unnamed.first()
                 && fields.unnamed.len() == 1
             {
-                quote! { (v0) => ::mulch::gc::util::GCDebug::gc_debug(v0, gc, f) }
+                quote! { (v0) => ::mulch::gc::GCDebug::gc_debug(v0, gc, f) }
             } else {
                 return quote_spanned! { debug_direct.span() => compile_error!("#[debug_direct] is only supported on single-value tuple variants")}
             }
@@ -148,7 +148,7 @@ fn gcdebug_fn_body_struct(
 
             return Ok(quote! {
                 #with_name
-                ::mulch::gc::util::GCDebug::gc_debug(&#field_access, gc, f)
+                ::mulch::gc::GCDebug::gc_debug(&#field_access, gc, f)
             });
         } else {
             return Err(syn::Error::new(

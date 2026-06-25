@@ -7,10 +7,8 @@ use std::{
 use crate::{
     error::{PartialSpanned, parse::PDResult},
     gc::{
-        GCPtr, GarbageCollector,
-        math::rational::GCRational,
+        GCDebug, GCEq, GCPtr, GCWrap, GarbageCollector, math::rational::GCRational,
         roots::GCRootEntry,
-        util::{GCDebug, GCEq, GCWrap},
     },
 };
 

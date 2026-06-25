@@ -5,13 +5,12 @@ use gmp_mpfr_sys::gmp::{limb_t, mpn_gcd, mpn_tdiv_qr, size_t};
 use crate::{
     error::{PartialSpanned, parse::PDResult},
     gc::{
-        GCBuffer, GCPtr, GarbageCollector,
+        GCBuffer, GCDebug, GCEq, GCPtr, GCWrap, GarbageCollector,
         math::{literal_type, num_integer_digits, strip_integer_zeroes},
         primitives::math::{
             Digit, PowerOfTenFactorization, decimal_literal_info, strip_decimal_zeroes,
             uint::GCUInt,
         },
-        util::{GCDebug, GCEq, GCWrap},
     },
     parser,
 };

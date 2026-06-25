@@ -1,13 +1,14 @@
+use std::marker::PhantomData;
+
 mod collection;
 mod gcspace;
 mod primitives;
 mod roots;
+mod traits;
 
 pub mod safety;
 pub mod util;
-use std::marker::PhantomData;
 
-pub use gcspace::GCPtr;
 pub use gcspace::GCSpace;
 use gmp_mpfr_sys::gmp;
 pub use primitives::math;
@@ -15,13 +16,11 @@ pub use primitives::*;
 pub use roots::GCRootEntry;
 pub use roots::GCRootRef;
 pub use roots::UnsafeRootGuard;
+pub use traits::*;
 
 use crate::error::PartialSpanned;
 use crate::gc::roots::GCRootList;
-use crate::gc::util::GCDebug;
-use crate::gc::util::GCEq;
 use crate::gc::util::GCWrap;
-use crate::gc::util::NonGC;
 
 #[cfg(test)]
 mod test;
@@ -81,9 +80,9 @@ macro_rules! gc_trivial_impl {
                 }
             }
 
-            unsafe impl ::mulch::gc::util::NonGC for $ty {}
+            unsafe impl ::mulch::gc::NonGC for $ty {}
 
-            impl ::mulch::gc::util::GCDebug for $ty {
+            impl ::mulch::gc::GCDebug for $ty {
                 unsafe fn gc_debug(
                     &self,
                     _gc: &::mulch::gc::GarbageCollector,
@@ -93,7 +92,7 @@ macro_rules! gc_trivial_impl {
                 }
             }
 
-            impl ::mulch::gc::util::GCEq<$ty> for $ty {
+            impl ::mulch::gc::GCEq<$ty> for $ty {
                 unsafe fn gc_eq(&self, _gc: &::mulch::gc::GarbageCollector, rhs: &$ty) -> bool {
                     self == rhs
                 }

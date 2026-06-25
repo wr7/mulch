@@ -9,10 +9,7 @@ use std::{
     pin::Pin,
 };
 
-use crate::gc::{
-    GCPtr, GCRootRef, GarbageCollector,
-    util::{GCDebug, GCGet},
-};
+use crate::gc::{GCDebug, GCGet, GCPtr, GCRootRef, GarbageCollector};
 
 /// Creates a garbage-collector object and a context object.
 ///

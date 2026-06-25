@@ -1,9 +1,6 @@
 use std::{marker::PhantomData, num::NonZeroUsize};
 
-use crate::gc::{
-    GCSpace, GarbageCollector,
-    util::{GCDebug, GCWrap},
-};
+use crate::gc::{GCDebug, GCSpace, GarbageCollector, util::GCWrap};
 
 /// A temporary buffer in a `GCSpace`. This may be used for temporary allocations or as a part of
 /// another datastructure allocated in the `GCSpace`.
