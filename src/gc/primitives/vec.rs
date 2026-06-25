@@ -11,7 +11,7 @@ use crate::gc::{
 ///
 /// # Forward pointer
 /// A forward pointer is stored if `ptr` points to a `usize` with its most-significant-bit set. The
-/// remaining bits of the usize indicate the new pointer in from-space.
+/// remaining bits of the `usize` indicate the new pointer in to-space.
 ///
 /// # Memory layout
 /// `ptr` points to a `usize` which contains the length of the string. An array of `T` elements
