@@ -21,7 +21,9 @@ pub mod parser;
 mod util;
 
 // TODO:
-// - Make the safe GC API more powerful (add projection).
+// - Make the safe GC API more powerful
+//   - Add projection
+//   - Add stuff for passing unmanaged references to functions
 // - Remove UnsafeRootGuard
 // - Add more parser tests for:
 //     - Set and list lambda arguments
@@ -33,8 +35,6 @@ mod util;
 //     - Div_exact (for `reduce` function)
 //     - `div_by_constant` for radix conversion
 //     - This will allow use to remove `#[cfg(any(not(miri), rust_analyzer))]` from several tests
-// - Add more optimized `gc_root_entry` methods to `#[derive(GCPtr)]` for single-field structs.
-// - Add proper documentation for the derive macros.
 // - Add `expected [TypeA]; got [TypeBA]` error messages.
 // - Add logic for printing recursively-defined values.
 

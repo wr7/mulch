@@ -55,9 +55,8 @@ pub unsafe trait GCPtr: Sized + Clone {
 
     /// Creates a [`GCRootEntry`] object. This method is only overwritten for certain gc primitives.
     ///
-    /// This method should not be called directly. [`GarbageCollector::push_root`] should be used
-    /// instead.
-    #[allow(private_interfaces)]
+    /// This method should not be called directly. [`root`](crate::gc::safety::root) or
+    /// [`GCRootGuard::new`](crate::gc::safety::GCRootGuard::new) should be used instead.
     unsafe fn to_gc_root_entry(self, gc: &GarbageCollector) -> GCRootEntry {
         unsafe fn copy_fn<Self_: GCPtr>(data: NonZeroUsize, gc: &GarbageCollector) -> NonZeroUsize {
             let old_box = GCBox::<Self_>::from_ptr(data);
@@ -78,8 +77,8 @@ pub unsafe trait GCPtr: Sized + Clone {
 
     /// Retrieves an instance of `Self` from a [`GCRootEntry`]. This method is only overwritten for certain gc primitives.
     ///
-    /// This method should not be called directly. [`GCRootRef::get`](crate::gc::GCRootRef::get) should be used instead.
-    #[allow(private_interfaces)]
+    /// This method should not be called directly.
+    /// [`GCRootGuard::get`](crate::gc::safety::GCRootGuard::get) should be used instead.
     unsafe fn from_gc_root_entry(gc: &GarbageCollector, entry: GCRootEntry) -> Self {
         #[cfg(debug_assertions)]
         assert_eq!(entry.type_name, std::any::type_name::<Self>());

@@ -5,6 +5,8 @@ use syn::{
     punctuated::Punctuated, spanned::Spanned,
 };
 
+use crate::util::FieldName;
+
 pub fn derive_gc_ptr(item: DeriveInput) -> TokenStream {
     let body = match &item.data {
         syn::Data::Struct(data_struct) => gcptr_fn_body_struct(data_struct),
@@ -32,6 +34,8 @@ pub fn derive_gc_ptr(item: DeriveInput) -> TokenStream {
         Err(value) => return value,
     };
 
+    let gc_entry_functions = gc_entry_functions(&item);
+
     quote! {
         #[automatically_derived]
         unsafe impl #impl_generics ::mulch::gc::GCPtr for #type_name #ty_generics #where_clause {
@@ -40,6 +44,8 @@ pub fn derive_gc_ptr(item: DeriveInput) -> TokenStream {
             unsafe fn gc_copy(self, gc: &::mulch::gc::GarbageCollector) -> Self {
                 #body
             }
+
+            #gc_entry_functions
         }
     }
 }
@@ -168,6 +174,50 @@ fn calculate_msb_reserved(item: &DeriveInput) -> Result<TokenStream, TokenStream
         }
     };
     Ok(msb_reserved)
+}
+
+pub fn gc_entry_functions(item: &DeriveInput) -> Option<TokenStream> {
+    let syn::Data::Struct(struct_data) = &item.data else {
+        return None;
+    };
+
+    let fields = get_struct_fields(&struct_data.fields)?;
+    if fields.len() > 1 {
+        return None;
+    }
+
+    let field = fields.first()?;
+    let field_name = field
+        .ident
+        .as_ref()
+        .map_or(FieldName::Index(0), |ident| FieldName::Name(ident));
+
+    let field_type = &field.ty;
+
+    let inner_value = quote! {<#field_type as ::mulch::gc::GCPtr>::from_gc_root_entry(gc, entry)};
+
+    let wrapped_value = match field_name {
+        FieldName::Name(ident) => quote! {
+            Self {#ident: #inner_value}
+        },
+        FieldName::Index(_) => quote! {
+            Self(#inner_value)
+        },
+    };
+
+    Some(quote! {
+        unsafe fn to_gc_root_entry(self, gc: &::mulch::gc::GarbageCollector) -> ::mulch::gc::GCRootEntry {
+            unsafe {
+                <#field_type as ::mulch::gc::GCPtr>::to_gc_root_entry(self.#field_name, gc)
+            }
+        }
+
+        unsafe fn from_gc_root_entry(gc: &::mulch::gc::GarbageCollector, entry: ::mulch::gc::GCRootEntry) -> Self {
+            unsafe {
+                #wrapped_value
+            }
+        }
+    })
 }
 
 fn get_struct_fields(fields: &Fields) -> Option<&Punctuated<Field, Token![,]>> {

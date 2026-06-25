@@ -109,17 +109,17 @@ mod rootlist {
 }
 
 #[derive(Clone, Copy)]
-pub(super) struct GCRootEntry {
+pub struct GCRootEntry {
     /// The function that the garbage collector calls to copy this entry. Its first argument is `data_ptr`.
-    pub copy_fn: unsafe fn(NonZeroUsize, &GarbageCollector) -> NonZeroUsize,
+    pub(super) copy_fn: unsafe fn(NonZeroUsize, &GarbageCollector) -> NonZeroUsize,
 
     /// For most types, this is a `GCBox<Self>`. This data is determined by a type's `GCPtr`
     /// implementation.
-    pub data_ptr: NonZeroUsize,
+    pub(super) data_ptr: NonZeroUsize,
 
     /// The name of the type stored. This is only used for debug assertions.
     #[cfg(debug_assertions)]
-    pub type_name: &'static str,
+    pub(super) type_name: &'static str,
 }
 
 /// A raw reference to a GC root. The difference between this and a `GCRootGuard` is that a
