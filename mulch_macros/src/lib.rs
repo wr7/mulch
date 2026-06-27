@@ -6,6 +6,7 @@ use crate::parser::parse::ParseTrait;
 mod from_to_u8;
 mod gc_debug;
 mod gc_eq;
+mod gc_project;
 mod gc_ptr;
 mod parser;
 
@@ -56,6 +57,20 @@ pub fn derive_gc_ptr(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
 #[proc_macro_derive(GCEq)]
 pub fn derive_gc_eq(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     gc_eq::derive_gc_eq(parse_macro_input!(item as DeriveInput))
+        .unwrap_or_else(|err| err.into_compile_error())
+        .into()
+}
+
+/// Derives the `GCProject` trait.
+///
+/// # Attributes
+/// - `zst`
+///   - Can be used on struct fields
+///   - Indicates that a field is zero-sized. Zero-sized fields won't be included in projections and
+///     should implement `Default`.
+#[proc_macro_derive(GCProject, attributes(zst))]
+pub fn derive_gc_project(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    gc_project::derive_gc_project(parse_macro_input!(item as DeriveInput))
         .unwrap_or_else(|err| err.into_compile_error())
         .into()
 }

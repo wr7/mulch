@@ -9,7 +9,7 @@ use std::{
     pin::Pin,
 };
 
-use crate::gc::{GCDebug, GCGet, GCPtr, GCRootRef, GarbageCollector};
+use crate::gc::{GCDebug, GCGet, GCProject, GCPtr, GCRootRef, GarbageCollector};
 
 /// Creates a garbage-collector object and a context object.
 ///
@@ -103,6 +103,13 @@ impl<'a, T: GCPtr> GC<'a, T> {
 
     pub fn gc(&self) -> &'a GarbageCollector {
         self.gc
+    }
+}
+
+impl<'a, T: GCProject<'a>> GC<'a, T> {
+    /// Allows you to access fields of a struct or to match an enum.
+    pub fn project(self) -> T::Projected {
+        T::project(self)
     }
 }
 

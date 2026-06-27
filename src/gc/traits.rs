@@ -1,6 +1,6 @@
 use std::{fmt::Formatter, num::NonZeroUsize};
 
-use crate::gc::{GCBox, GCRootEntry, GarbageCollector, util::GCWrap};
+use crate::gc::{GCBox, GCRootEntry, GarbageCollector, safety::GC, util::GCWrap};
 
 /// Represents a pointer to a garbage-collectable object.
 ///
@@ -69,6 +69,36 @@ pub unsafe trait GCPtr: Sized + Clone {
         let box_ = GCBox::<Self>::from_ptr(entry.data_ptr);
         unsafe { box_.get(gc) }
     }
+}
+
+/// "projects" a garbage collected value.
+///
+/// This is used for the safe garbage-collection API. `GC<'a, Self>` ensures that an underlying
+/// value is valid for its entire lifetime. The issue with this is when you want to access fields of
+/// a struct or want to destructure an enum.
+///
+/// If we have the following struct that implements `GCProject`:
+/// ```
+/// #[derive(Clone, Copy, GCPtr, GCProject)]
+/// struct GCFoo {
+///     a: GCVec<u32>,
+///     b: ast::Expression
+/// }
+/// ```
+/// We could use projection to safely implement the following functions like so:
+/// ```
+/// fn extract_b<'a>(val: GC<'a, Foo>) -> GC<'a, ast::Expression> {
+///     val.project().b
+/// }
+///
+/// fn length_of_a(val: GC<Foo>) -> usize {
+///     val.project().a.read().len()
+/// }
+/// ```
+pub trait GCProject<'a>: GCPtr {
+    type Projected: Into<GC<'a, Self>>;
+
+    fn project(value: GC<'a, Self>) -> Self::Projected;
 }
 
 pub trait GCDebug: Clone {
