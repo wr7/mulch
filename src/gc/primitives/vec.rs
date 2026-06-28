@@ -16,11 +16,43 @@ use crate::gc::{
 /// # Memory layout
 /// `ptr` points to a `usize` which contains the length of the string. An array of `T` elements
 /// starts in the following block.
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 #[repr(transparent)]
 pub struct GCVec<T: GCPtr> {
     ptr: NonZeroUsize,
     _phantomdata: PhantomData<*mut T>,
+}
+
+pub struct SafeGCVecIter<'a, T: GCPtr> {
+    gc: &'a GarbageCollector,
+    data: &'a [T],
+}
+
+impl<'a, T: GCPtr> GC<'a, GCVec<T>> {
+    pub fn len(&self) -> usize {
+        self.read().len()
+    }
+
+    pub fn iter(&self) -> SafeGCVecIter<'a, T> {
+        unsafe {
+            SafeGCVecIter {
+                gc: self.gc(),
+                data: self.clone().raw().as_buffer(self.gc()).as_slice(self.gc()),
+            }
+        }
+    }
+}
+
+impl<'a, T: GCPtr> Iterator for SafeGCVecIter<'a, T> {
+    type Item = GC<'a, T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let (item, remaining) = self.data.split_first()?;
+
+        self.data = remaining;
+
+        Some(unsafe { GC::from_raw_parts(self.gc, item.clone()) })
+    }
 }
 
 impl<T: GCPtr> GCVec<T> {

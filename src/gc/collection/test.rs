@@ -1,10 +1,10 @@
 use std::mem;
 
 use crate::{
-    eval,
+    eval::MValue,
     gc::{
         GCString, GCVec,
-        safety::{GC, GCCtx, GCRootGuard, let_gc_and_context, rebind, root},
+        safety::{GC, GCCtx, GCRootGuard, Projected, let_gc_and_context, rebind, root},
     },
 };
 
@@ -13,27 +13,27 @@ fn string_list_test() {
     let_gc_and_context!(gc, ctx);
 
     let expected = ["alpha", "beta", "c", "abcdefghijklmnopqrstuvwxyz"];
-    let list = create_string_list(&mut ctx, &expected);
+    let list = rebind!(ctx, create_string_list(ctx, &expected));
 
-    let eval::MValue::List(list) = list else {
+    let Projected::<MValue>::List(list) = list.project() else {
         panic!()
     };
 
-    let list = unsafe { list.as_slice(&gc) };
+    let list: GC<GCVec<MValue>> = list;
 
     assert_eq!(list.len(), expected.len());
 
     for (i, s) in list.iter().enumerate() {
-        let eval::MValue::String(gcstr) = s else {
+        let Projected::<MValue>::String(gcstr) = s.project() else {
             panic!()
         };
 
-        assert_eq!(unsafe { gcstr.get(&gc) }, expected[i]);
+        assert_eq!(gcstr.read(), expected[i]);
     }
 }
 
-fn create_string_list(ctx: &mut GCCtx, strings: &[&'static str]) -> eval::MValue {
-    let string_roots: Vec<GCRootGuard<eval::MValue>> = strings
+fn create_string_list<'c>(ctx: &'c mut GCCtx, strings: &[&'static str]) -> GC<'c, MValue> {
+    let string_roots: Vec<GCRootGuard<MValue>> = strings
         .iter()
         .map(|s| {
             let string = rebind!(ctx, create_string_val(ctx, s));
@@ -63,15 +63,13 @@ fn create_string_list(ctx: &mut GCCtx, strings: &[&'static str]) -> eval::MValue
     // Test that the `GCVec` was moved. This indicates that the unused string was not copied during the GC cycle.
     assert_ne!(old_ptr, vec_root.get(ctx).raw().ptr());
 
-    eval::MValue::List(vec_root.get(ctx).raw())
+    Projected::<MValue>::List(vec_root.get(ctx)).into()
 }
 
-fn create_string_val<'gc, 'c>(ctx: &'c mut GCCtx<'gc>, val: &str) -> GC<'c, eval::MValue> {
+fn create_string_val<'gc, 'c>(ctx: &'c mut GCCtx<'gc>, val: &str) -> GC<'c, MValue> {
     let string = root!(ctx, GCString::new(ctx, val));
 
     ctx.force_collect();
 
-    let val = eval::MValue::String(string.get(ctx).raw());
-
-    unsafe { GC::new(ctx, val) }
+    Projected::<MValue>::String(string.get(ctx)).into()
 }

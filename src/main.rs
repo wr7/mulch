@@ -24,9 +24,7 @@ mod util;
 // - Add `zst` field attribute for the following:
 //   - GCDebug (alias of debug_hidden)
 //   - GCPtr (this can be used for single field gc_entry optimizations)
-// - Add `deproject` and `projected_ty` macros
 // - Make the safe GC API more powerful
-//   - Add projection
 //   - Add stuff for passing unmanaged references to functions
 // - Remove UnsafeRootGuard
 // - Add more parser tests for:

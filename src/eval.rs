@@ -1,4 +1,4 @@
-use mulch_macros::{GCDebug, GCPtr};
+use mulch_macros::{GCDebug, GCProject, GCPtr};
 
 mod error;
 mod lazyvalue;
@@ -45,7 +45,7 @@ impl<'gc> Evaluator<'gc> {
 }
 
 /// A `mulch` value
-#[derive(GCPtr, GCDebug, Clone)]
+#[derive(GCPtr, GCDebug, Clone, GCProject)]
 #[repr(usize)]
 pub enum MValue {
     #[debug_direct]

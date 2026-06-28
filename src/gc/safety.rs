@@ -21,6 +21,8 @@ macro_rules! let_gc_and_context {
 
         #[allow(unused_mut)]
         let mut $ctx_name = unsafe { $crate::gc::safety::GCCtx::new(&$gc_name) };
+
+        let $ctx_name = &mut $ctx_name;
     };
 }
 
@@ -154,7 +156,7 @@ impl<'gc, T: GCPtr> GCRootGuard<'gc, T> {
 }
 
 impl<'gc, T: GCPtr> GCRootGuard<'gc, T> {
-    pub fn get<'val>(&'val self, ctx: &'val GCCtx<'gc>) -> GC<'val, T> {
+    pub fn get<'val>(&'_ self, ctx: &'val GCCtx<'gc>) -> GC<'val, T> {
         assert_eq!(
             self.gc as *const GarbageCollector,
             ctx.gc as *const GarbageCollector
@@ -212,6 +214,10 @@ macro_rules! rebind {
         unsafe { ::mulch::gc::safety::GC::new(&$ctx, raw) }
     }};
 }
+
+/// The projected version of a type.
+#[allow(type_alias_bounds)]
+pub type Projected<'a, T: GCProject<'a>> = T::Projected;
 
 #[allow(unused)]
 pub(crate) use root;
