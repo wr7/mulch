@@ -94,7 +94,7 @@ pub struct MemberAccess {
     #[error_if_not_found]
     pub lhs: GCBox<PartialSpanned<Expression>>,
 
-    #[debug_hidden]
+    #[zst]
     pub dot_: punct!["."],
 
     pub rhs: IdentOrString,
@@ -125,14 +125,14 @@ pub struct MethodCall {
 #[derive(GCPtr, GCDebug, GCEq, Parse, Clone)]
 #[mulch_parse_error(<keyword!["let"]>::EXPECTED_ERROR_FUNCTION)]
 pub struct LetIn {
-    #[debug_hidden]
+    #[zst]
     pub let_: keyword!["let"],
 
     #[parse_until_next]
     #[error_if_not_found]
     pub variables: SeparatedList<NamedValue, punct![";"]>,
 
-    #[debug_hidden]
+    #[zst]
     pub in_: keyword!["in"],
 
     #[error_if_not_found]
@@ -142,14 +142,14 @@ pub struct LetIn {
 #[derive(GCPtr, GCDebug, GCEq, Parse, Clone)]
 #[mulch_parse_error(<keyword!["with"]>::EXPECTED_ERROR_FUNCTION)]
 pub struct WithIn {
-    #[debug_hidden]
+    #[zst]
     pub with_: keyword!["with"],
 
     #[parse_until_next]
     #[error_if_not_found]
     pub variables: GCBox<PartialSpanned<Expression>>,
 
-    #[debug_hidden]
+    #[zst]
     pub in_: keyword!["in"],
 
     #[error_if_not_found]
@@ -163,7 +163,7 @@ pub struct NamedValue {
     pub name: PartialSpanned<IdentOrString>,
 
     #[error_if_not_found]
-    #[debug_hidden]
+    #[zst]
     pub eq_: punct!["="],
 
     #[error_if_not_found]

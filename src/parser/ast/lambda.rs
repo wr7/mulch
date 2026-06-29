@@ -15,7 +15,7 @@ pub struct Lambda {
     #[parse_until_next]
     #[error_if_not_found]
     pub args: Arguments,
-    #[debug_hidden]
+    #[zst]
     pub arrow: punct!("->"),
     #[error_if_not_found]
     pub expr: GCBox<PartialSpanned<Expression>>,
@@ -82,7 +82,7 @@ pub struct ArgAttribute {
     #[error_if_not_found]
     attr: IdentOrString,
 
-    #[debug_hidden]
+    #[zst]
     colon_: punct!(":"),
 
     arg: Argument,
@@ -91,7 +91,7 @@ pub struct ArgAttribute {
 #[derive(Clone, GCPtr, GCDebug, GCEq, ParseLeft)]
 #[mulch_parse_error(|_| unimplemented!())]
 pub struct ArgBinding {
-    #[debug_hidden]
+    #[zst]
     at_: punct!("@"),
     name: IdentOrString,
 }
@@ -100,7 +100,7 @@ pub struct ArgBinding {
 #[mulch_parse_error(|_| unimplemented!())]
 #[debug_direct]
 pub struct ArgDefaultValue {
-    #[debug_hidden]
+    #[zst]
     eq_: punct!("="),
 
     #[error_if_not_found]

@@ -90,14 +90,10 @@ pub fn gc_fn(
 ///   - Can either be used with single field enum variants or single field structs.
 ///   - This will directly use the field's debug implementation without wrapping it in parenthesis
 ///     but will prepend the struct/variant name.
-/// - `debug_hidden`
+/// - `zst`
 ///   - Can be used on struct fields.
-///   - This will prevent a field from being outputted in the debug string. This may be useful for
-///     zero-sized fields.
-#[proc_macro_derive(
-    GCDebug,
-    attributes(debug_direct, debug_direct_with_name, debug_hidden)
-)]
+///   - This will prevent a field from being shown in the debug string.
+#[proc_macro_derive(GCDebug, attributes(debug_direct, debug_direct_with_name, zst))]
 pub fn derive_gc_debug(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     gc_debug::derive_gc_debug(parse_macro_input!(item as DeriveInput))
         .unwrap_or_else(|err| err.into_compile_error())

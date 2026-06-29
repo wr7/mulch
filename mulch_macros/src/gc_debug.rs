@@ -226,11 +226,7 @@ impl<'a> Iterator for DebugFieldIter<'a> {
         loop {
             let (i, field) = self.fields.next()?;
 
-            if field
-                .attrs
-                .iter()
-                .any(|attr| attr.path().is_ident("debug_hidden"))
-            {
+            if field.attrs.iter().any(|attr| attr.path().is_ident("zst")) {
                 continue;
             }
 

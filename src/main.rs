@@ -21,12 +21,8 @@ pub mod parser;
 mod util;
 
 // TODO:
-// - Add `zst` field attribute for the following:
-//   - GCDebug (alias of debug_hidden)
-//   - GCPtr (this can be used for single field gc_entry optimizations)
-// - Make the safe GC API more powerful
-//   - Add stuff for passing unmanaged references to functions
 // - Remove UnsafeRootGuard
+// - Use `zst` annotations for `GCPtr` optimizations
 // - Add more parser tests for:
 //     - Set and list lambda arguments
 //     - Default lambda arguments and argument bindings
