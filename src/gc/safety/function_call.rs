@@ -4,6 +4,8 @@ use crate::gc::safety::GCCtx;
 /// can trigger GC cycles but also take in unmanaged garbage-collected data.
 ///
 /// This can only be created using the [`gc_args!()`](super::gc_args) macro.
+///
+/// See [`#[gc_fn]`](mulch_macros::gc_fn) for more information.
 pub struct GCArgs<'gc, 'ctx, B> {
     context: &'ctx mut GCCtx<'gc>,
     inner_tuple: B,

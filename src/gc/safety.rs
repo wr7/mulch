@@ -220,6 +220,8 @@ macro_rules! rebind {
 
 /// Creates a bundle of garbage-collected arguments ([`GCArgs`]). These are used for calling
 /// functions that can trigger GC cycles but also take in unmanaged garbage-collected data.
+///
+/// See [`#[gc_fn]`](mulch_macros::gc_fn) for more information.
 #[allow(unused)]
 macro_rules! gc_args {
     ($context:ident, $($args:expr),+ $(,)?) => {

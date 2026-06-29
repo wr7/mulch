@@ -6,11 +6,77 @@ use crate::parser::parse::ParseTrait;
 mod from_to_u8;
 mod gc_debug;
 mod gc_eq;
+mod gc_fn;
 mod gc_project;
 mod gc_ptr;
 mod parser;
 
 mod util;
+
+/// Marks the function as a "GC function". When calling GC functions, the arguments should be passed
+/// through the `gc_args` macro.
+///
+/// The purpose of this attribute is that we sometimes want a function that can possibly trigger a
+/// GC cycle but also takes in some unmanaged GC data as input. Naively, we could represent such a
+/// function like so:
+/// ```
+/// fn foo<'c>(ctx: &'c mut GCCtx, value1: GC<'c, GCVec<usize>>, value2: GC<'c, MValue>) -> (usize, GC<'c, GCString>) {
+///     let str = match value2.project() {
+///         Projected::<MValue>::String(str) => str,
+///         _ => GCString::new(ctx, "default"),
+///     };
+///
+///     let str = root!(str);
+///     let length = value1.len();
+///
+///     ctx.collect();
+///
+///     (length, str.get(&ctx))
+/// }
+/// ```
+///
+/// The issue with this is that the function signature does not properly encode the fact that
+/// `value1` and `value2` are immutably borrowed from `ctx`. In fact, it's impossible to do so with
+/// a normal Rust function.
+///
+/// Because of this, the borrow checker will complain if we try to call `foo` from another function,
+/// and the body of `foo` will not be properly checked for soundness issues.
+///
+/// We could properly define `foo` by using this attribute like so:
+/// ```
+/// #[gc_fn]
+/// fn foo<'c>(ctx: &'c mut gc!(value1: GCVec<usize>, value2: MValue)) -> (usize, GC<'c, GCString>) {
+///     let str = match value2.project() {
+///         Projected::<MValue>::String(str) => str,
+///         _ => GCString::new("default"),
+///     };
+///
+///     let str = root!(str);
+///     let length = value1.len();
+///
+///     ctx.collect();
+///
+///     (length, str.get(&ctx))
+/// }
+/// ```
+///
+/// The generated function will encode this immutable borrow information and will allow the borrow
+/// checker to properly check it for soundness. The generated function can be called like so:
+/// ```
+/// let value1: GC<GCVec<usize>> = /* ... */;
+/// let value2: GC<MValue> = /* ... */;
+///
+/// foo(gc_args!(ctx, value1, value2))
+/// ```
+#[proc_macro_attribute]
+pub fn gc_fn(
+    attr: proc_macro::TokenStream,
+    item: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+    gc_fn::gc_fn_impl(attr.into(), item.into())
+        .unwrap_or_else(|err| err.into_compile_error())
+        .into()
+}
 
 /// Derives the `GCDebug` trait. This is the equivalent to the standard library `Debug` trait except
 /// for garbage-collected objects.
