@@ -11,6 +11,9 @@ use std::{
 
 use crate::gc::{GCDebug, GCGet, GCProject, GCPtr, GCRootRef, GarbageCollector};
 
+mod function_call;
+pub use function_call::*;
+
 /// Creates a garbage-collector object and a context object.
 ///
 /// This is the only safe way to create a context.
@@ -215,6 +218,36 @@ macro_rules! rebind {
     }};
 }
 
+/// Creates a bundle of garbage-collected arguments ([`GCArgs`]). These are used for calling
+/// functions that can trigger GC cycles but also take in unmanaged garbage-collected data.
+#[allow(unused)]
+macro_rules! gc_args {
+    ($context:ident, $($args:expr),+ $(,)?) => {
+        {
+            let ctx_immutable = &$context;
+
+            let tuple = (
+                $(
+                    {
+                        let val = $args;
+
+                        ::core::assert_eq!(
+                            ::core::ptr::from_ref::<$crate::gc::GarbageCollector>(&$context),
+                            ::core::ptr::from_ref($crate::gc::safety::GC::gc(&val))
+                        );
+
+                        $crate::gc::safety::GC::raw(val)
+                    },
+                )+
+            );
+
+            let _ = &ctx_immutable;
+
+            unsafe {$crate::gc::safety::GCArgs::new($context, tuple)}
+        }
+    };
+}
+
 /// The projected version of a type.
 #[allow(type_alias_bounds)]
 pub type Projected<'a, T: GCProject<'a>> = T::Projected;
@@ -224,6 +257,9 @@ pub(crate) use root;
 
 #[allow(unused)]
 pub(crate) use rebind;
+
+#[allow(unused)]
+pub(crate) use gc_args;
 
 impl<'gc, T: GCPtr> Debug for GC<'gc, T>
 where
