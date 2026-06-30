@@ -128,7 +128,7 @@ impl<T: Parse + GCPtr> Parse for GCBox<T> {
     const EXPECTED_ERROR_FUNCTION: fn(Span) -> ParseDiagnostic = T::EXPECTED_ERROR_FUNCTION;
 
     fn parse(parser: &Parser, tokens: &TokenStream) -> PDResult<Option<Self>> {
-        Ok(T::parse(parser, tokens)?.map(|val| unsafe { GCBox::new(parser.gc, val) }))
+        Ok(T::parse(parser, tokens)?.map(|val| unsafe { GCBox::new_raw(parser.gc, val) }))
     }
 }
 
@@ -155,7 +155,10 @@ impl<T: ParseLeft + GCPtr> ParseLeft for GCBox<T> {
         T::EXPECTED_ERROR_FUNCTION_LEFT;
 
     fn parse_from_left(parser: &Parser, tokens: &mut &TokenStream) -> PDResult<Option<Self>> {
-        Ok(T::parse_from_left(parser, tokens)?.map(|val| unsafe { GCBox::new(parser.gc, val) }))
+        Ok(
+            T::parse_from_left(parser, tokens)?
+                .map(|val| unsafe { GCBox::new_raw(parser.gc, val) }),
+        )
     }
 }
 
@@ -164,7 +167,8 @@ impl<T: ParseRight + GCPtr> ParseRight for GCBox<T> {
         T::EXPECTED_ERROR_FUNCTION_RIGHT;
 
     fn parse_from_right(parser: &Parser, tokens: &mut &TokenStream) -> PDResult<Option<Self>> {
-        Ok(T::parse_from_right(parser, tokens)?.map(|val| unsafe { GCBox::new(parser.gc, val) }))
+        Ok(T::parse_from_right(parser, tokens)?
+            .map(|val| unsafe { GCBox::new_raw(parser.gc, val) }))
     }
 }
 

@@ -48,7 +48,7 @@ pub unsafe trait GCPtr: Sized + Clone {
             new_box.ptr()
         }
 
-        let data = unsafe { GCBox::<Self>::new(gc, self) };
+        let data = unsafe { GCBox::<Self>::new_raw(gc, self) };
 
         GCRootEntry {
             copy_fn: copy_fn::<Self>,

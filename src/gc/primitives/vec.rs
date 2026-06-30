@@ -33,6 +33,10 @@ impl<'a, T: GCPtr> GC<'a, GCVec<T>> {
         self.read().len()
     }
 
+    pub fn get(&self, idx: usize) -> Option<GC<'a, T>> {
+        Some(unsafe { GC::from_raw_parts(self.gc(), self.read().get(idx)?.clone()) })
+    }
+
     pub fn iter(&self) -> SafeGCVecIter<'a, T> {
         unsafe {
             SafeGCVecIter {

@@ -157,7 +157,7 @@ macro_rules! _ast_impl {
                     $crate::parser::test::util::_ast_impl!($gc, NamedValue $variable)
                 ),*]).into(),
                 in_: $crate::parser::keyword!("in")(),
-                val: $crate::gc::GCBox::new($gc, $crate::parser::test::util::_ast_impl!($gc, $val_name $val_args))
+                val: $crate::gc::GCBox::new_raw($gc, $crate::parser::test::util::_ast_impl!($gc, $val_name $val_args))
             }
         )
     };
@@ -171,9 +171,9 @@ macro_rules! _ast_impl {
         $crate::parser::ast::Expression::WithIn(
             $crate::parser::ast::WithIn {
                 with_: $crate::parser::keyword!("with")(),
-                variables: $crate::gc::GCBox::new($gc, $crate::parser::test::util::_ast_impl!($gc, $variables $variables_args)),
+                variables: $crate::gc::GCBox::new_raw($gc, $crate::parser::test::util::_ast_impl!($gc, $variables $variables_args)),
                 in_: $crate::parser::keyword!("in")(),
-                val: $crate::gc::GCBox::new($gc, $crate::parser::test::util::_ast_impl!($gc, $val_name $val_args))
+                val: $crate::gc::GCBox::new_raw($gc, $crate::parser::test::util::_ast_impl!($gc, $val_name $val_args))
             }
         )
     };
@@ -199,7 +199,7 @@ macro_rules! _ast_impl {
                     )
                 ),
                 arrow: $crate::parser::punct!("->")(),
-                expr: $crate::gc::GCBox::new($gc, $crate::parser::test::util::_ast_impl!($gc, $expr_name $expr_args))
+                expr: $crate::gc::GCBox::new_raw($gc, $crate::parser::test::util::_ast_impl!($gc, $expr_name $expr_args))
             }
         )
     };
@@ -214,9 +214,9 @@ macro_rules! _ast_impl {
     } => {
         $crate::parser::ast::Expression::BinaryOperation(
             $crate::parser::ast::BinaryOperation {
-                lhs: $crate::gc::GCBox::new($gc, $crate::parser::test::util::_ast_impl!($gc, $lhs_name $lhs_args)),
+                lhs: $crate::gc::GCBox::new_raw($gc, $crate::parser::test::util::_ast_impl!($gc, $lhs_name $lhs_args)),
                 operator: $crate::parser::ast::operation::BinaryOperator::$operator,
-                rhs: $crate::gc::GCBox::new($gc, $crate::parser::test::util::_ast_impl!($gc, $rhs_name $rhs_args))
+                rhs: $crate::gc::GCBox::new_raw($gc, $crate::parser::test::util::_ast_impl!($gc, $rhs_name $rhs_args))
             }
         )
     };
@@ -231,7 +231,7 @@ macro_rules! _ast_impl {
         $crate::parser::ast::Expression::UnaryOperation(
             $crate::parser::ast::UnaryOperation {
                 operator: $crate::parser::ast::operation::UnaryOperator::$operator,
-                arg: $crate::gc::GCBox::new($gc, $crate::parser::test::util::_ast_impl!($gc, $arg_name $arg_args))
+                arg: $crate::gc::GCBox::new_raw($gc, $crate::parser::test::util::_ast_impl!($gc, $arg_name $arg_args))
             }
         )
     };
@@ -247,7 +247,7 @@ macro_rules! _ast_impl {
     } => {
         $crate::parser::ast::Expression::FunctionCall(
             $crate::parser::ast::FunctionCall {
-                function: $crate::gc::GCBox::new($gc,
+                function: $crate::gc::GCBox::new_raw($gc,
                     $crate::parser::test::util::_ast_impl!($gc, $function $function_args)
                 ),
                 args: $crate::parser::ast::FunctionCallArgs($crate::parser::Bracketed(

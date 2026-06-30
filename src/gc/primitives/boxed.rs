@@ -1,6 +1,10 @@
 use std::{marker::PhantomData, mem, num::NonZeroUsize};
 
-use crate::gc::{GCDebug, GCEq, GCGet, GCPtr, GCSpace, GarbageCollector, roots::GCRootEntry};
+use crate::gc::{
+    GCDebug, GCEq, GCGet, GCPtr, GCSpace, GarbageCollector,
+    roots::GCRootEntry,
+    safety::{GC, GCCtx},
+};
 
 /// Analogous to `std::boxed::Box`. This can be useful for recursively-defined datastructures.
 /// # Memory layout in GCSpace
@@ -12,10 +16,25 @@ use crate::gc::{GCDebug, GCEq, GCGet, GCPtr, GCSpace, GarbageCollector, roots::G
 /// Otherwise, the first block after the instance of `T` should be interpereted as a `usize` with
 /// the same properties as the one above.
 #[repr(transparent)]
-#[derive(Clone)]
 pub struct GCBox<T: GCPtr> {
     ptr: NonZeroUsize,
     _phantomdata: PhantomData<*mut T>,
+}
+
+impl<T: GCPtr> Clone for GCBox<T> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<T: GCPtr> Copy for GCBox<T> {}
+
+impl<'c, T: GCPtr> GC<'c, GCBox<T>> {
+    pub fn get(self) -> GC<'c, T> {
+        let gc = self.gc();
+
+        unsafe { GC::from_raw_parts(gc, self.raw().get(gc)) }
+    }
 }
 
 impl<T: GCPtr> GCBox<T> {
@@ -23,11 +42,15 @@ impl<T: GCPtr> GCBox<T> {
     ///
     /// # Safety
     /// - `value` must point to a valid, non-frozen object in `gc`
-    pub unsafe fn new(gc: &GarbageCollector, value: T) -> Self {
+    pub unsafe fn new_raw(gc: &GarbageCollector, value: T) -> Self {
         let ptr = Self::alloc_uninit_in_space(&gc.from_space);
         unsafe { ptr.ptr_in_space(&gc.from_space).write(value) };
 
         ptr
+    }
+
+    pub fn new<'c>(ctx: &'c GCCtx, value: GC<'c, T>) -> GC<'c, GCBox<T>> {
+        unsafe { GC::new(ctx, Self::new_raw(ctx, value.raw())) }
     }
 
     pub(crate) fn from_ptr(value: NonZeroUsize) -> Self {
