@@ -9,7 +9,7 @@ use std::{
     pin::Pin,
 };
 
-use crate::gc::{GCDebug, GCGet, GCProject, GCPtr, GCRootRef, GarbageCollector};
+use crate::gc::{GCDebug, GCGet, GCProject, GCPtr, GCRootRef, GarbageCollector, NonGC};
 
 mod function_call;
 pub use function_call::*;
@@ -186,8 +186,9 @@ impl<'gc, T: GCPtr> Drop for GCRootGuard<'gc, T> {
 macro_rules! root {
     ($gc:expr, $val:expr) => {{
         let v = $val;
+        let gc = &$gc;
 
-        ::core::pin::pin!(unsafe { $crate::gc::safety::GCRootGuard::new($gc, v) })
+        ::core::pin::pin!(unsafe { $crate::gc::safety::GCRootGuard::new(gc, v) })
     }};
 }
 
@@ -199,6 +200,10 @@ macro_rules! root {
 ///
 /// This macro will fix this issue and will allow you to immutably borrow from the context for the
 /// lifetime of the object.
+///
+/// This is also useful for working around
+/// "[NLL Problem Case #3](https://github.com/rust-lang/rfcs/blob/master/text/2094-nll.md#problem-case-3-conditional-control-flow-across-functions)"
+/// which is a known issue with the current Rust borrow checker.
 #[allow(unused)]
 macro_rules! rebind {
     ($ctx:ident, $val:expr) => {{
@@ -214,7 +219,7 @@ macro_rules! rebind {
             ))
         );
 
-        unsafe { ::mulch::gc::safety::GC::new(&$ctx, raw) }
+        unsafe { ::mulch::gc::safety::GC::new($ctx, raw) }
     }};
 }
 
@@ -262,6 +267,12 @@ pub(crate) use rebind;
 
 #[allow(unused)]
 pub(crate) use gc_args;
+
+impl<'c, T: GCPtr + NonGC> GC<'c, T> {
+    pub fn new_non_gc(gc: &'c GarbageCollector, value: T) -> Self {
+        unsafe { GC::from_raw_parts(gc, value) }
+    }
+}
 
 impl<'gc, T: GCPtr> Debug for GC<'gc, T>
 where

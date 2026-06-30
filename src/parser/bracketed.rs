@@ -2,7 +2,7 @@ use std::ops::{Deref, DerefMut, Range};
 
 use copyspan::Span;
 use itertools::Itertools;
-use mulch_macros::{GCDebug, GCPtr};
+use mulch_macros::{GCDebug, GCProject, GCPtr};
 
 use crate::{
     error::PartialSpanned,
@@ -21,7 +21,7 @@ pub type CurlyBracketed<T> = Bracketed<{ BracketType::Curly.to_u8() }, T>;
 
 /// Parses a syntax construct surrounded by brackets. This type typically shouldn't be referred to
 /// directly. Instead, its type aliases should be used.
-#[derive(Clone, Copy, GCPtr, GCDebug)]
+#[derive(Clone, Copy, GCPtr, GCDebug, GCProject)]
 #[debug_direct]
 pub struct Bracketed<const BRACKET_TYPE: u8, T: GCPtr + GCDebug>(pub T);
 

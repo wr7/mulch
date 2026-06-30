@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use mulch_macros::GCPtr;
+use mulch_macros::{GCProject, GCPtr};
 
 use crate::{
     error::{parse::PDResult, span_of},
@@ -8,7 +8,8 @@ use crate::{
     parser::{FindLeft, Parse, ParseLeft, Parser, TokenStream},
 };
 
-#[derive(GCPtr)]
+#[derive(GCPtr, GCProject)]
+#[dont_add_generic_gcptr_bounds]
 pub struct SeparatedList<T: GCPtr, S> {
     pub values: GCVec<T>,
     _phantomdata: PhantomData<*const S>,

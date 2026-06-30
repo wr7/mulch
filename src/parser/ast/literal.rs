@@ -1,4 +1,4 @@
-use mulch_macros::{GCDebug, GCEq, GCPtr};
+use mulch_macros::{GCDebug, GCEq, GCProject, GCPtr};
 
 use crate::{
     error::PartialSpanned,
@@ -10,7 +10,7 @@ use crate::{
 single_token_parse_type! {
     error_function = |_| unimplemented!();
 
-    #[derive(Clone, GCPtr, GCDebug, GCEq)]
+    #[derive(Clone, GCPtr, GCDebug, GCEq, GCProject)]
     #[debug_direct]
     pub struct StringLiteral(pub GCString);
 
@@ -22,7 +22,7 @@ single_token_parse_type! {
 single_token_parse_type! {
     error_function = |_| unimplemented!();
 
-    #[derive(Clone, GCPtr, GCDebug, GCEq)]
+    #[derive(Clone, GCPtr, GCDebug, GCEq, GCProject)]
     #[debug_direct]
     pub struct NumberLiteral(pub GCNumber);
 

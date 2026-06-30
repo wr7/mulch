@@ -1,4 +1,4 @@
-use mulch_macros::{GCDebug, GCEq, GCPtr};
+use mulch_macros::{GCDebug, GCEq, GCProject, GCPtr};
 
 use crate::{
     error::PartialSpanned,
@@ -84,7 +84,7 @@ single_token_parse_type! {
 single_token_parse_type! {
     error_function = parser::error::expected_ident_or_string;
 
-    #[derive(Clone, GCPtr, GCDebug, GCEq)]
+    #[derive(Clone, GCPtr, GCDebug, GCEq, GCProject)]
     #[debug_direct]
     pub struct IdentOrString(pub GCString);
 

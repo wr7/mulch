@@ -1,4 +1,4 @@
-use mulch_macros::{GCDebug, GCEq, GCPtr, Parse, ParseRight, keyword};
+use mulch_macros::{GCDebug, GCEq, GCProject, GCPtr, Parse, ParseRight, keyword};
 
 use crate::{
     error::{PartialSpanned, parse::PDResult},
@@ -24,7 +24,7 @@ pub use lambda::Lambda;
 
 pub use literal::*;
 
-#[derive(GCPtr, GCDebug, GCEq, Parse, Clone)]
+#[derive(GCPtr, GCDebug, GCEq, Parse, Clone, GCProject)]
 #[repr(usize)]
 #[msb_reserved]
 #[mulch_parse_error(parser::error::invalid_expression)]
@@ -77,7 +77,7 @@ fn parse_parenthized_expression(
     Ok(Parenthesized::<Expression>::parse(parser, tokens)?.map(|val| val.0))
 }
 
-#[derive(GCPtr, GCDebug, GCEq, Parse, Clone)]
+#[derive(GCPtr, GCDebug, GCProject, GCEq, Parse, Clone)]
 #[debug_direct_with_name]
 #[mulch_parse_error(|_| unimplemented!())]
 pub struct Set(pub CurlyBracketed<SeparatedList<NamedValue, punct![";"]>>);
@@ -87,7 +87,7 @@ pub struct Set(pub CurlyBracketed<SeparatedList<NamedValue, punct![";"]>>);
 #[mulch_parse_error(|_| unimplemented!())]
 pub struct List(pub SquareBracketed<SeparatedList<PartialSpanned<Expression>, punct![","]>>);
 
-#[derive(GCPtr, GCDebug, GCEq, Parse, Clone)]
+#[derive(GCPtr, GCDebug, GCEq, Parse, Clone, GCProject)]
 #[parse_direction(Right)]
 #[mulch_parse_error(|_| unimplemented!())]
 pub struct MemberAccess {
@@ -156,7 +156,7 @@ pub struct WithIn {
     pub val: GCBox<PartialSpanned<Expression>>,
 }
 
-#[derive(GCPtr, GCDebug, GCEq, Parse, Clone)]
+#[derive(GCPtr, GCDebug, GCEq, Parse, Clone, GCProject)]
 #[mulch_parse_error(IdentOrString::EXPECTED_ERROR_FUNCTION)]
 pub struct NamedValue {
     #[error_if_not_found]

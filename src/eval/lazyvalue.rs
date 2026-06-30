@@ -1,13 +1,16 @@
-use mulch_macros::{GCDebug, GCPtr};
+use mulch_macros::{GCDebug, GCProject, GCPtr, gc_fn};
 
 use crate::{
     error::{DResult, FullSpan, Spanned},
-    eval::{self, Evaluator, MValue},
-    gc::{GCBox, GCRootRef, GarbageCollector, UnsafeRootGuard},
+    eval::{self, MValue, evaluate},
+    gc::{
+        GCBox, GCRootRef,
+        safety::{GC, GCCtx, Projected, gc_args, rebind, root},
+    },
     parser::ast,
 };
 
-#[derive(Clone, GCPtr, GCDebug)]
+#[derive(Clone, GCPtr, GCDebug, GCProject)]
 #[repr(usize)]
 #[msb_reserved]
 enum LazyValueData {
@@ -17,56 +20,61 @@ enum LazyValueData {
 }
 
 /// A lazily-evaluated value. This is used for things like scopes or attribute sets.
-#[derive(Clone, GCPtr, GCDebug)]
+#[derive(Clone, Copy, GCPtr, GCDebug)]
 #[debug_direct]
 pub struct LazyValue {
     inner: GCBox<LazyValueData>,
 }
 
 impl LazyValue {
-    pub unsafe fn from_ast(gc: &GarbageCollector, ast: Spanned<ast::Expression>) -> Self {
-        let data = LazyValueData::Unevaluated(ast);
+    pub fn from_ast<'c>(ctx: &'c GCCtx, ast: GC<'c, Spanned<ast::Expression>>) -> GC<'c, Self> {
+        let data: GC<LazyValueData> = Projected::<LazyValueData>::Unevaluated(ast).into();
 
-        Self {
-            inner: unsafe { GCBox::new(gc, data) },
-        }
+        let inner = GCBox::new(ctx, data);
+
+        // SAFETY: we know that `inner` is currently valid because it's wrapped in `GC`
+        unsafe { GC::new(ctx, Self { inner: inner.raw() }) }
     }
 
-    pub unsafe fn to_ast(&self, gc: &GarbageCollector) -> Option<Spanned<ast::Expression>> {
-        match unsafe { self.inner.get(gc) } {
-            LazyValueData::Unevaluated(ast) => Some(ast),
-            _ => None,
-        }
-    }
+    #[gc_fn]
+    pub fn get_or_evaluate<'gc, 'c>(
+        ctx: &'c mut gc!(
+                'gc,
+                value: Self,
+                usage_span: FullSpan
+                ),
+    ) -> DResult<GC<'c, MValue>> {
+        let inner = unsafe { GC::new(ctx, value.raw().inner) };
 
-    pub unsafe fn get_or_evaluate(
-        self,
-        evaluator: &Evaluator,
-        usage_span: FullSpan,
-    ) -> DResult<MValue> {
-        let data = unsafe { self.inner.get(evaluator.gc) };
-
-        match data {
-            LazyValueData::Evaluated(mvalue) => Ok(mvalue),
-            LazyValueData::CurrentlyBeingEvaluated(definition_span) => Err(
-                eval::error::illegal_recursively_defined_value(definition_span, usage_span),
-            ),
-            LazyValueData::Unevaluated(ast) => {
+        match inner.get().project() {
+            Projected::<LazyValueData>::Evaluated(mvalue) => return Ok(rebind!(ctx, mvalue)),
+            Projected::<LazyValueData>::CurrentlyBeingEvaluated(definition_span) => {
+                Err(eval::error::illegal_recursively_defined_value(
+                    definition_span.raw(),
+                    usage_span.raw(),
+                ))
+            }
+            Projected::<LazyValueData>::Unevaluated(ast) => {
                 unsafe {
-                    self.inner
-                        .as_mut(evaluator.gc)
-                        .write(LazyValueData::CurrentlyBeingEvaluated(ast.1))
+                    inner
+                        .raw()
+                        .as_mut(ctx)
+                        .write(LazyValueData::CurrentlyBeingEvaluated(
+                            ast.clone().project().1,
+                        ))
                 };
 
-                let inner_root = unsafe { UnsafeRootGuard::new(&evaluator.gc, self.inner) };
+                let inner_root = root!(ctx, inner);
 
-                let value = evaluator.evaluate(ast)?;
+                let value: GC<'c, MValue> = rebind!(ctx, evaluate(gc_args!(ctx, ast))?);
+
+                let inner = inner_root.get(ctx);
 
                 unsafe {
-                    inner_root
-                        .get()
-                        .as_mut(evaluator.gc)
-                        .write(LazyValueData::Evaluated(value.clone()));
+                    inner
+                        .raw()
+                        .as_mut(ctx)
+                        .write(LazyValueData::Evaluated(value.clone().raw()));
                 }
 
                 Ok(value)

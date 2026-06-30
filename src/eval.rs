@@ -1,4 +1,4 @@
-use mulch_macros::{GCDebug, GCProject, GCPtr};
+use mulch_macros::{GCDebug, GCProject, GCPtr, gc_fn};
 
 mod error;
 mod lazyvalue;
@@ -8,39 +8,44 @@ pub use set::Set;
 
 use crate::{
     error::{DResult, Spanned},
-    gc::{GCNumber, GCString, GCVec, GarbageCollector},
+    eval::set::{evaluate_member_access, evaluate_set},
+    gc::{
+        GCNumber, GCString, GCVec,
+        safety::{GC, Projected, gc_args, rebind},
+    },
     parser::ast,
 };
 
-pub struct Evaluator<'gc> {
-    gc: &'gc GarbageCollector,
-    #[allow(unused)]
-    scope: (), // placeholder scope field
-}
+#[gc_fn]
+pub fn evaluate<'c>(ctx: &'c mut gc!(ast: Spanned<ast::Expression>)) -> DResult<GC<'c, MValue>> {
+    let ast = ast.project();
+    let ast_span = ast.1;
+    let ast = ast.0;
 
-impl<'gc> Evaluator<'gc> {
-    pub fn new(gc: &'gc GarbageCollector) -> Self {
-        Self { gc, scope: () }
-    }
-
-    pub fn evaluate(&self, ast: Spanned<ast::Expression>) -> DResult<MValue> {
-        match ast.0 {
-            ast::Expression::Variable(ident) => todo!(),
-            ast::Expression::StringLiteral(string_literal) => Ok(string_literal.0.into()),
-            ast::Expression::NumericLiteral(number_literal) => Ok(number_literal.0.into()),
-            ast::Expression::WithIn(_) => todo!(),
-            ast::Expression::LetIn(let_in) => todo!(),
-            ast::Expression::Lambda(lambda) => todo!(),
-            ast::Expression::BinaryOperation(binary_operation) => todo!(),
-            ast::Expression::UnaryOperation(unary_operation) => todo!(),
-            ast::Expression::MethodCall(method_call) => todo!(),
-            ast::Expression::FunctionCall(function_call) => todo!(),
-            ast::Expression::MemberAccess(member_access) => {
-                self.evaluate_member_access(Spanned(member_access, ast.1))
-            }
-            ast::Expression::Set(set) => self.evaluate_set(Spanned(set, ast.1)),
-            ast::Expression::List(list) => todo!(),
+    match ast.project() {
+        Projected::<ast::Expression>::Variable(_) => todo!(),
+        Projected::<ast::Expression>::StringLiteral(string_literal) => {
+            let string_literal = rebind!(ctx, string_literal);
+            Ok(string_literal.project().0.into())
         }
+        Projected::<ast::Expression>::NumericLiteral(number_literal) => {
+            let number_literal = rebind!(ctx, number_literal);
+            Ok(number_literal.project().0.into())
+        }
+        Projected::<ast::Expression>::WithIn(_) => todo!(),
+        Projected::<ast::Expression>::LetIn(_let_in) => todo!(),
+        Projected::<ast::Expression>::Lambda(_lambda) => todo!(),
+        Projected::<ast::Expression>::BinaryOperation(_binary_operation) => todo!(),
+        Projected::<ast::Expression>::UnaryOperation(_unary_operation) => todo!(),
+        Projected::<ast::Expression>::MethodCall(_method_call) => todo!(),
+        Projected::<ast::Expression>::FunctionCall(_function_call) => todo!(),
+        Projected::<ast::Expression>::MemberAccess(member_access) => {
+            evaluate_member_access(gc_args!(ctx, Spanned(member_access, ast_span).into()))
+        }
+        Projected::<ast::Expression>::Set(set) => {
+            evaluate_set(gc_args!(ctx, Spanned(set, ast_span).into()))
+        }
+        Projected::<ast::Expression>::List(_list) => todo!(),
     }
 }
 
@@ -58,20 +63,20 @@ pub enum MValue {
     Set(Set),
 }
 
-impl From<GCString> for MValue {
-    fn from(value: GCString) -> Self {
-        MValue::String(value)
+impl<'c> From<GC<'c, GCString>> for GC<'c, MValue> {
+    fn from(value: GC<'c, GCString>) -> Self {
+        Projected::<MValue>::String(value).into()
     }
 }
 
-impl From<GCNumber> for MValue {
-    fn from(value: GCNumber) -> Self {
-        MValue::Number(value)
+impl<'c> From<GC<'c, GCNumber>> for GC<'c, MValue> {
+    fn from(value: GC<'c, GCNumber>) -> Self {
+        Projected::<MValue>::Number(value).into()
     }
 }
 
-impl From<GCVec<MValue>> for MValue {
-    fn from(value: GCVec<MValue>) -> Self {
-        MValue::List(value)
+impl<'c> From<GC<'c, GCVec<MValue>>> for GC<'c, MValue> {
+    fn from(value: GC<'c, GCVec<MValue>>) -> Self {
+        Projected::<MValue>::List(value).into()
     }
 }

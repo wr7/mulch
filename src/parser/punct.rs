@@ -13,7 +13,7 @@ use crate::{
 
 /// Parses a specific symbol token. This type should only be referred to using the [`punct`](super::punct!) macro.
 /// The represented [`Symbol`] value can be accessed via the associated constant [`Self::SYMBOL`].
-#[derive(GCDebug, GCPtr, GCEq, Clone, Copy, Debug)]
+#[derive(GCDebug, GCPtr, GCEq, Clone, Copy, Debug, Default)]
 pub struct Punct<const S: u128>();
 
 impl<const S: u128> Punct<S> {

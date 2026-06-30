@@ -5,8 +5,11 @@ use error::{SourceDB, dresult_unwrap};
 
 use crate::{
     error::{PartialSpanned, pdresult_unwrap},
-    eval::Evaluator,
-    gc::{GCPtr, GarbageCollector},
+    eval::evaluate,
+    gc::{
+        GCPtr,
+        safety::{GC, gc_args, let_gc_and_context},
+    },
     parser::{Parse, Parser},
 };
 
@@ -22,6 +25,7 @@ mod util;
 
 // TODO:
 // - Remove UnsafeRootGuard
+// - Add `phantom` annotations
 // - Use `zst` annotations for `GCPtr` optimizations
 // - Add more parser tests for:
 //     - Set and list lambda arguments
@@ -45,7 +49,8 @@ pub fn main() {
 
     let tokens = dresult_unwrap(lexer::Lexer::new(source, file_id).lex(), &db);
 
-    let gc = GarbageCollector::new();
+    let_gc_and_context!(gc, ctx);
+
     let parser = Parser::new_default(&gc);
 
     let ast = pdresult_unwrap(
@@ -57,8 +62,9 @@ pub fn main() {
 
     unsafe { dbg!(ast.wrap(&gc)) };
 
-    let evaluator = Evaluator::new(&gc);
-    let value = dresult_unwrap(evaluator.evaluate(ast.with_file_id(0)), &db);
+    let ast = unsafe { GC::new(ctx, ast) };
 
-    unsafe { dbg!(value.wrap(&gc)) };
+    let value = dresult_unwrap(evaluate(gc_args!(ctx, ast.with_file_id(0))), &db);
+
+    dbg!(value);
 }
