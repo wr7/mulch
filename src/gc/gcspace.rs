@@ -40,8 +40,8 @@ impl GCSpace {
         self.capacity.set(capacity);
     }
 
-    /// Grows the allocation to be exactly `new_size_blocks` blocks. [`GCSpace::expand`] should be
-    /// used instead whenever possible.
+    /// Grows the allocation to be exactly `new_size_blocks` blocks. [`GCSpace::expand_capacity_to`]
+    /// should be used instead whenever possible.
     pub fn expand_capacity_to_exact(&self, new_size_blocks: usize) {
         if new_size_blocks <= self.capacity() {
             return;
