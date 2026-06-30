@@ -109,7 +109,10 @@ pub fn derive_gc_debug(item: proc_macro::TokenStream) -> proc_macro::TokenStream
 ///     saving optimization on `GCBox<Self>` (see `GCPtr::MSB_RESERVED` for more information).
 ///     `MSB_RESERVED` is automatically calculated on structs but is `false` on all enums without
 ///     this attribute.
-#[proc_macro_derive(GCPtr, attributes(msb_reserved))]
+/// - `dont_add_generic_gcptr_bounds`
+///    - Indicates that `GCPtr` should be implemented regardless of whether the generic type
+///      parameters of this type implement `GCPtr`.
+#[proc_macro_derive(GCPtr, attributes(msb_reserved, dont_add_generic_gcptr_bounds))]
 pub fn derive_gc_ptr(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     gc_ptr::derive_gc_ptr(parse_macro_input!(item as DeriveInput)).into()
 }

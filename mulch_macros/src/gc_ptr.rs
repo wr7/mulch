@@ -16,13 +16,16 @@ pub fn derive_gc_ptr(item: DeriveInput) -> TokenStream {
         }
     };
 
+    let dont_add_generic_gcptr_bounds = item
+        .attrs
+        .iter()
+        .any(|a| a.path().is_ident("dont_add_generic_gcptr_bounds"));
+
     let mut generics = item.generics.clone();
-    for param in generics.params.iter_mut() {
-        match param {
-            syn::GenericParam::Type(type_param) => {
-                type_param.bounds.push(parse_quote!(::mulch::gc::GCPtr))
-            }
-            _ => {}
+
+    if !dont_add_generic_gcptr_bounds {
+        for type_param in generics.type_params_mut() {
+            type_param.bounds.push(parse_quote!(::mulch::gc::GCPtr))
         }
     }
 
