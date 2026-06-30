@@ -33,15 +33,19 @@ impl<'a, T: GCPtr> GC<'a, GCVec<T>> {
         self.read().len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.read().is_empty()
+    }
+
     pub fn get(&self, idx: usize) -> Option<GC<'a, T>> {
-        Some(unsafe { GC::from_raw_parts(self.gc(), self.read().get(idx)?.clone()) })
+        Some(unsafe { GC::from_raw_parts(self.gc(), *self.read().get(idx)?) })
     }
 
     pub fn iter(&self) -> SafeGCVecIter<'a, T> {
         unsafe {
             SafeGCVecIter {
                 gc: self.gc(),
-                data: self.clone().raw().as_buffer(self.gc()).as_slice(self.gc()),
+                data: (*self).raw().as_buffer(self.gc()).as_slice(self.gc()),
             }
         }
     }
@@ -55,7 +59,7 @@ impl<'a, T: GCPtr> Iterator for SafeGCVecIter<'a, T> {
 
         self.data = remaining;
 
-        Some(unsafe { GC::from_raw_parts(self.gc, item.clone()) })
+        Some(unsafe { GC::from_raw_parts(self.gc, *item) })
     }
 }
 
@@ -63,7 +67,7 @@ impl<T: GCPtr> GCVec<T> {
     /// # Safety
     /// - All `elements` must be valid and alive
     pub unsafe fn new(gc: &GarbageCollector, elements: &[T]) -> Self {
-        let vec = unsafe { Self::new_uninit(&gc, elements.len()) };
+        let vec = unsafe { Self::new_uninit(gc, elements.len()) };
         let ptr = vec.element_ptr(gc, 0);
 
         unsafe { std::ptr::copy_nonoverlapping(elements.as_ptr(), ptr, elements.len()) }
@@ -86,13 +90,13 @@ impl<T: GCPtr> GCVec<T> {
         I: Iterator<Item = GC<'b, T>>,
     {
         let vec = unsafe { Self::new_uninit_in_space(&ctx.from_space, len) };
-        let mut ptr = vec.element_ptr(&ctx, 0);
+        let mut ptr = vec.element_ptr(ctx, 0);
 
         let mut count = 0;
 
         for element in elements {
             assert!(count < len);
-            assert_eq!(ptr::from_ref(element.gc()), ptr::from_ref(**ctx));
+            assert!(ptr::eq(element.gc(), **ctx));
 
             unsafe { ptr.write(element.raw()) };
 
@@ -116,6 +120,8 @@ impl<T: GCPtr> GCVec<T> {
         self.ptr
     }
 
+    /// # Safety
+    /// `self` must be valid and alive
     pub unsafe fn len(&self, gc: &GarbageCollector) -> usize {
         unsafe { gc.block_ptr(self.ptr).cast::<usize>().read() }
     }
@@ -132,6 +138,8 @@ impl<T: GCPtr> GCVec<T> {
         unsafe { self.as_buffer(gc).as_slice(gc) }
     }
 
+    /// # Safety
+    /// `self` must be valid and alive
     pub unsafe fn as_buffer(&self, gc: &GarbageCollector) -> GCBuffer<T> {
         GCBuffer::from_raw_parts(
             unsafe { NonZeroUsize::new_unchecked(self.ptr.get() + 1) },
@@ -139,6 +147,8 @@ impl<T: GCPtr> GCVec<T> {
         )
     }
 
+    /// # Safety
+    /// `self` must be valid and alive
     pub unsafe fn as_mut_ptr(&self, gc: &GarbageCollector) -> *mut T {
         unsafe { self.as_buffer(gc).as_mut_ptr(gc) }
     }

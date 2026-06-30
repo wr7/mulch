@@ -141,7 +141,7 @@ impl GCUInt {
 
         for digit in string.iter_mut() {
             *digit += b'0';
-            debug_assert!(matches!(*digit, b'0'..=b'9'))
+            debug_assert!(digit.is_ascii_digit())
         }
 
         unsafe { String::from_utf8_unchecked(string) }
@@ -334,7 +334,7 @@ impl GCUInt {
     }
 
     unsafe fn reduce_pow_2_at_end(&mut self, gc: &GarbageCollector, den_pow_2: &mut usize) {
-        let pow2_reduction = unsafe { self.trailing_zeroes(gc) as usize }.min(*den_pow_2);
+        let pow2_reduction = unsafe { self.trailing_zeroes(gc) }.min(*den_pow_2);
         *den_pow_2 -= pow2_reduction;
 
         unsafe {
@@ -397,6 +397,6 @@ impl GCEq<usize> for GCUInt {
 
 impl GCEq<limb_t> for GCUInt {
     unsafe fn gc_eq(&self, gc: &GarbageCollector, rhs: &limb_t) -> bool {
-        unsafe { self.data.as_slice(gc) == &[*rhs] }
+        unsafe { self.data.as_slice(gc) == [*rhs] }
     }
 }

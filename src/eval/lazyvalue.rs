@@ -60,7 +60,7 @@ impl LazyValue {
                         .raw()
                         .as_mut(ctx)
                         .write(LazyValueData::CurrentlyBeingEvaluated(
-                            ast.clone().project().1,
+                            ast.project().1,
                         ))
                 };
 
@@ -74,7 +74,7 @@ impl LazyValue {
                     inner
                         .raw()
                         .as_mut(ctx)
-                        .write(LazyValueData::Evaluated(value.clone().raw()));
+                        .write(LazyValueData::Evaluated(value.raw()));
                 }
 
                 Ok(value)

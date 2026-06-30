@@ -128,7 +128,7 @@ fn derive_gc_project_struct_from_impl(
             .map_or(FieldName::Index(i), |id| FieldName::Name(id));
 
         quote! {
-            ::core::assert_eq!(::core::ptr::from_ref(gc_ref), ::core::ptr::from_ref(::mulch::gc::safety::GC::gc(&val.#field_name)));
+            ::core::assert!(::core::ptr::eq::<::mulch::gc::GarbageCollector>(gc_ref, ::mulch::gc::safety::GC::gc(&val.#field_name)));
         }
     });
 

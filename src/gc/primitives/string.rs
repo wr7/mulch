@@ -134,7 +134,7 @@ impl GCString {
 impl GCString {
     unsafe fn get_forwarded_value(&self, gc: &GarbageCollector) -> Option<Self> {
         if self.get_inline().is_some() {
-            return Some(self.clone());
+            return Some(*self);
         }
 
         let ptr = gc.from_space.block_ptr(self.ptr);

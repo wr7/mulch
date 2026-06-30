@@ -165,14 +165,14 @@ impl<'gc, T: GCPtr> GCRootGuard<'gc, T> {
             ctx.gc as *const GarbageCollector
         );
 
-        unsafe { GC::new(&ctx, self.raw_ref.get(self.gc)) }
+        unsafe { GC::new(ctx, self.raw_ref.get(self.gc)) }
     }
 }
 
 impl<'gc, T: GCPtr> Drop for GCRootGuard<'gc, T> {
     fn drop(&mut self) {
         unsafe {
-            ManuallyDrop::take(&mut self.raw_ref).pop(self.gc);
+            ManuallyDrop::take(&mut self.raw_ref).free(self.gc);
         }
     }
 }
@@ -238,9 +238,11 @@ macro_rules! gc_args {
                     {
                         let val = $args;
 
-                        ::core::assert_eq!(
-                            ::core::ptr::from_ref::<$crate::gc::GarbageCollector>(&$context),
-                            ::core::ptr::from_ref($crate::gc::safety::GC::gc(&val))
+                        ::core::assert!(
+                            ::core::ptr::eq::<$crate::gc::GarbageCollector>(
+                                **$context,
+                                $crate::gc::safety::GC::gc(&val)
+                            )
                         );
 
                         $crate::gc::safety::GC::raw(val)

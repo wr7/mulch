@@ -21,14 +21,14 @@ impl<'c> GC<'c, Set> {
         let gc = self.gc();
 
         let result_idx = unsafe {
-            self.clone()
+            self
                 .raw()
                 .values
                 .as_slice(gc)
                 .binary_search_by_key(&attr_name, |attr| attr.name.0.get(gc))
         };
 
-        let values = unsafe { GC::from_raw_parts(gc, self.clone().raw().values) };
+        let values = unsafe { GC::from_raw_parts(gc, self.raw().values) };
 
         result_idx
             .ok()
@@ -56,7 +56,6 @@ pub(super) fn evaluate_set<'c>(
     let named_values = ast_attributes.iter().map(|attr| {
         Projected::<NamedMValue> {
             name: attr
-                .clone()
                 .project()
                 .name
                 .map(|id| id.project().0)
@@ -74,7 +73,7 @@ pub(super) fn evaluate_set<'c>(
     // SAFETY: nothing else is borrowing from the memory that `out_attrs` is pointing to
     unsafe {
         let mut_slice = std::slice::from_raw_parts_mut(
-            out_attrs.clone().raw().as_mut_ptr(ctx),
+            out_attrs.raw().as_mut_ptr(ctx),
             out_attrs.len(),
         );
 
@@ -83,8 +82,8 @@ pub(super) fn evaluate_set<'c>(
 
     // Ensure that there are no duplicate attributes //
     for (prev, cur) in out_attrs.iter().tuple_windows() {
-        let prev_name: GC<GCString> = prev.clone().project().name.project().0;
-        let cur_name: GC<GCString> = cur.clone().project().name.project().0;
+        let prev_name: GC<GCString> = prev.project().name.project().0;
+        let cur_name: GC<GCString> = cur.project().name.project().0;
 
         if prev_name.read() == cur_name.read() {
             return Err(eval::error::attribute_defined_multiple_times(
@@ -120,13 +119,12 @@ pub(super) fn evaluate_member_access<'c>(
 
         let ast = ast.0;
 
-        let rhs: GC<GCString> = ast.clone().project().rhs.project().0;
+        let rhs: GC<GCString> = ast.project().rhs.project().0;
         let rhs = root!(ctx, rhs);
 
         let lhs = ast
             .project()
             .lhs
-            .clone()
             .get()
             .with_file_id(ast_span.file_id);
 

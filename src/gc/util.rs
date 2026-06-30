@@ -37,13 +37,6 @@ impl<'a, T> GCWrap<'a, T> {
         &self.inner
     }
 
-    pub unsafe fn map<U>(self, func: impl FnOnce(T) -> U) -> GCWrap<'a, U> {
-        GCWrap {
-            inner: func(self.inner),
-            gc: self.gc,
-        }
-    }
-
     pub fn gc<'b>(&'b self) -> &'a GarbageCollector {
         self.gc
     }
@@ -63,7 +56,7 @@ where
     T: GCEq<Rhs>,
 {
     fn eq(&self, rhs: &GCWrap<'gc, Rhs>) -> bool {
-        assert!(self.gc as *const GarbageCollector == rhs.gc as *const GarbageCollector);
+        assert!(std::ptr::eq(self.gc, rhs.gc));
 
         unsafe { self.inner.gc_eq(self.gc(), &rhs.inner) }
     }

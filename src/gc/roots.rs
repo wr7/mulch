@@ -74,12 +74,10 @@ pub struct GCRootEntry {
     pub(super) type_name: &'static str,
 }
 
-/// A raw reference to a GC root. The difference between this and a `GCRootGuard` is that a
-/// `GCRootGuard` contains a reference to the garbage-collector and will automatically remove the GC
-/// root when it falls out of scope.
+/// A raw reference to a GC root.
 ///
 /// This type, however, will panic when it's destructor is called and instead requires that its
-/// [`pop`](GCRootRef::pop) or [`forget`](GCRootRef::forget) methods are called.
+/// [`free`](GCRootRef::free) or [`forget`](GCRootRef::forget) methods are called.
 pub struct GCRootRef<T> {
     index: usize,
     _phantomdata: PhantomData<T>,
@@ -96,7 +94,7 @@ impl<T> Clone for GCRootRef<T> {
 
 impl<T: GCPtr> GCRootRef<T> {
     /// Gets the value of a GC root without removing it.
-    pub unsafe fn get(&self, gc: &GarbageCollector) -> T {
+    pub fn get(&self, gc: &GarbageCollector) -> T {
         debug_assert!(self.index < gc.roots.len());
 
         let entry = unsafe { gc.roots.get_unchecked(self.index) };
@@ -107,17 +105,13 @@ impl<T: GCPtr> GCRootRef<T> {
         unsafe { <T as GCPtr>::from_gc_root_entry(gc, entry) }
     }
 
-    /// Removes a GC root and gets its value. GC roots should always be removed in the opposite
+    /// Frees a GC root. GC roots should always be removed in the opposite
     /// order in which they were created.
-    pub unsafe fn pop(self, gc: &GarbageCollector) -> T {
-        let val = unsafe { self.get(gc) };
-
+    pub fn free(self, gc: &GarbageCollector) {
         debug_assert_eq!(gc.roots.len(), self.index + 1);
         gc.roots.remove_last_root();
 
         self.forget();
-
-        val
     }
 
     /// Destroys a `GCRootRef` without removing the root that it points to. This is useful for

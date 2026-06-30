@@ -124,6 +124,7 @@ impl GCSpace {
 
         // This code is only here to prevent this function from compiling if new fields are added in
         // the future.
+        #[allow(clippy::diverging_sub_expression)]
         let _ = Self {
             data: unreachable!(),
             len: unreachable!(),

@@ -113,7 +113,7 @@ fn parse_simple_arg_attribute(
 ) -> PDResult<Option<ArgAttribute>> {
     Ok(
         SingleArgument::parse(parser, tokens)?.map(|arg| ArgAttribute {
-            attr: IdentOrString(arg.name.0.clone()),
+            attr: IdentOrString(arg.name.0),
             colon_: punct!(":")(),
             arg: Argument::Single(arg),
         }),

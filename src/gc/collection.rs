@@ -27,7 +27,7 @@ impl GarbageCollector {
     ///
     /// # Safety
     /// - This function should not be called directly while the safe garbage-collection API is in use.
-    pub unsafe fn collect<'r>(&self) {
+    pub unsafe fn collect(&self) {
         if self.from_space.len() < self.from_space.capacity() * 15 / 16 {
             return;
         }
@@ -49,7 +49,7 @@ impl GarbageCollector {
     /// See documentation of [`GarbageCollector::collect`] for safety and any other information.
     #[allow(clippy::missing_safety_doc)]
     #[cold]
-    pub unsafe fn force_collect<'r>(&self) {
+    pub unsafe fn force_collect(&self) {
         unsafe {
             self.copy_roots();
         }

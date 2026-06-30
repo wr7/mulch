@@ -24,6 +24,7 @@ pub mod parser;
 mod util;
 
 // TODO:
+// - Fix type information for `GCPtr` optimization.
 // - Remove UnsafeRootGuard
 // - Add `phantom` annotations
 // - Use `zst` annotations for `GCPtr` optimizations

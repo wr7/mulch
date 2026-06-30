@@ -86,8 +86,7 @@ impl<const S: u128> FindRight for Punct<S> {
         _: &Parser,
         tokens: &'a parser::TokenStream<'src>,
     ) -> crate::error::parse::PDResult<Option<std::ops::Range<usize>>> {
-        Ok(
-            NonBracketedIter::new(tokens)
+        NonBracketedIter::new(tokens)
                 .rev()
                 .process_results(|mut iter| {
                     iter.find(|tok|
@@ -95,8 +94,7 @@ impl<const S: u128> FindRight for Punct<S> {
                     )
                     .and_then(|tok| tokens.element_offset(tok))
                     .map(|idx| idx..idx + 1)
-                })?
-        )
+                })
     }
 }
 

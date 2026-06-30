@@ -51,7 +51,7 @@ impl<const B: u8, T: GCPtr + GCDebug + Parse> ParseLeft for Bracketed<B, T> {
         parser: &super::Parser,
         tokens: &mut &super::TokenStream,
     ) -> crate::error::parse::PDResult<Option<Self>> {
-        let mut nb_iter = NonBracketedIter::new_unfused(&tokens);
+        let mut nb_iter = NonBracketedIter::new_unfused(tokens);
 
         let Some(&PartialSpanned(Token::OpeningBracket(bt), _)) = nb_iter.next().transpose()?
         else {
@@ -117,7 +117,7 @@ impl<const B: u8, T: GCPtr + GCDebug + Parse> ParseRight for Bracketed<B, T> {
         tokens: &mut &parser::TokenStream,
     ) -> crate::error::parse::PDResult<Option<Self>> {
         {
-            let mut nb_iter = NonBracketedIter::new_unfused(&tokens);
+            let mut nb_iter = NonBracketedIter::new_unfused(tokens);
 
             let Some(&PartialSpanned(Token::ClosingBracket(bt), _)) =
                 nb_iter.next_back().transpose()?

@@ -84,7 +84,7 @@ impl RationalMetadata {
         debug_assert_eq!(self.numerator_len & 1usize.rotate_right(1), 0);
         debug_assert_eq!(self.denominator_len & 1usize.rotate_right(1), 0);
 
-        let sign_mask = usize::from(self.is_negative) << usize::BITS - 1;
+        let sign_mask = usize::from(self.is_negative) << (usize::BITS - 1);
 
         [self.numerator_len, self.denominator_len | sign_mask]
     }
@@ -190,7 +190,7 @@ impl GCRational {
         gc: &GarbageCollector,
         decimal: PartialSpanned<&str>,
     ) -> PDResult<Self> {
-        let decimal = decimal.map(|decimal| strip_decimal_zeroes(&decimal));
+        let decimal = decimal.map(strip_decimal_zeroes);
 
         let (num_digits_after_decimal_point, num_digits) = decimal_literal_info(decimal)?;
 
@@ -249,7 +249,7 @@ impl GCRational {
                 gc,
                 numerator
                     .bytes()
-                    .map(|b| b.checked_sub(b'0').and_then(|d| Digit::from_u8(d)).unwrap()),
+                    .map(|b| b.checked_sub(b'0').and_then(Digit::from_u8).unwrap()),
                 numerator.len(),
             )
         };
@@ -260,7 +260,7 @@ impl GCRational {
                 gc,
                 denominator
                     .bytes()
-                    .map(|b| b.checked_sub(b'0').and_then(|d| Digit::from_u8(d)).unwrap()),
+                    .map(|b| b.checked_sub(b'0').and_then(Digit::from_u8).unwrap()),
                 denominator.len(),
             )
         };
@@ -328,8 +328,8 @@ impl GCRational {
     ) -> [GCBuffer<limb_t>; 2] {
         let numerator_ptr = self.ptr.get() + Self::METADATA_SIZE_BLOCKS;
 
-        let denominator_ptr = numerator_ptr
-            + GCBuffer::<limb_t>::allocation_size_blocks(metadata.numerator_len as usize);
+        let denominator_ptr =
+            numerator_ptr + GCBuffer::<limb_t>::allocation_size_blocks(metadata.numerator_len);
 
         unsafe {
             [
@@ -352,7 +352,7 @@ impl GCRational {
 
         let [mut numerator, mut denominator] = self
             .numerator_and_denominator_from_metadata(old_metadata)
-            .map(|b| GCUInt::from(b));
+            .map(GCUInt::from);
 
         unsafe {
             debug_assert!(!denominator.is_zero(gc));
@@ -539,7 +539,7 @@ unsafe impl GCPtr for GCRational {
         if raw_metadata[0] & FORWARD_BIT != 0 {
             let forward = raw_metadata[0] & !FORWARD_BIT;
 
-            return Self::from_raw(unsafe { NonZeroUsize::new_unchecked(forward as usize) });
+            return Self::from_raw(unsafe { NonZeroUsize::new_unchecked(forward) });
         }
 
         let metadata = RationalMetadata::from_raw_unchecked(raw_metadata);
@@ -586,7 +586,7 @@ impl GCDebug for GCRational {
         let metadata = unsafe { self.metadata(gc) };
 
         let [numerator, denominator] =
-            unsafe { self.numerator_and_denominator(gc) }.map(|b| GCUInt::from(b));
+            unsafe { self.numerator_and_denominator(gc) }.map(GCUInt::from);
 
         if metadata.is_negative {
             write!(f, "-")?;

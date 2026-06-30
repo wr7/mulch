@@ -56,7 +56,7 @@ impl GCNumber {
         denominator: Option<&str>,
     ) -> Self {
         if denominator.is_none() {
-            match str::parse::<usize>(numerator).map(|val| Self::from_usize(val)) {
+            match str::parse::<usize>(numerator).map(Self::from_usize) {
                 Ok(Some(val)) => return val,
                 Ok(None) => {}
                 Err(err) => {

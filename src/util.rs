@@ -163,7 +163,7 @@ pub fn subslice_range<T>(slice: &[T], subslice: &[T]) -> Option<Range<usize>> {
     let end = start.wrapping_add(subslice.len());
 
     if start <= slice.len() && end <= slice.len() {
-        Some((start..end).into())
+        Some(start..end)
     } else {
         None
     }
