@@ -309,7 +309,6 @@ macro_rules! _ast_impl {
     };
 }
 
-#[allow(unused)]
 pub(crate) use ast;
 
 pub(crate) use parse_test;

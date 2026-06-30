@@ -59,7 +59,6 @@ pub type TokenStream<'src> = [PartialSpanned<Token<'src>>];
 /// Contains parser state. Currently only contains a reference to the garbage collector, but that
 /// will change if or when custom parsers are added.
 pub struct Parser<'a> {
-    #[allow(unused)]
     gc: &'a GarbageCollector,
 }
 

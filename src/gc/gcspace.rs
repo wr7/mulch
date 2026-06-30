@@ -1,15 +1,6 @@
-#![allow(unused)]
+use std::{alloc::Layout, cell::Cell};
 
-use std::{
-    alloc::Layout,
-    any::TypeId,
-    cell::Cell,
-    marker::PhantomData,
-    num::NonZeroUsize,
-    ptr::{NonNull, addr_of_mut},
-};
-
-use crate::gc::{GCBox, GarbageCollector, roots::GCRootEntry, util::GCWrap};
+use crate::gc::GarbageCollector;
 
 pub struct GCSpace {
     data: Cell<*mut u8>,
@@ -115,6 +106,7 @@ impl GCSpace {
 
     /// Swaps this `GCSpace` with another `GCSpace`. This should only be done as a part of a
     /// garbage-collection cycle.
+    #[allow(unreachable_code)]
     pub(super) unsafe fn swap(&self, other: &GCSpace) {
         self.data.swap(&other.data);
         self.len.swap(&other.len);

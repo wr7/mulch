@@ -17,7 +17,6 @@ pub use function_call::*;
 /// Creates a garbage-collector object and a context object.
 ///
 /// This is the only safe way to create a context.
-#[allow(unused)]
 macro_rules! let_gc_and_context {
     ($gc_name:ident, $ctx_name:ident) => {
         let $gc_name = $crate::gc::GarbageCollector::new();
@@ -29,7 +28,6 @@ macro_rules! let_gc_and_context {
     };
 }
 
-#[allow(unused)]
 pub(crate) use let_gc_and_context;
 
 /// The garbage collection context. This is used for the safe garbage collection API. If a function
@@ -182,7 +180,6 @@ impl<'gc, T: GCPtr> Drop for GCRootGuard<'gc, T> {
 ///
 /// This macro will ensure at compile time that any roots defined with it are dropped in the
 /// required order.
-#[allow(unused)]
 macro_rules! root {
     ($gc:expr, $val:expr) => {{
         let v = $val;
@@ -204,7 +201,6 @@ macro_rules! root {
 /// This is also useful for working around
 /// "[NLL Problem Case #3](https://github.com/rust-lang/rfcs/blob/master/text/2094-nll.md#problem-case-3-conditional-control-flow-across-functions)"
 /// which is a known issue with the current Rust borrow checker.
-#[allow(unused)]
 macro_rules! rebind {
     ($ctx:ident, $val:expr) => {{
         let val = $val;
@@ -227,7 +223,6 @@ macro_rules! rebind {
 /// functions that can trigger GC cycles but also take in unmanaged garbage-collected data.
 ///
 /// See [`#[gc_fn]`](mulch_macros::gc_fn) for more information.
-#[allow(unused)]
 macro_rules! gc_args {
     ($context:ident, $($args:expr),+ $(,)?) => {
         {
@@ -261,13 +256,10 @@ macro_rules! gc_args {
 #[allow(type_alias_bounds)]
 pub type Projected<'a, T: GCProject<'a>> = T::Projected;
 
-#[allow(unused)]
 pub(crate) use root;
 
-#[allow(unused)]
 pub(crate) use rebind;
 
-#[allow(unused)]
 pub(crate) use gc_args;
 
 impl<'c, T: GCPtr + NonGC> GC<'c, T> {
