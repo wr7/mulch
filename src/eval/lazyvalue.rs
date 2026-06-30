@@ -10,7 +10,7 @@ use crate::{
     parser::ast,
 };
 
-#[derive(Clone, GCPtr, GCDebug, GCProject)]
+#[derive(Clone, Copy, GCPtr, GCDebug, GCProject)]
 #[repr(usize)]
 #[msb_reserved]
 enum LazyValueData {

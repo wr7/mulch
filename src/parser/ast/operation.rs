@@ -24,14 +24,14 @@ single_token_parse_type! {
     }
 }
 
-#[derive(Clone, GCPtr, GCDebug, GCEq)]
+#[derive(Clone, Copy, GCPtr, GCDebug, GCEq)]
 pub struct BinaryOperation {
     pub lhs: GCBox<PartialSpanned<Expression>>,
     pub operator: BinaryOperator,
     pub rhs: GCBox<PartialSpanned<Expression>>,
 }
 
-#[derive(Clone, GCPtr, GCDebug, GCEq, Parse)]
+#[derive(Clone, Copy, GCPtr, GCDebug, GCEq, Parse)]
 #[mulch_parse_error(|_| unimplemented!())]
 pub struct UnaryOperation {
     pub operator: UnaryOperator,
@@ -54,7 +54,7 @@ pub(super) fn operation_parse_hook(
     }))
 }
 
-#[derive(Clone, GCPtr, GCDebug, Parse)]
+#[derive(Parse)]
 #[mulch_parse_error(|_| unimplemented!())]
 enum OperationImpl {
     AddOrSubtract(AddOrSubtract),
@@ -63,7 +63,7 @@ enum OperationImpl {
     Exponentiate(Exponentiate),
 }
 
-#[derive(Clone, GCPtr, GCDebug, Parse)]
+#[derive(Parse)]
 #[mulch_parse_error(|_| unimplemented!())]
 #[parse_direction(right)]
 struct AddOrSubtract {
@@ -75,7 +75,7 @@ struct AddOrSubtract {
     rhs: GCBox<PartialSpanned<Expression>>,
 }
 
-#[derive(Clone, GCPtr, GCDebug, Parse)]
+#[derive(Parse)]
 #[mulch_parse_error(|_| unimplemented!())]
 #[parse_direction(right)]
 struct MultiplyOrDivide {
@@ -87,13 +87,13 @@ struct MultiplyOrDivide {
     rhs: GCBox<PartialSpanned<Expression>>,
 }
 
-#[derive(Clone, GCPtr, GCDebug, Parse)]
+#[derive(Parse)]
 #[mulch_parse_error(|_| unimplemented!())]
 struct Exponentiate {
     #[parse_until_next]
     lhs: GCBox<PartialSpanned<Expression>>,
 
-    operator: punct!["^"],
+    _operator: punct!["^"],
 
     rhs: GCBox<PartialSpanned<Expression>>,
 }

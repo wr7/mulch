@@ -50,7 +50,7 @@ pub fn evaluate<'c>(ctx: &'c mut gc!(ast: Spanned<ast::Expression>)) -> DResult<
 }
 
 /// A `mulch` value
-#[derive(GCPtr, GCDebug, Clone, GCProject)]
+#[derive(GCPtr, GCDebug, Clone, Copy, GCProject)]
 #[repr(usize)]
 pub enum MValue {
     #[debug_direct]

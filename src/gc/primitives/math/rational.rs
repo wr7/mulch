@@ -48,7 +48,7 @@ use super::NumLiteralType;
 ///     }
 /// }
 /// ```
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct GCRational {
     ptr: NonZeroUsize,
     _phantomdata: PhantomData<*mut u8>,

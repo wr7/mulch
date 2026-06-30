@@ -19,7 +19,7 @@ use crate::{
 /// If the most-significant-bit is set, the remaining bits are the signed value.
 ///
 /// If the MSB is not set, the remaining bits should be interpereted as a `GCRational`
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct GCNumber {
     value: NonZeroUsize,
     _phantomdata: PhantomData<*mut u8>,

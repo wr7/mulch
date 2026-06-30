@@ -11,7 +11,7 @@ use crate::{
     parser::ast::{self, MemberAccess, NamedValue},
 };
 
-#[derive(Clone, GCDebug, GCPtr)]
+#[derive(Clone, Copy, GCDebug, GCPtr)]
 pub struct Set {
     values: GCVec<NamedMValue>,
 }
@@ -37,7 +37,7 @@ impl<'c> GC<'c, Set> {
     }
 }
 
-#[derive(Clone, GCDebug, GCPtr, GCProject)]
+#[derive(Clone, Copy, GCDebug, GCPtr, GCProject)]
 struct NamedMValue {
     name: Spanned<GCString>,
     value: LazyValue,
