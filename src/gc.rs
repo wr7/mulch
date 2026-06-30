@@ -15,7 +15,6 @@ pub use primitives::math;
 pub use primitives::*;
 pub use roots::GCRootEntry;
 pub use roots::GCRootRef;
-pub use roots::UnsafeRootGuard;
 pub use traits::*;
 
 use crate::error::PartialSpanned;

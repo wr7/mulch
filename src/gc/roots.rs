@@ -1,56 +1,8 @@
-use std::{cell::UnsafeCell, marker::PhantomData, mem::ManuallyDrop, num::NonZeroUsize};
+use std::{cell::UnsafeCell, marker::PhantomData, num::NonZeroUsize};
 
 use crate::gc::{GCPtr, GarbageCollector};
 
 pub use rootlist::GCRootList;
-
-/// A smart reference to a garbage-collection root. When this is dropped, it will remove the
-/// garbage-collector root associated with it. However, all garbage-collector roots must be removed
-/// in the opposite order in which they were created. Otherwise, undefined behavior may occur.
-///
-/// This is created with [`GarbageCollector::push_root`].
-pub struct UnsafeRootGuard<'gc, T: GCPtr> {
-    gc: &'gc GarbageCollector,
-    raw_ref: ManuallyDrop<GCRootRef<T>>,
-}
-
-impl<'gc, T: GCPtr> UnsafeRootGuard<'gc, T> {
-    pub unsafe fn new(gc: &'gc GarbageCollector, value: T) -> Self {
-        Self::from_raw(gc, unsafe { gc.push_root(value) })
-    }
-
-    pub fn from_raw(gc: &'gc GarbageCollector, raw: GCRootRef<T>) -> Self {
-        Self {
-            gc,
-            raw_ref: ManuallyDrop::new(raw),
-        }
-    }
-
-    pub fn into_raw(self) -> GCRootRef<T> {
-        let retval = ManuallyDrop::into_inner(self.raw_ref.clone());
-
-        std::mem::forget(self);
-
-        retval
-    }
-
-    pub fn as_raw(&self) -> &GCRootRef<T> {
-        &self.raw_ref
-    }
-
-    /// Gets the value of a GC root without removing it.
-    pub unsafe fn get(&self) -> T {
-        unsafe { self.raw_ref.get(self.gc) }
-    }
-}
-
-impl<'gc, T: GCPtr> Drop for UnsafeRootGuard<'gc, T> {
-    fn drop(&mut self) {
-        unsafe {
-            ManuallyDrop::<GCRootRef<T>>::take(&mut self.raw_ref).pop(self.gc);
-        }
-    }
-}
 
 mod rootlist {
     use super::*;
