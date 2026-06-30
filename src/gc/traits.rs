@@ -1,6 +1,6 @@
 use std::{fmt::Formatter, num::NonZeroUsize};
 
-use crate::gc::{GCBox, GCRootEntry, GarbageCollector, safety::GC, util::GCWrap};
+use crate::gc::{GCBox, GarbageCollector, roots::GCRootInfo, safety::GC, util::GCWrap};
 
 /// Represents a pointer to a garbage-collectable object.
 ///
@@ -42,7 +42,7 @@ pub unsafe trait GCPtr: Sized + Copy {
     /// [`GCRootGuard::new`](crate::gc::safety::GCRootGuard::new) should be used instead.
     /// # Safety
     /// - `self` must be valid and alive.
-    unsafe fn to_gc_root_entry(self, gc: &GarbageCollector) -> GCRootEntry {
+    unsafe fn to_gc_root_entry(self, gc: &GarbageCollector) -> GCRootInfo {
         unsafe fn copy_fn<Self_: GCPtr>(data: NonZeroUsize, gc: &GarbageCollector) -> NonZeroUsize {
             let old_box = GCBox::<Self_>::from_ptr(data);
             let new_box = unsafe { GCPtr::gc_copy(old_box, gc) };
@@ -52,11 +52,9 @@ pub unsafe trait GCPtr: Sized + Copy {
 
         let data = unsafe { GCBox::<Self>::new_raw(gc, self) };
 
-        GCRootEntry {
+        GCRootInfo {
             copy_fn: copy_fn::<Self>,
             data_ptr: data.ptr(),
-            #[cfg(debug_assertions)]
-            type_name: std::any::type_name::<Self>(),
         }
     }
 
@@ -66,12 +64,9 @@ pub unsafe trait GCPtr: Sized + Copy {
     /// [`GCRootGuard::get`](crate::gc::safety::GCRootGuard::get) should be used instead.
     ///
     /// # Safety
-    /// - The `GCRootEntry` must point to a valid and alive instance of `Self`.
-    unsafe fn from_gc_root_entry(gc: &GarbageCollector, entry: GCRootEntry) -> Self {
-        #[cfg(debug_assertions)]
-        assert_eq!(entry.type_name, std::any::type_name::<Self>());
-
-        let box_ = GCBox::<Self>::from_ptr(entry.data_ptr);
+    /// - `data_ptr` must be alive and should've been obtained through `Self::to_gc_root_entry`.
+    unsafe fn from_gc_root_entry(gc: &GarbageCollector, data_ptr: NonZeroUsize) -> Self {
+        let box_ = GCBox::<Self>::from_ptr(data_ptr);
         unsafe { box_.get(gc) }
     }
 }

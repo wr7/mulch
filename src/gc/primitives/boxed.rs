@@ -2,7 +2,7 @@ use std::{marker::PhantomData, mem, num::NonZeroUsize};
 
 use crate::gc::{
     GCDebug, GCEq, GCGet, GCPtr, GCSpace, GarbageCollector,
-    roots::GCRootEntry,
+    roots::GCRootInfo,
     safety::{GC, GCCtx},
 };
 
@@ -162,25 +162,21 @@ unsafe impl<T: GCPtr> GCPtr for GCBox<T> {
         new_box
     }
 
-    #[allow(private_interfaces)]
-    unsafe fn to_gc_root_entry(self, _gc: &GarbageCollector) -> GCRootEntry {
+    unsafe fn to_gc_root_entry(self, _gc: &GarbageCollector) -> GCRootInfo {
         unsafe fn copy_fn<T: GCPtr>(data: NonZeroUsize, gc: &GarbageCollector) -> NonZeroUsize {
             let old = GCBox::<T>::from_ptr(data);
             let new = unsafe { GCPtr::gc_copy(old, gc) };
             new.ptr()
         }
 
-        GCRootEntry {
+        GCRootInfo {
             copy_fn: copy_fn::<T>,
             data_ptr: self.ptr(),
-            #[cfg(debug_assertions)]
-            type_name: core::any::type_name::<Self>(),
         }
     }
 
-    #[allow(private_interfaces)]
-    unsafe fn from_gc_root_entry(_gc: &GarbageCollector, entry: GCRootEntry) -> Self {
-        Self::from_ptr(entry.data_ptr)
+    unsafe fn from_gc_root_entry(_gc: &GarbageCollector, data_ptr: NonZeroUsize) -> Self {
+        Self::from_ptr(data_ptr)
     }
 }
 

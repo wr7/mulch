@@ -13,7 +13,7 @@ pub use gcspace::GCSpace;
 use gmp_mpfr_sys::gmp;
 pub use primitives::math;
 pub use primitives::*;
-pub use roots::GCRootEntry;
+pub use roots::GCRootInfo;
 pub use roots::GCRootRef;
 pub use traits::*;
 

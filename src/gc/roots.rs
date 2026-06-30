@@ -61,17 +61,27 @@ mod rootlist {
 }
 
 #[derive(Clone, Copy)]
-pub struct GCRootEntry {
+pub struct GCRootInfo {
     /// The function that the garbage collector calls to copy this entry. Its first argument is `data_ptr`.
-    pub(super) copy_fn: unsafe fn(NonZeroUsize, &GarbageCollector) -> NonZeroUsize,
+    pub(crate) copy_fn: unsafe fn(NonZeroUsize, &GarbageCollector) -> NonZeroUsize,
 
     /// For most types, this is a `GCBox<Self>`. This data is determined by a type's `GCPtr`
     /// implementation.
-    pub(super) data_ptr: NonZeroUsize,
+    pub(crate) data_ptr: NonZeroUsize,
+}
+
+#[derive(Clone, Copy)]
+pub(super) struct GCRootEntry {
+    /// The function that the garbage collector calls to copy this entry. Its first argument is `data_ptr`.
+    pub(crate) copy_fn: unsafe fn(NonZeroUsize, &GarbageCollector) -> NonZeroUsize,
+
+    /// For most types, this is a `GCBox<Self>`. This data is determined by a type's `GCPtr`
+    /// implementation.
+    pub(crate) data_ptr: NonZeroUsize,
 
     /// The name of the type stored. This is only used for debug assertions.
     #[cfg(debug_assertions)]
-    pub(super) type_name: &'static str,
+    pub(crate) type_name: &'static str,
 }
 
 /// A raw reference to a GC root.
@@ -102,7 +112,7 @@ impl<T: GCPtr> GCRootRef<T> {
         #[cfg(debug_assertions)]
         assert_eq!(entry.type_name, core::any::type_name::<T>());
 
-        unsafe { <T as GCPtr>::from_gc_root_entry(gc, entry) }
+        unsafe { <T as GCPtr>::from_gc_root_entry(gc, entry.data_ptr) }
     }
 
     /// Frees a GC root. GC roots should always be removed in the opposite
@@ -139,8 +149,16 @@ impl GarbageCollector {
     /// created.
     #[must_use = "The GC root should be used and released at some point"]
     pub unsafe fn push_root<T: GCPtr>(&self, root: T) -> GCRootRef<T> {
-        let entry = unsafe { root.to_gc_root_entry(self) };
+        let info = unsafe { root.to_gc_root_entry(self) };
         let index = self.roots.len();
+
+        let entry = GCRootEntry {
+            copy_fn: info.copy_fn,
+            data_ptr: info.data_ptr,
+
+            #[cfg(debug_assertions)]
+            type_name: ::core::any::type_name::<T>(),
+        };
 
         self.roots.push(entry);
 

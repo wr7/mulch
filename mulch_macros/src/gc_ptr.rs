@@ -197,7 +197,8 @@ pub fn gc_entry_functions(item: &DeriveInput) -> Option<TokenStream> {
 
     let field_type = &field.ty;
 
-    let inner_value = quote! {<#field_type as ::mulch::gc::GCPtr>::from_gc_root_entry(gc, entry)};
+    let inner_value =
+        quote! {<#field_type as ::mulch::gc::GCPtr>::from_gc_root_entry(gc, data_ptr)};
 
     let wrapped_value = match field_name {
         FieldName::Name(ident) => quote! {
@@ -209,13 +210,13 @@ pub fn gc_entry_functions(item: &DeriveInput) -> Option<TokenStream> {
     };
 
     Some(quote! {
-        unsafe fn to_gc_root_entry(self, gc: &::mulch::gc::GarbageCollector) -> ::mulch::gc::GCRootEntry {
+        unsafe fn to_gc_root_entry(self, gc: &::mulch::gc::GarbageCollector) -> ::mulch::gc::GCRootInfo {
             unsafe {
                 <#field_type as ::mulch::gc::GCPtr>::to_gc_root_entry(self.#field_name, gc)
             }
         }
 
-        unsafe fn from_gc_root_entry(gc: &::mulch::gc::GarbageCollector, entry: ::mulch::gc::GCRootEntry) -> Self {
+        unsafe fn from_gc_root_entry(gc: &::mulch::gc::GarbageCollector, data_ptr: ::core::num::NonZeroUsize) -> Self {
             unsafe {
                 #wrapped_value
             }

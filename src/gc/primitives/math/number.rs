@@ -8,7 +8,7 @@ use crate::{
     error::{PartialSpanned, parse::PDResult},
     gc::{
         GCDebug, GCEq, GCPtr, GCWrap, GarbageCollector, math::rational::GCRational,
-        roots::GCRootEntry,
+        roots::GCRootInfo,
     },
 };
 
@@ -112,8 +112,7 @@ unsafe impl GCPtr for GCNumber {
         }
     }
 
-    #[allow(private_interfaces)]
-    unsafe fn to_gc_root_entry(self, _gc: &GarbageCollector) -> GCRootEntry {
+    unsafe fn to_gc_root_entry(self, _gc: &GarbageCollector) -> GCRootInfo {
         unsafe fn copy_fn(data: NonZeroUsize, gc: &GarbageCollector) -> NonZeroUsize {
             let old = GCNumber {
                 value: data,
@@ -124,17 +123,15 @@ unsafe impl GCPtr for GCNumber {
             new.value
         }
 
-        GCRootEntry {
+        GCRootInfo {
             copy_fn,
             data_ptr: self.value,
-            type_name: core::any::type_name::<Self>(),
         }
     }
 
-    #[allow(private_interfaces)]
-    unsafe fn from_gc_root_entry(_gc: &GarbageCollector, entry: GCRootEntry) -> Self {
+    unsafe fn from_gc_root_entry(_gc: &GarbageCollector, data_ptr: NonZeroUsize) -> Self {
         Self {
-            value: entry.data_ptr,
+            value: data_ptr,
             _phantomdata: PhantomData,
         }
     }

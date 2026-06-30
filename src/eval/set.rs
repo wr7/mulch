@@ -21,8 +21,7 @@ impl<'c> GC<'c, Set> {
         let gc = self.gc();
 
         let result_idx = unsafe {
-            self
-                .raw()
+            self.raw()
                 .values
                 .as_slice(gc)
                 .binary_search_by_key(&attr_name, |attr| attr.name.0.get(gc))
@@ -72,10 +71,8 @@ pub(super) fn evaluate_set<'c>(
 
     // SAFETY: nothing else is borrowing from the memory that `out_attrs` is pointing to
     unsafe {
-        let mut_slice = std::slice::from_raw_parts_mut(
-            out_attrs.raw().as_mut_ptr(ctx),
-            out_attrs.len(),
-        );
+        let mut_slice =
+            std::slice::from_raw_parts_mut(out_attrs.raw().as_mut_ptr(ctx), out_attrs.len());
 
         mut_slice.sort_by(|a, b| a.name.0.get(ctx).cmp(b.name.0.get(ctx)));
     }
@@ -122,11 +119,7 @@ pub(super) fn evaluate_member_access<'c>(
         let rhs: GC<GCString> = ast.project().rhs.project().0;
         let rhs = root!(ctx, rhs);
 
-        let lhs = ast
-            .project()
-            .lhs
-            .get()
-            .with_file_id(ast_span.file_id);
+        let lhs = ast.project().lhs.get().with_file_id(ast_span.file_id);
 
         let lhs = rebind!(ctx, eval::evaluate(gc_args!(ctx, lhs))?);
 
