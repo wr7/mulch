@@ -1,8 +1,8 @@
 use itertools::Itertools as _;
 use proc_macro2::{Span, TokenStream};
-use syn::{DataStruct, DeriveInput};
+use syn::{DataStruct, DeriveInput, Lifetime, LifetimeParam};
 
-use quote::{format_ident, quote};
+use quote::{ToTokens, format_ident, quote};
 
 use crate::util::FieldName;
 
@@ -69,9 +69,14 @@ fn derive_gc_project_struct_type(
 
     let projection_name = format_ident!("{}Proj", item.ident);
 
+    let generics =
+        std::iter::once(quote!('a)).chain(item.generics.params.iter().map(|g| g.to_token_stream()));
+
+    let where_clause = &item.generics.where_clause;
+
     Ok(quote! {
         #[doc = #doc_comment]
-        #vis struct #projection_name<'a> #struct_body
+        #vis struct #projection_name<#(#generics),*> #where_clause #struct_body
     })
 }
 
@@ -152,9 +157,20 @@ fn derive_gc_project_struct_from_impl(
         syn::Fields::Unit => unreachable!(),
     };
 
+    let mut generics = item.generics.clone();
+
+    generics.params.insert(
+        0,
+        syn::GenericParam::Lifetime(LifetimeParam::new(Lifetime::new("'a", Span::call_site()))),
+    );
+
+    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+
+    let (_, base_ty_generics, _) = item.generics.split_for_impl();
+
     Ok(quote! {
-        impl<'a> ::core::convert::From<#projection_name<'a>> for ::mulch::gc::safety::GC<'a, #name> {
-            fn from(val: #projection_name<'a>) -> Self {
+        impl #impl_generics ::core::convert::From<#projection_name #ty_generics> for ::mulch::gc::safety::GC<'a, #name #base_ty_generics> #where_clause {
+            fn from(val: #projection_name #ty_generics) -> Self {
                 #initial_field_gc_check
                 #(#fields_gc_check)*
 
@@ -218,9 +234,20 @@ fn derive_gc_project_struct_trait_impl(
         syn::Fields::Unit => unreachable!(),
     };
 
+    let mut generics = item.generics.clone();
+
+    generics.params.insert(
+        0,
+        syn::GenericParam::Lifetime(LifetimeParam::new(Lifetime::new("'a", Span::call_site()))),
+    );
+
+    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+
+    let (_, base_ty_generics, _) = item.generics.split_for_impl();
+
     Ok(quote! {
-        impl<'a> ::mulch::gc::GCProject<'a> for #name {
-            type Projected = #projected_name<'a>;
+        impl #impl_generics ::mulch::gc::GCProject<'a> for #name #base_ty_generics #where_clause {
+            type Projected = #projected_name #ty_generics;
 
             fn project(value: ::mulch::gc::safety::GC<'a, Self>) -> Self::Projected {
                 let gc = ::mulch::gc::safety::GC::gc(&value);

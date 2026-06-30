@@ -7,6 +7,13 @@ mod enum_;
 mod struct_;
 
 pub fn derive_gc_project(item: DeriveInput) -> syn::Result<TokenStream> {
+    if let Some(lifetime) = item.generics.lifetimes().next() {
+        return Err(syn::Error::new_spanned(
+            &lifetime,
+            "#[derive(GCProject)] does not support lifetime generics",
+        ));
+    }
+
     match &item.data {
         syn::Data::Struct(data_struct) => derive_gc_project_struct(&item, data_struct),
         syn::Data::Enum(data_enum) => derive_gc_project_enum(&item, data_enum),
