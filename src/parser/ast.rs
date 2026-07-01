@@ -82,7 +82,7 @@ fn parse_parenthized_expression(
 #[mulch_parse_error(|_| unimplemented!())]
 pub struct Set(pub CurlyBracketed<SeparatedList<NamedValue, punct![";"]>>);
 
-#[derive(GCPtr, GCDebug, GCEq, Parse, Clone, Copy)]
+#[derive(GCPtr, GCDebug, GCEq, Parse, Clone, Copy, GCProject)]
 #[debug_direct_with_name]
 #[mulch_parse_error(|_| unimplemented!())]
 pub struct List(pub SquareBracketed<SeparatedList<PartialSpanned<Expression>, punct![","]>>);

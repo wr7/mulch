@@ -25,7 +25,7 @@ mod util;
 
 // TODO:
 // - Add `phantom` annotations
-// - Use `zst` annotations for `GCPtr` optimizations
+// - Use `zst` and `phantom` annotations for `GCPtr` optimizations
 // - Add more parser tests for:
 //     - Set and list lambda arguments
 //     - Default lambda arguments and argument bindings
@@ -42,7 +42,8 @@ mod util;
 pub fn main() {
     let db = SourceDB::new();
 
-    let source = "{x = \"my_x_value\"; sub_set = {val_a = \"my_a_value\";}}.sub_set.val_a";
+    let source =
+        "[{x = \"my_x_value\"; sub_set = {val_a = \"my_a_value\";}}.sub_set.val_a, \"second_val\"]";
 
     let file_id = db.add("main.mulch".into(), source.to_owned());
 

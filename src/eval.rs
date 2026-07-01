@@ -2,13 +2,17 @@ use mulch_macros::{GCDebug, GCProject, GCPtr, gc_fn};
 
 mod error;
 mod lazyvalue;
+mod list;
 mod set;
 
 pub use set::Set;
 
 use crate::{
     error::{DResult, Spanned},
-    eval::set::{evaluate_member_access, evaluate_set},
+    eval::{
+        list::evaluate_list,
+        set::{evaluate_member_access, evaluate_set},
+    },
     gc::{
         GCNumber, GCString, GCVec,
         safety::{GC, Projected, gc_args, rebind},
@@ -45,7 +49,9 @@ pub fn evaluate<'c>(ctx: &'c mut gc!(ast: Spanned<ast::Expression>)) -> DResult<
         Projected::<ast::Expression>::Set(set) => {
             evaluate_set(gc_args!(ctx, Spanned(set, ast_span).into()))
         }
-        Projected::<ast::Expression>::List(_list) => todo!(),
+        Projected::<ast::Expression>::List(list) => {
+            evaluate_list(gc_args!(ctx, Spanned(list, ast_span).into()))
+        }
     }
 }
 
