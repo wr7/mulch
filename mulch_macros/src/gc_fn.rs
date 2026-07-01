@@ -55,14 +55,14 @@ pub fn gc_fn_impl(attr: TokenStream, input: TokenStream) -> syn::Result<TokenStr
         ));
     }
 
-    const GC_FN_ARG_ERROR: &'static str = "#[gc_fn] must have exactly one arg of the form `context_name: &mut gc!(...)` or `context_name: gc!(...)`";
+    const GC_FN_ARG_ERROR: &'static str = "The first argument of a #[gc_fn] must be of the form `context_name: &mut gc!(...)` or `context_name: gc!(...)`";
 
-    let Some(FnArg::Typed(fn_arg)) = inputs.first().filter(|_| inputs.len() == 1) else {
+    let Some(FnArg::Typed(gc_arg)) = inputs.first() else {
         return Err(syn::Error::new(Span::call_site(), GC_FN_ARG_ERROR));
     };
 
-    let syn::Pat::Ident(ctx_name) = &*fn_arg.pat else {
-        return Err(syn::Error::new_spanned(&*fn_arg.pat, GC_FN_ARG_ERROR));
+    let syn::Pat::Ident(ctx_name) = &*gc_arg.pat else {
+        return Err(syn::Error::new_spanned(&*gc_arg.pat, GC_FN_ARG_ERROR));
     };
 
     if ctx_name.by_ref.is_some()
@@ -70,23 +70,23 @@ pub fn gc_fn_impl(attr: TokenStream, input: TokenStream) -> syn::Result<TokenStr
         || ctx_name.subpat.is_some()
         || !ctx_name.attrs.is_empty()
     {
-        return Err(syn::Error::new_spanned(&*fn_arg.pat, GC_FN_ARG_ERROR));
+        return Err(syn::Error::new_spanned(&*gc_arg.pat, GC_FN_ARG_ERROR));
     }
 
-    let (ctx_lifetime, gc_macro) = match &*fn_arg.ty {
+    let (ctx_lifetime, gc_macro) = match &*gc_arg.ty {
         Type::Macro(type_macro) => (None, type_macro),
         Type::Reference(type_reference) => match &*type_reference.elem {
             Type::Macro(type_macro) => {
                 type_reference
                     .mutability
-                    .ok_or_else(|| syn::Error::new_spanned(&*fn_arg.ty, GC_FN_ARG_ERROR))?;
+                    .ok_or_else(|| syn::Error::new_spanned(&*gc_arg.ty, GC_FN_ARG_ERROR))?;
 
                 (type_reference.lifetime.as_ref(), type_macro)
             }
-            _ => return Err(syn::Error::new_spanned(&*fn_arg.ty, GC_FN_ARG_ERROR)),
+            _ => return Err(syn::Error::new_spanned(&*gc_arg.ty, GC_FN_ARG_ERROR)),
         },
         _ => {
-            return Err(syn::Error::new_spanned(&*fn_arg.ty, GC_FN_ARG_ERROR));
+            return Err(syn::Error::new_spanned(&*gc_arg.ty, GC_FN_ARG_ERROR));
         }
     };
 
@@ -117,6 +117,8 @@ pub fn gc_fn_impl(attr: TokenStream, input: TokenStream) -> syn::Result<TokenStr
     let gc_arg_names = gc_inputs.iter().map(|arg| &arg.ident);
     let gc_arg_names2 = gc_inputs.iter().map(|arg| &arg.ident);
 
+    let non_gc_args = inputs.iter().skip(1);
+
     Ok(quote! {
         #(
             #attrs
@@ -124,7 +126,8 @@ pub fn gc_fn_impl(attr: TokenStream, input: TokenStream) -> syn::Result<TokenStr
         #vis
 
         #unsafety #abi fn #ident #generics(
-            #ctx_name: ::mulch::gc::safety::GCArgs<#bundle_lifetime_args (#(#bundle_types,)*)>
+            #ctx_name: ::mulch::gc::safety::GCArgs<#bundle_lifetime_args (#(#bundle_types,)*)>,
+            #(#non_gc_args,)*
         ) #output #where_clause
 
         {

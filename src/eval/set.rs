@@ -135,5 +135,5 @@ pub(super) fn evaluate_member_access<'c>(
         }
     };
 
-    LazyValue::get_or_evaluate(gc_args!(ctx, lazy_value, GC::new_non_gc(ctx, ast_span)))
+    LazyValue::get_or_evaluate(gc_args!(ctx, lazy_value), ast_span)
 }

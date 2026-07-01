@@ -41,27 +41,22 @@ impl LazyValue {
         ctx: &'c mut gc!(
                 'gc,
                 value: Self,
-                usage_span: FullSpan
                 ),
+        usage_span: FullSpan,
     ) -> DResult<GC<'c, MValue>> {
         let inner = unsafe { GC::new(ctx, value.raw().inner) };
 
         match inner.get().project() {
             Projected::<LazyValueData>::Evaluated(mvalue) => return Ok(rebind!(ctx, mvalue)),
-            Projected::<LazyValueData>::CurrentlyBeingEvaluated(definition_span) => {
-                Err(eval::error::illegal_recursively_defined_value(
-                    definition_span.raw(),
-                    usage_span.raw(),
-                ))
-            }
+            Projected::<LazyValueData>::CurrentlyBeingEvaluated(definition_span) => Err(
+                eval::error::illegal_recursively_defined_value(definition_span.raw(), usage_span),
+            ),
             Projected::<LazyValueData>::Unevaluated(ast) => {
                 unsafe {
                     inner
                         .raw()
                         .as_mut(ctx)
-                        .write(LazyValueData::CurrentlyBeingEvaluated(
-                            ast.project().1,
-                        ))
+                        .write(LazyValueData::CurrentlyBeingEvaluated(ast.project().1))
                 };
 
                 let inner_root = root!(ctx, inner);
