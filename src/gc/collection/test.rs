@@ -38,9 +38,9 @@ fn create_string_list<'c>(ctx: &'c mut GCCtx, strings: &[&'static str]) -> GC<'c
         .map(|s| {
             let string = rebind!(ctx, create_string_val(ctx, s));
 
-            // SAFETY: we drop these guards in reverse order later in the function.
+            // PANIC NOTE: we drop these guards in reverse order later in the function.
             // Notably, we do not create any more roots before then
-            unsafe { GCRootGuard::new(ctx, string) }
+            GCRootGuard::new(ctx, string)
         })
         .collect();
 

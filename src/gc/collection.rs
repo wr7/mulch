@@ -8,12 +8,14 @@ impl GarbageCollector {
         let num_roots = self.roots.len();
 
         for i in 0..num_roots {
-            let old_entry = unsafe { self.roots.get_unchecked(i) };
+            let Some(old_entry) = (unsafe { self.roots.get_unchecked(i) }) else {
+                continue;
+            };
 
             let mut new_entry = old_entry;
             new_entry.data_ptr = unsafe { (old_entry.copy_fn)(old_entry.data_ptr, self) };
 
-            self.roots.set(i, new_entry);
+            self.roots.set(i, Some(new_entry));
         }
 
         assert_eq!(self.roots.len(), num_roots);

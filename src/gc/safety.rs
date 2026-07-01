@@ -137,10 +137,12 @@ pub struct GCRootGuard<'gc, T: GCPtr> {
 impl<'gc, T: GCPtr> GCRootGuard<'gc, T> {
     /// Creates a new garbage collection root.
     ///
-    /// # Safety
-    /// - The caller must ensure that all garbage collection roots are dropped in the reverse order
-    ///   in which they're created.
-    pub unsafe fn new<'b>(gc: &'gc GarbageCollector, value: GC<'b, T>) -> Self {
+    /// WARNING: **The caller must ensure that all garbage collection roots are dropped in the
+    /// reverse order in which they're created. Otherwise, a panic will be triggered.**
+    ///
+    /// **You should generally avoid using this function because it's easy to accidentally trigger a
+    /// panic. Use the [`root`] macro instead.**
+    pub fn new<'b>(gc: &'gc GarbageCollector, value: GC<'b, T>) -> Self {
         unsafe {
             assert_eq!(
                 gc as *const GarbageCollector,
@@ -163,7 +165,23 @@ impl<'gc, T: GCPtr> GCRootGuard<'gc, T> {
             ctx.gc as *const GarbageCollector
         );
 
-        unsafe { GC::new(ctx, self.raw_ref.get(self.gc)) }
+        let Some(val) = (unsafe { self.raw_ref.get(self.gc) }) else {
+            panic!("root.get() called on empty GC root!!`")
+        };
+
+        unsafe { GC::new(ctx, val) }
+    }
+
+    /// Removes a GC root without freeing it.
+    ///
+    /// WARNING: **trying to access the value in the root after calling this function will result in
+    /// a panic! This function also does not remove any obligations in regards to root drop order!**
+    pub fn remove(&self) {
+        if unsafe { self.raw_ref.get(self.gc) }.is_none() {
+            panic!("root.remove() called on empty GC root!!`")
+        }
+
+        unsafe { self.raw_ref.remove(self.gc) };
     }
 }
 
@@ -181,12 +199,9 @@ impl<'gc, T: GCPtr> Drop for GCRootGuard<'gc, T> {
 /// This macro will ensure at compile time that any roots defined with it are dropped in the
 /// required order.
 macro_rules! root {
-    ($gc:expr, $val:expr) => {{
-        let v = $val;
-        let gc = &$gc;
-
-        ::core::pin::pin!(unsafe { $crate::gc::safety::GCRootGuard::new(gc, v) })
-    }};
+    ($gc:expr, $val:expr) => {
+        ::core::pin::pin!($crate::gc::safety::GCRootGuard::new(&$gc, $val))
+    };
 }
 
 /// Immutably re-borrows a `GC<'_, _>` object.

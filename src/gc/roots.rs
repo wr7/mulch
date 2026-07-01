@@ -8,7 +8,7 @@ mod rootlist {
     use super::*;
 
     pub struct GCRootList {
-        roots: UnsafeCell<Vec<GCRootEntry>>,
+        roots: UnsafeCell<Vec<Option<GCRootEntry>>>,
     }
 
     impl GCRootList {
@@ -18,7 +18,7 @@ mod rootlist {
             }
         }
 
-        pub fn get(&self, index: usize) -> GCRootEntry {
+        pub fn get(&self, index: usize) -> Option<GCRootEntry> {
             let vec = unsafe { self.roots.get().as_ref_unchecked() };
 
             assert!(index < vec.len());
@@ -26,7 +26,7 @@ mod rootlist {
             unsafe { vec.as_ptr().add(index).read() }
         }
 
-        pub unsafe fn get_unchecked(&self, index: usize) -> GCRootEntry {
+        pub unsafe fn get_unchecked(&self, index: usize) -> Option<GCRootEntry> {
             let vec = unsafe { self.roots.get().as_ref_unchecked() };
 
             debug_assert!(index < vec.len());
@@ -37,7 +37,7 @@ mod rootlist {
         // NOTE: all of this interior mutability is safe because we don't provide a safe way to get
         // a reference to any element.
 
-        pub fn set(&self, index: usize, value: GCRootEntry) {
+        pub fn set(&self, index: usize, value: Option<GCRootEntry>) {
             unsafe { self.roots.get().as_mut_unchecked()[index] = value }
         }
 
@@ -46,7 +46,7 @@ mod rootlist {
         }
 
         pub(super) fn push(&self, entry: GCRootEntry) {
-            unsafe { self.roots.get().as_mut_unchecked().push(entry) };
+            unsafe { self.roots.get().as_mut_unchecked().push(Some(entry)) };
         }
 
         pub(super) fn remove_last_root(&self) {
@@ -93,35 +93,45 @@ pub struct GCRootRef<T> {
     _phantomdata: PhantomData<T>,
 }
 
-impl<T> Clone for GCRootRef<T> {
-    fn clone(&self) -> Self {
-        Self {
-            index: self.index,
-            _phantomdata: PhantomData,
-        }
-    }
-}
-
 impl<T: GCPtr> GCRootRef<T> {
     /// Gets the value of a GC root without removing it.
-    pub fn get(&self, gc: &GarbageCollector) -> T {
+    ///
+    /// # Safety
+    /// - `self` must point to a valid root in `gc`
+    pub unsafe fn get(&self, gc: &GarbageCollector) -> Option<T> {
         debug_assert!(self.index < gc.roots.len());
 
-        let entry = unsafe { gc.roots.get_unchecked(self.index) };
+        let entry = unsafe { gc.roots.get_unchecked(self.index) }?;
 
         #[cfg(debug_assertions)]
         assert_eq!(entry.type_name, core::any::type_name::<T>());
 
-        unsafe { <T as GCPtr>::from_gc_root_entry(gc, entry.data_ptr) }
+        Some(unsafe { <T as GCPtr>::from_gc_root_entry(gc, entry.data_ptr) })
     }
 
     /// Frees a GC root. GC roots should always be removed in the opposite
     /// order in which they were created.
-    pub fn free(self, gc: &GarbageCollector) {
-        debug_assert_eq!(gc.roots.len(), self.index + 1);
+    ///
+    /// # Safety
+    /// - `self` must point to a valid root in `gc`
+    pub unsafe fn free(self, gc: &GarbageCollector) {
+        assert_eq!(gc.roots.len(), self.index + 1);
         gc.roots.remove_last_root();
 
         self.forget();
+    }
+
+    /// Removes a GC root without actually removing it from the GC root stack. When
+    /// [`GCRootRef::get`] is called on it, `None` is returned.
+    ///
+    /// This is useful for removing GC roots in a non stack-like order. Notably, this does
+    /// not "free" the root. The root must still be freed using [`GCRootRef::free`] or
+    /// [`GarbageCollector::truncate_roots`].
+    ///
+    /// # Safety
+    /// - `self` must point to a valid root in `gc`
+    pub unsafe fn remove(&self, gc: &GarbageCollector) {
+        gc.roots.set(self.index, None);
     }
 
     /// Destroys a `GCRootRef` without removing the root that it points to. This is useful for
@@ -169,12 +179,14 @@ impl GarbageCollector {
     }
 
     /// Removes a GC root along with all roots after it.
-    pub fn truncate_roots<T: GCPtr>(&self, root: GCRootRef<T>) {
+    ///
+    /// # Safety
+    /// - The caller must ensure that none of the roots that were created after this one are in use.
+    pub unsafe fn truncate_roots<T: GCPtr>(&self, root: GCRootRef<T>) {
         #[cfg(debug_assertions)]
-        assert_eq!(
-            self.roots.get(root.index).type_name,
-            core::any::type_name::<T>()
-        );
+        if let Some(entry) = self.roots.get(root.index) {
+            assert_eq!(entry.type_name, core::any::type_name::<T>());
+        }
 
         self.roots.truncate(root.index);
         root.forget();
