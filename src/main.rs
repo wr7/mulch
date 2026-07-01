@@ -6,10 +6,7 @@ use error::{SourceDB, dresult_unwrap};
 use crate::{
     error::{PartialSpanned, pdresult_unwrap},
     eval::evaluate,
-    gc::{
-        GCPtr,
-        safety::{GC, gc_args, let_gc_and_context},
-    },
+    gc::safety::{GC, gc_args, let_gc_and_context},
     parser::{Parse, Parser},
 };
 
@@ -24,6 +21,7 @@ pub mod parser;
 mod util;
 
 // TODO:
+// - Replace `From` impl with `deproject` method for `GCProject` trait
 // - Add `phantom` annotations
 // - Use `zst` and `phantom` annotations for `GCPtr` optimizations
 // - Add more parser tests for:
@@ -60,11 +58,18 @@ pub fn main() {
     )
     .unwrap();
 
-    unsafe { dbg!(ast.wrap(&gc)) };
-
     let ast = unsafe { GC::new(ctx, ast) };
 
-    let value = dresult_unwrap(evaluate(gc_args!(ctx, ast.with_file_id(0))), &db);
+    dbg!(ast);
+
+    let value = dresult_unwrap(
+        evaluate(gc_args!(
+            ctx,
+            ast.with_file_id(0),
+            eval::Scope::new_global(ctx)
+        )),
+        &db,
+    );
 
     dbg!(value);
 }

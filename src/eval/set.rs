@@ -3,10 +3,10 @@ use mulch_macros::{GCDebug, GCProject, GCPtr, gc_fn};
 
 use crate::{
     error::{DResult, Spanned},
-    eval::{self, MValue, lazyvalue::LazyValue},
+    eval::{self, MValue, Scope, lazyvalue::LazyValue},
     gc::{
-        GCString, GCVec,
-        safety::{GC, Projected, gc_args, rebind, root},
+        GCBox, GCString, GCVec,
+        safety::{GC, GCCtx, Projected, gc_args, rebind, root},
     },
     parser::ast::{self, MemberAccess, NamedValue},
 };
@@ -14,6 +14,21 @@ use crate::{
 #[derive(Clone, Copy, GCDebug, GCPtr)]
 pub struct Set {
     values: GCVec<NamedMValue>,
+}
+
+impl Set {
+    pub fn new_empty<'c>(ctx: &'c GCCtx) -> GC<'c, Self> {
+        let values = GCVec::<NamedMValue>::new_empty(ctx);
+
+        unsafe {
+            GC::new(
+                ctx,
+                Set {
+                    values: values.raw(),
+                },
+            )
+        }
+    }
 }
 
 impl<'c> GC<'c, Set> {
@@ -44,13 +59,15 @@ struct NamedMValue {
 
 #[gc_fn]
 pub(super) fn evaluate_set<'c>(
-    ctx: &'c mut gc!(ast: Spanned<ast::Set>),
+    ctx: &'c mut gc!(ast: Spanned<ast::Set>, scope: Scope),
 ) -> DResult<GC<'c, MValue>> {
     let ast = ast.project();
 
     let ast_attributes: GC<GCVec<NamedValue>> = ast.0.project().0.project().0.project().values;
 
     let file_id = ast.1.file_id;
+
+    let scope_box = GCBox::new(scope);
 
     let named_values = ast_attributes.iter().map(|attr| {
         Projected::<NamedMValue> {
@@ -59,7 +76,7 @@ pub(super) fn evaluate_set<'c>(
                 .name
                 .map(|id| id.project().0)
                 .with_file_id(file_id),
-            value: LazyValue::from_ast(ctx, attr.project().value.with_file_id(file_id)),
+            value: LazyValue::from_ast(ctx, attr.project().value.with_file_id(file_id), scope_box),
         }
         .into()
     });
@@ -105,7 +122,7 @@ pub(super) fn evaluate_set<'c>(
 
 #[gc_fn]
 pub(super) fn evaluate_member_access<'c>(
-    ctx: &'c mut gc!(ast: Spanned<MemberAccess>),
+    ctx: &'c mut gc!(ast: Spanned<MemberAccess>, scope: Scope),
 ) -> DResult<GC<'c, MValue>> {
     let lazy_value;
     let ast_span;
@@ -121,7 +138,7 @@ pub(super) fn evaluate_member_access<'c>(
 
         let lhs = ast.project().lhs.get().with_file_id(ast_span.file_id);
 
-        let lhs = rebind!(ctx, eval::evaluate(gc_args!(ctx, lhs))?);
+        let lhs = rebind!(ctx, eval::evaluate(gc_args!(ctx, lhs, scope))?);
 
         let Projected::<MValue>::Set(lhs) = lhs.project() else {
             return Err(eval::error::member_access_on_non_set(ast_span));

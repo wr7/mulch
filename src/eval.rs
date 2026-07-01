@@ -3,8 +3,10 @@ use mulch_macros::{GCDebug, GCProject, GCPtr, gc_fn};
 mod error;
 mod lazyvalue;
 mod list;
+mod scope;
 mod set;
 
+pub use scope::Scope;
 pub use set::Set;
 
 use crate::{
@@ -21,7 +23,9 @@ use crate::{
 };
 
 #[gc_fn]
-pub fn evaluate<'c>(ctx: &'c mut gc!(ast: Spanned<ast::Expression>)) -> DResult<GC<'c, MValue>> {
+pub fn evaluate<'c>(
+    ctx: &'c mut gc!(ast: Spanned<ast::Expression>, scope: Scope),
+) -> DResult<GC<'c, MValue>> {
     let ast = ast.project();
     let ast_span = ast.1;
     let ast = ast.0;
@@ -43,14 +47,14 @@ pub fn evaluate<'c>(ctx: &'c mut gc!(ast: Spanned<ast::Expression>)) -> DResult<
         Projected::<ast::Expression>::UnaryOperation(_unary_operation) => todo!(),
         Projected::<ast::Expression>::MethodCall(_method_call) => todo!(),
         Projected::<ast::Expression>::FunctionCall(_function_call) => todo!(),
-        Projected::<ast::Expression>::MemberAccess(member_access) => {
-            evaluate_member_access(gc_args!(ctx, Spanned(member_access, ast_span).into()))
-        }
+        Projected::<ast::Expression>::MemberAccess(member_access) => evaluate_member_access(
+            gc_args!(ctx, Spanned(member_access, ast_span).into(), scope),
+        ),
         Projected::<ast::Expression>::Set(set) => {
-            evaluate_set(gc_args!(ctx, Spanned(set, ast_span).into()))
+            evaluate_set(gc_args!(ctx, Spanned(set, ast_span).into(), scope))
         }
         Projected::<ast::Expression>::List(list) => {
-            evaluate_list(gc_args!(ctx, Spanned(list, ast_span).into()))
+            evaluate_list(gc_args!(ctx, Spanned(list, ast_span).into(), scope))
         }
     }
 }

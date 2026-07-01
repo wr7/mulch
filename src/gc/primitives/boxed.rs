@@ -1,9 +1,7 @@
 use std::{marker::PhantomData, mem, num::NonZeroUsize};
 
 use crate::gc::{
-    GCDebug, GCEq, GCGet, GCPtr, GCSpace, GarbageCollector,
-    roots::GCRootInfo,
-    safety::{GC, GCCtx},
+    GCDebug, GCEq, GCGet, GCPtr, GCSpace, GarbageCollector, roots::GCRootInfo, safety::GC,
 };
 
 /// Analogous to `std::boxed::Box`. This can be useful for recursively-defined datastructures.
@@ -49,8 +47,8 @@ impl<T: GCPtr> GCBox<T> {
         ptr
     }
 
-    pub fn new<'c>(ctx: &'c GCCtx, value: GC<'c, T>) -> GC<'c, GCBox<T>> {
-        unsafe { GC::new(ctx, Self::new_raw(ctx, value.raw())) }
+    pub fn new<'c>(value: GC<'c, T>) -> GC<'c, GCBox<T>> {
+        unsafe { GC::from_raw_parts(value.gc(), Self::new_raw(value.gc(), value.raw())) }
     }
 
     pub(crate) fn from_ptr(value: NonZeroUsize) -> Self {

@@ -81,6 +81,10 @@ impl<T: GCPtr> GCVec<T> {
         unsafe { Self::new_uninit_in_space(&gc.from_space, len) }
     }
 
+    pub fn new_empty<'c>(ctx: &'c GCCtx) -> GC<'c, Self> {
+        Self::from_iter_and_len(ctx, std::iter::empty(), 0)
+    }
+
     pub(crate) fn from_iter_and_len<'a, 'b, I>(
         ctx: &'a GCCtx<'_>,
         elements: I,

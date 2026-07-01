@@ -2,7 +2,7 @@ use mulch_macros::gc_fn;
 
 use crate::{
     error::{DResult, PartialSpanned, Spanned},
-    eval::{self, MValue},
+    eval::{self, MValue, Scope},
     gc::{
         GCVec,
         safety::{GC, GCRootGuard, Projected, gc_args, rebind},
@@ -12,7 +12,7 @@ use crate::{
 
 #[gc_fn]
 pub(super) fn evaluate_list<'c>(
-    ctx: &'c mut gc!(ast: Spanned<ast::List>),
+    ctx: &'c mut gc!(ast: Spanned<ast::List>, scope: Scope),
 ) -> DResult<GC<'c, MValue>> {
     let ast_span = ast.project().1;
     let ast = ast.project().0;
@@ -33,13 +33,19 @@ pub(super) fn evaluate_list<'c>(
         elem_ast_roots.push(GCRootGuard::new(ctx, elem_ast));
     }
 
+    // PANIC NOTE: All roots created after this are freed first
+    let scope_root = GCRootGuard::new(ctx, scope);
+
     // Evaluate the element ASTs //
     let mut elem_value_roots: Vec<GCRootGuard<MValue>> = Vec::with_capacity(elem_asts.len());
 
     for elem_ast_root in elem_ast_roots.iter() {
         let elem_ast = elem_ast_root.get(ctx).with_file_id(ast_span.file_id);
 
-        let elem_value = rebind!(ctx, eval::evaluate(gc_args!(ctx, elem_ast))?);
+        let elem_value = rebind!(
+            ctx,
+            eval::evaluate(gc_args!(ctx, elem_ast, scope_root.get(ctx)))?
+        );
 
         elem_ast_root.remove();
 
@@ -60,6 +66,8 @@ pub(super) fn evaluate_list<'c>(
     for elem_value_root in elem_value_roots.into_iter().rev() {
         std::mem::drop(elem_value_root);
     }
+
+    std::mem::drop(scope_root);
 
     // Drop the AST roots in reverse order //
     for elem_ast_root in elem_ast_roots.into_iter().rev() {
